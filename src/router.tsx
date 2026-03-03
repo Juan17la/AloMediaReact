@@ -4,22 +4,39 @@ import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import RecoverPage from "./pages/auth/RecoverPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
+import PublicRoute from "./routes/PublicRoute";
+import PrivateRoute from "./routes/PrivateRoute";
 
 const router = createBrowserRouter([
+  // ── Public-only routes (redirect to /dashboard if already logged in) ───────
   {
-    path: "/auth",
-    element: <AuthLayout />,
+    element: <PublicRoute />,
     children: [
-      { index: true, element: <Navigate to="login" replace /> },
-      { path: "login", element: <LoginPage /> },
-      { path: "register", element: <RegisterPage /> },
-      { path: "recover", element: <RecoverPage /> },
+      {
+        path: "/auth",
+        element: <AuthLayout />,
+        children: [
+          { index: true, element: <Navigate to="login" replace /> },
+          { path: "login", element: <LoginPage /> },
+          { path: "register", element: <RegisterPage /> },
+          { path: "recover", element: <RecoverPage /> },
+        ],
+      },
     ],
   },
+
+  // ── Private routes (redirect to /auth/login if not logged in) ────────────
   {
-    path: "/dashboard",
-    element: <DashboardPage />,
+    element: <PrivateRoute />,
+    children: [
+      {
+        path: "/dashboard",
+        element: <DashboardPage />,
+      },
+    ],
   },
+
+  // ── Fallback ──────────────────────────────────────────────────────────────
   {
     path: "*",
     element: <Navigate to="/auth/login" replace />,

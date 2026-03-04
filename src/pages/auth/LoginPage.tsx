@@ -75,6 +75,10 @@ export default function LoginPage() {
     }
   };
 
+  const handleOAuthLoginGoogle = () => {
+    window.location.href = import.meta.env.VITE_BASE_URL + "/oauth2/authorize/google";
+  }
+
   return (
     <div className="glass-card rounded-3xl p-8 sm:p-10 shadow-2xl shadow-black/40 animate-slide-up">
       {/* Logo area */}
@@ -169,6 +173,7 @@ export default function LoginPage() {
           <button
             type="button"
             className="flex items-center justify-center gap-3 w-full bg-dark-card/60 hover:bg-dark-elevated/80 border border-dark-border hover:border-dark-border-light text-accent-white font-semibold py-3.5 rounded-xl transition-all duration-200 text-sm group cursor-pointer"
+            onClick={handleOAuthLoginGoogle}
           >
             <Chrome className="w-5 h-5 text-muted group-hover:text-accent-white transition-colors" />
             Sign in with Google

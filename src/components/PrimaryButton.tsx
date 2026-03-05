@@ -10,6 +10,10 @@ interface PrimaryButtonProps {
   className?: string;
 }
 
+// Record<ButtonSize, string>: lookup map that associates each ButtonSize key
+// ("sm" | "md" | "lg") with its corresponding Tailwind padding/text classes.
+// Used at render time as sizeStyles[size] to select the correct class string
+// without any conditional branch or loop — O(1) key access.
 const sizeStyles: Record<ButtonSize, string> = {
   sm: "py-2 px-4 text-sm",
   md: "py-2.5 px-5 text-sm",

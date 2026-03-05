@@ -1,144 +1,58 @@
-// Base URL 
+import { http } from "../api/http"
+import type {
+  LoginPayload,
+  RegisterPayload,
+  AuthResponse,
+  MeResponse,
+  RecoverRequestPayload,
+  RecoverResetPayload
+} from "../types/authTypes"
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
-
-// Payload types 
-
-export interface LoginPayload {
-  email: string;
-  password: string;
-}
-
-export interface RegisterPayload {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-}
-
-// Response types
-
-/** Shape returned by POST /auth/login and POST /auth/register */
-export interface AuthResponse {
-  token: string;
-  user: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    role: string;
-  };
-}
-
-/** Shape returned by GET /auth/me */
-export interface MeResponse {
-  authenticated: boolean;
-  user: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    role: string;
-  };
-}
-
-// Error types 
-
-export interface FieldError {
-  field: string;
-  message: string;
-}
-
-/** Thrown when the API returns a non-2xx response. */
-export class ApiError extends Error {
-  readonly status: number;
-  readonly fields: FieldError[];
-
-  constructor(message: string, status: number, fields: FieldError[] = []) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.fields = fields;
-  }
-
-  /** Returns the error message for a specific field, or undefined. */
-  fieldMessage(field: string): string | undefined {
-    return this.fields.find((f) => f.field === field)?.message;
-  }
-}
-
-// Helpers 
-
-async function handleResponse<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as {
-      message?: string;
-      errors?: FieldError[];
-      status?: number;
-    };
-    throw new ApiError(
-      body.message ?? `HTTP ${res.status}`,
-      body.status ?? res.status,
-      body.errors ?? [],
-    );
-  }
-  return res.json() as Promise<T>;
-}
-
-// Requests 
-
-/**
- * POST /auth/login
- * Body: { email, password }
- */
-export async function loginRequest(payload: LoginPayload): Promise<AuthResponse> {
-  const res = await fetch(`${BASE_URL}/auth/login`, {
+export function signIn(payload: LoginPayload) {
+  return http<AuthResponse>("/auth/login", {
     method: "POST",
-    credentials: "include", // Include cookies for session management
-    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+}
+
+export function signUp(payload: RegisterPayload) {
+  return http<AuthResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  })
+}
+
+export function me() {
+  return http<MeResponse>("/auth/me", {
+    method: "GET"
+  })
+}
+
+export function signout() {
+  return http<void>("/auth/logout", {
+    method: "POST",
+    parse: false
+  })
+}
+
+export function recoverRequest(payload: RecoverRequestPayload) {
+  return http<void>("/auth/recover/request", {
+    method: "POST",
     body: JSON.stringify(payload),
-  });
-  return handleResponse<AuthResponse>(res);
+    parse: false
+  })
 }
 
-/**
- * POST /auth/register
- * Body: { firstName, lastName, email, password }
- */
-export async function registerRequest(payload: RegisterPayload): Promise<AuthResponse> {
-  const res = await fetch(`${BASE_URL}/auth/register`, {
+export function validateRecoverToken(token: string) {
+  return http<void>(`/auth/recover/validate?token=${token}`, {
+    parse: false
+  })
+}
+
+export function recoverReset(payload: RecoverResetPayload) {
+  return http<void>("/auth/recover/reset", {
     method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
-  });
-  return handleResponse<AuthResponse>(res);
-}
-
-/**
- * GET /auth/me
- * Verifies the current session using the HttpOnly cookie.
- * Returns { authenticated, user } — does NOT include a new token.
- */
-export async function meRequest(): Promise<MeResponse> {
-  const res = await fetch(`${BASE_URL}/auth/me`, {
-    method: "GET",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-  });
-  return handleResponse<MeResponse>(res);
-}
-
-/**
- * POST /auth/logout
- * Clears the HttpOnly auth cookie on the server.
- */
-export async function logoutRequest(): Promise<void> {
-  const res = await fetch(`${BASE_URL}/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
-  if (!res.ok) {
-    throw new ApiError(`Logout failed: HTTP ${res.status}`, res.status);
-  }
+    parse: false
+  })
 }

@@ -3,6 +3,7 @@ import AuthLayout from "./layouts/AuthLayout";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import RecoverPage from "./pages/auth/RecoverPage";
+import RecoverRequestPage from "./pages/auth/RecoverRequestPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import PublicRoute from "./routes/PublicRoute";
 import PrivateRoute from "./routes/PrivateRoute";
@@ -20,6 +21,7 @@ const router = createBrowserRouter([
           { path: "login", element: <LoginPage /> },
           { path: "register", element: <RegisterPage /> },
           { path: "recover", element: <RecoverPage /> },
+          { path: "recover/request", element: <RecoverRequestPage /> },
         ],
       },
     ],

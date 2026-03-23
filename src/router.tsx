@@ -36,13 +36,15 @@ const router = createBrowserRouter([
         path: "/dashboard",
         element: <DashboardPage />,
       },
+      {
+        path: "/editor",
+        element: <VideoEditor />,
+      },
+      {
+        path: "/editor/:projectId",
+        element: <VideoEditor />,
+      },
     ],
-  },
-
-  // testing routes 
-  {
-    path: "/editor",
-    element: <VideoEditor />,
   },
 
   // Fallback 

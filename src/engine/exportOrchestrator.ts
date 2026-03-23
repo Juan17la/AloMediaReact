@@ -50,13 +50,20 @@ export async function runExport(
 
   const encodingStartedAt = Date.now()
 
-  ffmpeg.on('progress', ({ progress }) => {
+  const onEncodingProgress = ({ progress }: { progress: number }) => {
     const encodingPct = 20 + progress * 75
     const clampedPct = Math.min(95, Math.round(encodingPct))
     const encodingPercent = (clampedPct - 20) / 75 * 100
     const secondsRemaining = estimateTimeRemaining(encodingStartedAt, encodingPercent)
     onProgress({ stage: 'encoding', percent: clampedPct, secondsRemaining })
-  })
+  }
+  ffmpeg.on('progress', onEncodingProgress)
+
+  const handleAbort = () => {
+    // ffmpeg.exec cannot be interrupted by signal alone; terminate the worker to stop encoding.
+    ffmpeg.terminate()
+  }
+  signal.addEventListener('abort', handleAbort, { once: true })
 
   const outputFile = `output.${job.outputFormat}`
   const execArgs = buildExecArgs(graph, job, outputFile)
@@ -64,8 +71,14 @@ export async function runExport(
   try {
     await ffmpeg.exec(execArgs)
   } catch (err) {
+    if (signal.aborted || isFfmpegTerminateError(err)) {
+      throw new DOMException('Export cancelled', 'AbortError')
+    }
     await cleanup(ffmpeg, written, job.outputFormat)
     throw err
+  } finally {
+    signal.removeEventListener('abort', handleAbort)
+    ffmpeg.off('progress', onEncodingProgress)
   }
 
   // Stage: reading-output (95–98%) 
@@ -83,6 +96,13 @@ export async function runExport(
   }
 
   return result!
+}
+
+function isFfmpegTerminateError(err: unknown): boolean {
+  if (err instanceof Error) {
+    return err.message.includes('FFmpeg.terminate')
+  }
+  return String(err).includes('FFmpeg.terminate')
 }
 
 function buildExecArgs(

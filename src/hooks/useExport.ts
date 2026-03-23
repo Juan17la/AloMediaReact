@@ -65,7 +65,7 @@ export function useExport(): UseExportReturn {
 
       setProgress({ stage: 'done', percent: 100, secondsRemaining: null })
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
+      if ((err instanceof DOMException && err.name === 'AbortError') || isFfmpegTerminateError(err)) {
         // setProgress({ stage: 'error', percent: 0, secondsRemaining: null, errorMessage: 'Export cancelled' })
         setProgress(null)
       } else {
@@ -79,4 +79,11 @@ export function useExport(): UseExportReturn {
   }
 
   return { startExport, cancelExport, resetExportState, progress, isExporting }
+}
+
+function isFfmpegTerminateError(err: unknown): boolean {
+  if (err instanceof Error) {
+    return err.message.includes('FFmpeg.terminate')
+  }
+  return String(err).includes('FFmpeg.terminate')
 }

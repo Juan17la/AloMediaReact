@@ -11,7 +11,7 @@ import { EditorToolbar } from "../../components/editor/EditorToolbar"
 import { SaveProjectModal } from "../../components/editor/SaveProjectModal"
 import { ShareProjectModal } from "../../components/editor/ShareProjectModal"
 import { UnsavedChangesModal } from "../../components/editor/UnsavedChangesModal"
-import { useEditorStore } from "../../store/editorStore"
+import { useEditorStore, fileMap } from "../../store/editorStore"
 import { loadProject } from "../../project/projectSerializer"
 import { useExport } from "../../hooks/useExport"
 import { useEditorKeyboardShortcuts } from "../../hooks/useEditorKeyboardShortcuts"
@@ -20,12 +20,16 @@ import { serializeTimeline, deserializeTimeline } from "../../utils/timelineSeri
 import type { ApiProject } from "../../types/projectApiTypes"
 import type { Project } from "../../project/projectTypes"
 import { ApiError } from "../../api/errors"
+import { MediaRelinkDialog } from "../../components/editor/MediaRelinkDialog"
+import { saveFileToCache, evictExpiredEntries } from "../../services/fileCacheService"
+import { EditorErrorBoundary } from "../../components/editor/EditorErrorBoundary"
 
 export default function VideoEditor() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
 
   const project = useEditorStore(s => s.project)
+  const resetProject = useEditorStore(s => s.resetProject)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(project.name)
   const [showExportModal, setShowExportModal] = useState(false)
@@ -69,11 +73,11 @@ export default function VideoEditor() {
     setLoadError(null)
 
     getProjectById(numericId)
-      .then(loaded => {
+      .then(async loaded => {
         const editorProject = deserializeTimeline(loaded.timelineData)
         savedProjectRef.current = editorProject
         setIsDirty(false)
-        useEditorStore.setState({ project: editorProject })
+        await useEditorStore.getState().loadProject(editorProject)
         setTitleDraft(editorProject.name)
         setApiProject(loaded)
       })
@@ -82,6 +86,13 @@ export default function VideoEditor() {
       })
       .finally(() => setIsLoadingProject(false))
   }, [projectId])
+
+  const missingMediaIds = useEditorStore(s => s.missingMediaIds)
+
+  // Evict stale IDB cache entries once on mount
+  useEffect(() => {
+    evictExpiredEntries().catch(() => {})
+  }, [])
 
   const { startExport, cancelExport, progress, isExporting } = useExport()
   useEditorKeyboardShortcuts()
@@ -101,12 +112,12 @@ export default function VideoEditor() {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = ev => {
+    reader.onload = async ev => {
       try {
         const loaded = loadProject(ev.target?.result as string)
         savedProjectRef.current = loaded
         setIsDirty(false)
-        useEditorStore.setState({ project: loaded })
+        await useEditorStore.getState().loadProject(loaded)
         setTitleDraft(loaded.name)
       } catch (err) {
         alert(String(err))
@@ -140,6 +151,11 @@ export default function VideoEditor() {
         savedProjectRef.current = currentProject
         setIsDirty(false)
         setToast({ message: 'Project saved.', type: 'success' })
+        // Background: persist files to IDB cache so they survive reload
+        currentProject.media.forEach(m => {
+          const file = fileMap.get(m.id)
+          if (file) saveFileToCache(m.hash, file).catch(() => {})
+        })
       })
       .catch(err => {
         const msg = err instanceof ApiError ? err.message : 'Failed to save project.'
@@ -165,6 +181,11 @@ export default function VideoEditor() {
       setTitleDraft(name)
       navigate(`/editor/${created.id}`, { replace: true })
       setToast({ message: 'Project saved.', type: 'success' })
+      // Background: persist files to IDB cache so they survive reload
+      useEditorStore.getState().project.media.forEach(m => {
+        const file = fileMap.get(m.id)
+        if (file) saveFileToCache(m.hash, file).catch(() => {})
+      })
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Failed to save project.'
       setToast({ message: msg, type: 'error' })
@@ -293,37 +314,39 @@ export default function VideoEditor() {
       </header>
 
       {/* ── Middle row: Media panel + Preview + Inspector ── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden" style={{ gap: 0 }}>
-        <aside
-          className="shrink-0 flex flex-col overflow-hidden"
-          style={{
-            width: 240,
-            background: "var(--color-dark-surface)",
-            borderRight: "1px solid var(--color-dark-border)",
-          }}
-        >
-          <MediaLibrary />
-        </aside>
+      <EditorErrorBoundary onReset={resetProject}>
+        <div className="flex flex-1 min-h-0 overflow-hidden" style={{ gap: 0 }}>
+          <aside
+            className="shrink-0 flex flex-col overflow-hidden"
+            style={{
+              width: 240,
+              background: "var(--color-dark-surface)",
+              borderRight: "1px solid var(--color-dark-border)",
+            }}
+          >
+            <MediaLibrary />
+          </aside>
 
-        <div
-          className="flex flex-1 min-h-0 min-w-0 overflow-hidden"
-          style={{ background: "var(--color-dark)", minWidth: 480 }}
-        >
-          <PreviewPlayer />
+          <div
+            className="flex flex-1 min-h-0 min-w-0 overflow-hidden"
+            style={{ background: "var(--color-dark)", minWidth: 480 }}
+          >
+            <PreviewPlayer />
+          </div>
+
+          {showInspector && selectedClip ? (
+            <InspectorPanel clip={selectedClip} />
+          ) : null}
         </div>
 
-        {showInspector && selectedClip ? (
-          <InspectorPanel clip={selectedClip} />
-        ) : null}
-      </div>
+        {/* ── Toolbar ── */}
+        <Toolbar />
 
-      {/* ── Toolbar ── */}
-      <Toolbar />
-
-      {/* ── Timeline ── */}
-      <div className="flex flex-col shrink-0 overflow-hidden" style={{ height: 260 }}>
-        <Timeline />
-      </div>
+        {/* ── Timeline ── */}
+        <div className="flex flex-col shrink-0 overflow-hidden" style={{ height: 260 }}>
+          <Timeline />
+        </div>
+      </EditorErrorBoundary>
 
       <input
         ref={loadInputRef}
@@ -377,6 +400,12 @@ export default function VideoEditor() {
         <UnsavedChangesModal
           onLeave={() => blocker.proceed?.()}
           onStay={() => blocker.reset?.()}
+        />
+      )}
+
+      {missingMediaIds.size > 0 && (
+        <MediaRelinkDialog
+          onClose={() => useEditorStore.setState({ missingMediaIds: new Set() })}
         />
       )}
     </div>

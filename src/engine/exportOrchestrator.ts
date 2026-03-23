@@ -4,6 +4,7 @@ import type { RenderJob } from "../project/projectTypes"
 import { buildFilterGraph } from "./filterGraphBuilder"
 import type { ExportProgress } from "./exportProgress"
 import { estimateTimeRemaining } from "./exportProgress"
+import { isFfmpegTerminateError } from "./ffmpegUtils"
 
 export async function runExport(
   ffmpeg: FFmpeg,
@@ -12,7 +13,7 @@ export async function runExport(
   onProgress: (progress: ExportProgress) => void,
   signal: AbortSignal,
 ): Promise<Uint8Array> {
-  // Stage: writing-files (0–15%) 
+  // Stage: writing-files (0–15%)
   onProgress({ stage: 'writing-files', percent: 0, secondsRemaining: null })
 
   const written = new Set<string>()
@@ -28,14 +29,30 @@ export async function runExport(
     const file = fileMap.get(mediaId)
     if (!file) continue
 
-    await ffmpeg.writeFile(`media_${mediaId}`, await fetchFile(file))
-    written.add(`media_${mediaId}`)
+    const outputName = `media_${mediaId}`
+
+    try {
+      await ffmpeg.writeFile(outputName, await fetchFile(file), { signal })
+    } catch (err) {
+      if (signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) {
+        await cleanup(ffmpeg, written, job.outputFormat)
+        throw new DOMException('Export cancelled', 'AbortError')
+      }
+      throw err
+    }
+
+    written.add(outputName)
+
+    if (signal.aborted) {
+      await cleanup(ffmpeg, written, job.outputFormat)
+      throw new DOMException('Export cancelled', 'AbortError')
+    }
 
     const pct = Math.round(((i + 1) / uniqueMediaIds.length) * 15)
     onProgress({ stage: 'writing-files', percent: pct, secondsRemaining: null })
   }
 
-  // Stage: building-graph (15–20%) 
+  // Stage: building-graph (15–20%)
   onProgress({ stage: 'building-graph', percent: 15, secondsRemaining: null })
 
   if (signal.aborted) {
@@ -45,7 +62,7 @@ export async function runExport(
 
   const graph = buildFilterGraph(job)
 
-  // Stage: encoding (20–95%) 
+  // Stage: encoding (20–95%)
   onProgress({ stage: 'encoding', percent: 20, secondsRemaining: null })
 
   const encodingStartedAt = Date.now()
@@ -60,7 +77,6 @@ export async function runExport(
   ffmpeg.on('progress', onEncodingProgress)
 
   const handleAbort = () => {
-    // ffmpeg.exec cannot be interrupted by signal alone; terminate the worker to stop encoding.
     ffmpeg.terminate()
   }
   signal.addEventListener('abort', handleAbort, { once: true })
@@ -81,28 +97,22 @@ export async function runExport(
     ffmpeg.off('progress', onEncodingProgress)
   }
 
-  // Stage: reading-output (95–98%) 
+  // Stage: reading-output (95–98%)
   onProgress({ stage: 'reading-output', percent: 95, secondsRemaining: null })
 
-  let result: Uint8Array | undefined
-
+  let result: Uint8Array
   try {
     result = await ffmpeg.readFile(outputFile) as Uint8Array
-  } finally {
-    // Stage: cleanup (98–100%)
-    onProgress({ stage: 'cleanup', percent: 98, secondsRemaining: null })
+  } catch (err) {
     await cleanup(ffmpeg, written, job.outputFormat)
-    onProgress({ stage: 'done', percent: 100, secondsRemaining: null })
+    throw err
   }
 
-  return result!
-}
+  onProgress({ stage: 'cleanup', percent: 98, secondsRemaining: null })
+  await cleanup(ffmpeg, written, job.outputFormat)
+  onProgress({ stage: 'done', percent: 100, secondsRemaining: null })
 
-function isFfmpegTerminateError(err: unknown): boolean {
-  if (err instanceof Error) {
-    return err.message.includes('FFmpeg.terminate')
-  }
-  return String(err).includes('FFmpeg.terminate')
+  return result
 }
 
 function buildExecArgs(
@@ -119,6 +129,7 @@ function buildExecArgs(
   for (const inp of graph.inputs) {
     if (inp.isImage) {
       args.push('-loop', '1')
+      args.push('-t', `${inp.durationSeconds ?? job.projectDuration}`)
     }
     args.push('-i', inp.filePath)
   }
@@ -154,6 +165,7 @@ function buildExecArgs(
     }
   }
 
+  args.push('-t', `${job.projectDuration}`)
   args.push('-y', outputFile)
   return args
 }

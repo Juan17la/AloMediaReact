@@ -9,6 +9,7 @@ import type { ExportProgress } from "../engine/exportProgress"
 export interface UseExportReturn {
   startExport: (options: ExportOptions) => void
   cancelExport: () => void
+  resetExportState: () => void
   progress: ExportProgress | null
   isExporting: boolean
 }
@@ -24,8 +25,18 @@ export function useExport(): UseExportReturn {
     setIsExporting(false)
   }
 
+  function resetExportState() {
+    // Keep reset non-destructive: callers should cancel active exports explicitly.
+    if (abortControllerRef.current) return
+    setProgress(null)
+    setIsExporting(false)
+  }
+
   async function startExport(options: ExportOptions) {
     if (isExporting) return
+
+    // Clear stale terminal state from a previous export session.
+    setProgress(null)
 
     const controller = new AbortController()
     abortControllerRef.current = controller
@@ -55,7 +66,8 @@ export function useExport(): UseExportReturn {
       setProgress({ stage: 'done', percent: 100, secondsRemaining: null })
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
-        setProgress({ stage: 'error', percent: 0, secondsRemaining: null, errorMessage: 'Export cancelled' })
+        // setProgress({ stage: 'error', percent: 0, secondsRemaining: null, errorMessage: 'Export cancelled' })
+        setProgress(null)
       } else {
         const msg = err instanceof Error ? err.message : String(err)
         setProgress({ stage: 'error', percent: 0, secondsRemaining: null, errorMessage: msg })
@@ -66,5 +78,5 @@ export function useExport(): UseExportReturn {
     }
   }
 
-  return { startExport, cancelExport, progress, isExporting }
+  return { startExport, cancelExport, resetExportState, progress, isExporting }
 }

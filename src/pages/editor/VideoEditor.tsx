@@ -18,7 +18,7 @@ export default function VideoEditor() {
   const [showExportModal, setShowExportModal] = useState(false)
   const loadInputRef = useRef<HTMLInputElement>(null)
 
-  const { startExport, cancelExport, progress, isExporting } = useExport()
+  const { startExport, cancelExport, resetExportState, progress, isExporting } = useExport()
   useEditorKeyboardShortcuts()
 
   const selectedClip = useEditorStore(s => {
@@ -295,10 +295,14 @@ export default function VideoEditor() {
           }}
           onCancel={() => {
             cancelExport()
+            resetExportState()
             setShowExportModal(false)
           }}
           onClose={() => {
-            if (!isExporting) setShowExportModal(false)
+            if (!isExporting) {
+              resetExportState()
+              setShowExportModal(false)
+            }
           }}
           defaultFileName={`${project.name}_export`}
         />

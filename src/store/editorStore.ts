@@ -7,7 +7,7 @@ import type { Clip, EditorState, Media, MediaType, Project, Track, TrackType, Tr
 import { DEFAULT_AUDIO_CONFIG } from "../constants/audioConfig"
 import { DEFAULT_SPEED, MAX_SPEED, MIN_SPEED } from "../constants/speed"
 import { DEFAULT_COLOR_ADJUSTMENTS } from "../constants/colorAdjustments"
-import { resetPlayer, renderSingleFrame } from "../hooks/usePlayer"
+import { pausePlayer, resetPlayer, renderSingleFrame, resumePlayer } from "../hooks/usePlayer"
 
 export interface ProxyState {
   status: 'pending' | 'ready' | 'error'
@@ -41,7 +41,7 @@ type StoreActions = {
   setTimelineScale: (scale: number) => void
   setSelectedClip: (clipId: string | undefined) => void
   setSelectedTrack: (trackId: string | undefined) => void
-  pushHistory: (description: string) => void
+  pushHistory: (description: string) => boolean
   undo: () => void
   redo: () => void
   removeMedia: (mediaId: string) => void
@@ -325,17 +325,17 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       },
     }))
     renderSingleFrame()
-    resetPlayer()
   },
 
   commitTransform(_clipId: string): void {
-    get().pushHistory('Transform clip')
+    const wasPlaying = get().pushHistory('Transform clip')
     renderSingleFrame()
-    resetPlayer()
+    // Small UX improvement: keep playback running after transform commit.
+    if (wasPlaying) resumePlayer()
   },
 
   updateClipColorAdjustments(clipId: string, adjustments: ColorAdjustments): void {
-    get().pushHistory('Color adjustment')
+    const wasPlaying = get().pushHistory('Color adjustment')
     set(state => ({
       project: {
         ...state.project,
@@ -349,11 +349,13 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         })),
       },
     }))
-    resetPlayer()
+    renderSingleFrame()
+    // Resume if this update paused active playback for history capture.
+    if (wasPlaying) resumePlayer()
   },
 
   updateClipAudioConfig(clipId: string, config: Partial<AudioConfig>): void {
-    get().pushHistory("Audio config")
+    const wasPlaying = get().pushHistory("Audio config")
     set(state => ({
       project: {
         ...state.project,
@@ -368,7 +370,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         })),
       },
     }))
-    resetPlayer()
+    // Resume playback so audio setting changes feel live.
+    if (wasPlaying) resumePlayer()
   },
 
   setClipSpeed(clipId: string, speed: number): void {
@@ -585,14 +588,15 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     set({ selectedTrackId: trackId })
   },
 
-  pushHistory(description: string): void {
-    // Pause playback on any timeline mutation so preview and playhead stay in sync
-    set({ isPlaying: false })
+  pushHistory(description: string): boolean {
+    // Stop playback loop without releasing buffers or audio graph.
+    const wasPlaying = pausePlayer()
     const state = get()
     const snapshot = deepClone(state.project)
     const newHistory = state.history.slice(0, state.historyIndex + 1)
     newHistory.push({ project: snapshot, description })
     set({ history: newHistory, historyIndex: newHistory.length - 1 })
+    return wasPlaying
   },
 
   undo(): void {

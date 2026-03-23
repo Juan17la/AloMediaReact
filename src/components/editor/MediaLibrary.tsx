@@ -22,9 +22,9 @@ export function MediaLibrary() {
   const addMedia = useEditorStore(s => s.addMedia)
   const setProxyState = useEditorStore(s => s.setProxyState)
   const proxyMap = useEditorStore(s => s.proxyMap)
-  const media = useEditorStore(s => s.project.media)
+  const media = useEditorStore(s => s.project.media ?? [])
   const playhead = useEditorStore(s => s.playhead)
-  const tracks = useEditorStore(s => s.project.tracks)
+  const tracks = useEditorStore(s => s.project.tracks ?? [])
   const addClip = useEditorStore(s => s.addClip)
   const addTrack = useEditorStore(s => s.addTrack)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -144,7 +144,7 @@ export function MediaLibrary() {
 
     let targetTrack: Track | undefined = tracks.find(track =>
       track.type === trackType
-      && !track.clips.some(clip => timelineStart < clip.timelineEnd && timelineEnd > clip.timelineStart),
+      && !(track.clips ?? []).some(clip => timelineStart < clip.timelineEnd && timelineEnd > clip.timelineStart),
     )
 
     if (!targetTrack) {

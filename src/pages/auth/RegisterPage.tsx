@@ -1,9 +1,52 @@
 import { useState, type SyntheticEvent } from "react";
 import { Link, useNavigate } from "react-router";
-import { Mail, Lock, User, Chrome, Github } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Chrome, Github } from "lucide-react";
 import { signUp } from "../../services/authService";
 import { ApiError } from "../../api/errors";
 import { useAuth } from "../../hooks/useAuth";
+
+function PasswordField({
+  name,
+  placeholder,
+  value,
+  onChange,
+  hasError,
+}: {
+  name: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  hasError?: boolean;
+}) {
+  const [show, setShow] = useState(false);
+
+  return (
+    <div className="relative">
+      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted transition-colors pointer-events-none" />
+      <input
+        type={show ? "text" : "password"}
+        name={name}
+        placeholder={placeholder}
+        required
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full bg-input-bg border rounded-xl py-3.5 pl-12 pr-12 text-accent-white placeholder-muted text-sm font-medium hover:border-dark-border-light focus:border-accent-red transition-all duration-200 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden ${
+          hasError ? "border-red-500" : "border-input-border"
+        }`}
+      />
+      <button
+        type="button"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setShow((v) => !v)}
+        tabIndex={-1}
+        aria-label={show ? "Hide password" : "Show password"}
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-light hover:text-accent-white transition-colors cursor-pointer"
+      >
+        {show ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+      </button>
+    </div>
+  );
+}
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -119,40 +162,26 @@ export default function RegisterPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted group-focus-within:text-accent-red transition-colors" />
-              <input
-                type="password"
-                name="password"
-                placeholder="Password"
-                required
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setPasswordMismatch(false); }}
-                className={`w-full bg-input-bg border rounded-xl py-3.5 pl-12 pr-4 text-accent-white placeholder-muted text-sm font-medium hover:border-dark-border-light focus:border-accent-red transition-all duration-200 ${
-                  apiError?.fieldMessage("password") ? "border-red-500" : "border-input-border"
-                }`}
-              />
-            </div>
+            <PasswordField
+              name="password"
+              placeholder="Password"
+              value={password}
+              onChange={(v) => { setPassword(v); setPasswordMismatch(false); }}
+              hasError={!!apiError?.fieldMessage("password")}
+            />
             {apiError?.fieldMessage("password") && (
               <p className="text-xs text-red-400 pl-1">{apiError.fieldMessage("password")}</p>
             )}
           </div>
 
           <div className="flex flex-col gap-1">
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted group-focus-within:text-accent-red transition-colors" />
-              <input
-                type="password"
-                name="confirmPassword"
-                placeholder="Confirm password"
-                required
-                value={confirmPassword}
-                onChange={(e) => { setConfirmPassword(e.target.value); setPasswordMismatch(false); }}
-                className={`w-full bg-input-bg border rounded-xl py-3.5 pl-12 pr-4 text-accent-white placeholder-muted text-sm font-medium hover:border-dark-border-light focus:border-accent-red transition-all duration-200 ${
-                  passwordMismatch ? "border-red-500" : "border-input-border"
-                }`}
-              />
-            </div>
+            <PasswordField
+              name="confirmPassword"
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={(v) => { setConfirmPassword(v); setPasswordMismatch(false); }}
+              hasError={passwordMismatch}
+            />
             {passwordMismatch && (
               <p className="text-xs text-red-400 pl-1">Passwords do not match.</p>
             )}

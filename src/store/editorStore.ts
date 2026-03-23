@@ -8,6 +8,9 @@ import { DEFAULT_AUDIO_CONFIG } from "../constants/audioConfig"
 import { DEFAULT_SPEED, MAX_SPEED, MIN_SPEED } from "../constants/speed"
 import { DEFAULT_COLOR_ADJUSTMENTS } from "../constants/colorAdjustments"
 import { resetPlayer, renderSingleFrame } from "../hooks/usePlayer"
+import { hashFile } from "../utils/fileHash"
+import { getFileFromCache } from "../services/fileCacheService"
+import { generateProxy } from "../engine/proxyEngine"
 
 export interface ProxyState {
   status: 'pending' | 'ready' | 'error'
@@ -47,6 +50,11 @@ type StoreActions = {
   removeMedia: (mediaId: string) => void
   proxyMap: Record<string, ProxyState>
   setProxyState: (mediaId: string, state: ProxyState) => void
+  missingMediaIds: Set<string>
+  idbResolvedMediaIds: Set<string>
+  setMissingMediaIds: (ids: Set<string>) => void
+  loadProject: (project: Project) => Promise<void>
+  resetProject: () => void
 }
 
 type EditorStore = EditorState & {
@@ -113,18 +121,64 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   historyIndex: -1,
   clipboard: null,
   proxyMap: {},
+  missingMediaIds: new Set<string>(),
+  idbResolvedMediaIds: new Set<string>(),
 
   setProxyState(mediaId: string, state: ProxyState): void {
     set(s => ({ proxyMap: { ...s.proxyMap, [mediaId]: state } }))
   },
 
+  setMissingMediaIds(ids: Set<string>): void {
+    set({ missingMediaIds: ids })
+  },
+
+  async loadProject(project: Project): Promise<void> {
+    fileMap.clear()
+    set({
+      project,
+      proxyMap: {},
+      history: [],
+      historyIndex: -1,
+      playhead: 0,
+      isPlaying: false,
+      missingMediaIds: new Set(),
+      idbResolvedMediaIds: new Set(),
+    })
+    resetPlayer()
+
+    const missing = new Set<string>()
+    const resolved = new Set<string>()
+
+    await Promise.all(
+      project.media.map(async (m) => {
+        try {
+          const cached = await getFileFromCache(m.hash)
+          if (cached) {
+            fileMap.set(m.id, cached)
+            if (m.type === "video") {
+              get().setProxyState(m.id, { status: "pending", objectUrl: null })
+              generateProxy(
+                m.id,
+                cached,
+                url => get().setProxyState(m.id, { status: "ready", objectUrl: url }),
+                () => get().setProxyState(m.id, { status: "error", objectUrl: null }),
+              )
+            }
+            resolved.add(m.id)
+          } else {
+            missing.add(m.id)
+          }
+        } catch {
+          missing.add(m.id)
+        }
+      })
+    )
+
+    set({ missingMediaIds: missing, idbResolvedMediaIds: resolved })
+  },
+
   async addMedia(file: File): Promise<Media> {
-    const raw = `${file.name}-${file.size}-${file.lastModified}`
-    const encoded = new TextEncoder().encode(raw)
-    const hashBuffer = await crypto.subtle.digest("SHA-256", encoded)
-    const hash = Array.from(new Uint8Array(hashBuffer))
-      .map(b => b.toString(16).padStart(2, "0"))
-      .join("")
+    const hash = await hashFile(file)
 
     const existing = get().project.media.find(m => m.hash === hash)
     if (existing) return existing
@@ -607,6 +661,23 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     if (historyIndex >= history.length - 1) return
     const newIndex = historyIndex + 1
     set({ project: deepClone(history[newIndex].project), historyIndex: newIndex })
+  },
+
+  resetProject(): void {
+    fileMap.clear()
+    set({
+      project: makeInitialProject(),
+      proxyMap: {},
+      history: [],
+      historyIndex: -1,
+      playhead: 0,
+      isPlaying: false,
+      missingMediaIds: new Set(),
+      idbResolvedMediaIds: new Set(),
+      selectedClipId: undefined,
+      selectedTrackId: undefined,
+    })
+    resetPlayer()
   },
 
   removeMedia(mediaId: string): void {

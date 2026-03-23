@@ -1,3 +1,4 @@
+import Cookies from "js-cookie"
 import { http } from "../api/http"
 import type {
   LoginPayload,
@@ -8,18 +9,22 @@ import type {
   RecoverResetPayload
 } from "../types/authTypes"
 
-export function signIn(payload: LoginPayload) {
-  return http<AuthResponse>("/auth/login", {
+export async function signIn(payload: LoginPayload): Promise<AuthResponse> {
+  const data = await http<AuthResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify(payload)
   })
+  Cookies.set("token", data.token)
+  return data
 }
 
-export function signUp(payload: RegisterPayload) {
-  return http<AuthResponse>("/auth/register", {
+export async function signUp(payload: RegisterPayload): Promise<AuthResponse> {
+  const data = await http<AuthResponse>("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload)
   })
+  Cookies.set("token", data.token)
+  return data
 }
 
 export function me() {
@@ -28,11 +33,12 @@ export function me() {
   })
 }
 
-export function signout() {
-  return http<void>("/auth/logout", {
+export async function signout(): Promise<void> {
+  await http<void>("/auth/logout", {
     method: "POST",
     parse: false
   })
+  Cookies.remove("token")
 }
 
 export function recoverRequest(payload: RecoverRequestPayload) {

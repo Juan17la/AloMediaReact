@@ -22,6 +22,7 @@ export function MediaLibrary() {
   const addMedia = useEditorStore(s => s.addMedia)
   const setProxyState = useEditorStore(s => s.setProxyState)
   const proxyMap = useEditorStore(s => s.proxyMap)
+  const idbResolvedMediaIds = useEditorStore(s => s.idbResolvedMediaIds)
   const media = useEditorStore(s => s.project.media ?? [])
   const playhead = useEditorStore(s => s.playhead)
   const tracks = useEditorStore(s => s.project.tracks ?? [])
@@ -367,7 +368,7 @@ export function MediaLibrary() {
           {filteredMedia.map(item => (
             <div
               key={item.id}
-              style={{ minWidth: 0, overflow: "hidden" }}
+              style={{ minWidth: 0, overflow: "hidden", position: "relative" }}
               onDoubleClick={() => insertMediaAtPlayhead(item)}
             >
               <MediaCard
@@ -376,6 +377,21 @@ export function MediaLibrary() {
                 proxyStatus={proxyMap[item.id]?.status}
                 onInsertAtPlayhead={() => insertMediaAtPlayhead(item)}
               />
+              {idbResolvedMediaIds.has(item.id) && (
+                <div
+                  title="Loaded from local cache"
+                  style={{
+                    position: "absolute",
+                    top: 4,
+                    right: 4,
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#4ade80",
+                    pointerEvents: "none",
+                  }}
+                />
+              )}
             </div>
           ))}
           {pending.map(p => (

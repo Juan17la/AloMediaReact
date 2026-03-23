@@ -24,12 +24,6 @@ export function teardownPlayerState({
   releaseAllBuffers()
   disconnectAll()
   needsReinitRef.current = true
-  if (wasPlaying) {
-    playheadRef.current = 0
-    useEditorStore.getState().setPlayhead(0)
-    useEditorStore.getState().setIsPlaying(false)
-  } else {
-    useEditorStore.getState().setIsPlaying(false)
-    onFrameRef.current?.(playheadRef.current)
-  }
+  useEditorStore.getState().setIsPlaying(false)
+  onFrameRef.current?.(playheadRef.current)
 }

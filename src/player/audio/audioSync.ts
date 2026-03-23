@@ -188,6 +188,8 @@ function setupGainNode(
     try { source.disconnect() } catch (e) {}
     source.connect(gainNode)
     gainNodes.set(trackId, gainNode)
+    // Connect to destination immediately so audio is audible by default.
+    gainNode.connect(ctx.destination)
   }
 
   // Set gain value
@@ -213,9 +215,6 @@ function setupGainNode(
       gainNode.disconnect()
       gainNode.connect(ctx.destination)
       pannerNodes.delete(trackId)
-    } else if (!gainNode.numberOfOutputs) {
-      // First time, connect gain to destination
-      gainNode.connect(ctx.destination)
     }
   }
 }

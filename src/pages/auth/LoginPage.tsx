@@ -1,6 +1,6 @@
 import { useState, type SyntheticEvent } from "react";
 import { Link, useNavigate } from "react-router";
-import { Mail, Lock, Chrome, Github } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Chrome, Github } from "lucide-react";
 import { signIn } from "../../services/authService";
 import { ApiError } from "../../api/errors";
 import { useAuth } from "../../hooks/useAuth";
@@ -11,6 +11,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -69,19 +70,33 @@ export default function LoginPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted group-focus-within:text-accent-red transition-colors" />
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted transition-colors pointer-events-none" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={`w-full bg-input-bg border rounded-xl py-3.5 pl-12 pr-4 text-accent-white placeholder-muted text-sm font-medium hover:border-dark-border-light focus:border-accent-red transition-all duration-200 ${
+                className={`w-full bg-input-bg border rounded-xl py-3.5 pl-12 pr-12 text-accent-white placeholder-muted text-sm font-medium hover:border-dark-border-light focus:border-accent-red transition-all duration-200 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden ${
                   apiError?.fieldMessage("password") ? "border-red-500" : "border-input-border"
                 }`}
               />
+              {/*
+                onMouseDown + e.preventDefault()
+                it never disappears after the first click.
+              */}
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setShowPassword((v) => !v)}
+                tabIndex={-1}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-light hover:text-accent-white transition-colors cursor-pointer"
+              >
+                {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </button>
             </div>
             {apiError?.fieldMessage("password") && (
               <p className="text-xs text-red-400 pl-1">{apiError.fieldMessage("password")}</p>

@@ -35,7 +35,7 @@ export function PlayheadBar({ totalWidth, duration, majorInterval }: PlayheadBar
 
   function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
     e.preventDefault()
-    if (useEditorStore.getState().isPlaying) pause()
+    pause()
 
     seek(timeFromClientX(e.clientX))
 

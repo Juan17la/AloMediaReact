@@ -279,3 +279,9 @@ input[type='range'].editor-range::-moz-range-thumb {
 input[type='range'].editor-range::-moz-range-thumb:hover {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 20%, transparent);
 }
+
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+ 

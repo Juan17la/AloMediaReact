@@ -37,10 +37,6 @@ const router = createBrowserRouter([
         element: <DashboardPage />,
       },
       {
-        path: "/editor",
-        element: <VideoEditor />,
-      },
-      {
         path: "/editor/:projectId",
         element: <VideoEditor />,
       },
@@ -51,6 +47,13 @@ const router = createBrowserRouter([
   {
     path: "*",
     element: <Navigate to="/auth/login" replace />,
+  },
+
+
+    //  SET THIS TO PRIVATE FOR PRODUCTION, PUBLIC FOR TESTING 
+  {
+    path: "/editor",
+    element: <VideoEditor />,
   },
 
 ]);

@@ -94,7 +94,7 @@ export default function VideoEditor() {
     evictExpiredEntries().catch(() => {})
   }, [])
 
-  const { startExport, cancelExport, progress, isExporting } = useExport()
+  const { startExport, cancelExport, resetExportState, progress, isExporting } = useExport()
   useEditorKeyboardShortcuts()
 
   const selectedClip = useEditorStore(s => {
@@ -373,9 +373,20 @@ export default function VideoEditor() {
         <ExportModal
           isExporting={isExporting}
           progress={progress}
-          onStart={startExport}
-          onCancel={() => { cancelExport(); setShowExportModal(false) }}
-          onClose={() => { if (!isExporting) setShowExportModal(false) }}
+          onStart={(options) => {
+            startExport(options)
+          }}
+          onCancel={() => {
+            cancelExport()
+            resetExportState()
+            setShowExportModal(false)
+          }}
+          onClose={() => {
+            if (!isExporting) {
+              resetExportState()
+              setShowExportModal(false)
+            }
+          }}
           defaultFileName={`${project.name}_export`}
         />
       )}

@@ -5,8 +5,10 @@ import { DEFAULT_PIXELS_PER_SECOND, GRID_INTERVALS_SECONDS } from "../constants/
 // Width of the track header column — must be consistent across Track, Timeline, PlayheadBar
 export const TRACK_HEADER_WIDTH = 120
 
-export function getProjectDuration(tracks: Track[]): number {
-  return Math.max(0, ...tracks.flatMap(t => t.clips.map(c => c.timelineEnd)))
+export function getProjectDuration(tracks: Track[] | undefined | null): number {
+  if (!Array.isArray(tracks) || tracks.length === 0) return 0
+  const ends = tracks.flatMap(t => (t.clips ?? []).map(c => c.timelineEnd))
+  return ends.length === 0 ? 0 : Math.max(0, ...ends)
 }
 
 export function formatTimecode(seconds: number): string {

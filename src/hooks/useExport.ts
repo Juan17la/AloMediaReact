@@ -5,10 +5,12 @@ import type { ExportOptions } from "../engine/renderPipeline"
 import { loadFFmpeg, getFFmpeg } from "../engine/ffmpegEngine"
 import { runExport } from "../engine/exportOrchestrator"
 import type { ExportProgress } from "../engine/exportProgress"
+import { isFfmpegTerminateError } from "../engine/ffmpegUtils"
 
 export interface UseExportReturn {
   startExport: (options: ExportOptions) => void
   cancelExport: () => void
+  resetExportState: () => boolean
   progress: ExportProgress | null
   isExporting: boolean
 }
@@ -24,8 +26,19 @@ export function useExport(): UseExportReturn {
     setIsExporting(false)
   }
 
+  function resetExportState(): boolean {
+    // Keep reset non-destructive: callers should cancel active exports explicitly.
+    if (abortControllerRef.current) return false
+    setProgress(null)
+    setIsExporting(false)
+    return true
+  }
+
   async function startExport(options: ExportOptions) {
     if (isExporting) return
+
+    // Clear stale terminal state from a previous export session.
+    setProgress(null)
 
     const controller = new AbortController()
     abortControllerRef.current = controller
@@ -50,12 +63,13 @@ export function useExport(): UseExportReturn {
       a.href = url
       a.download = options.outputFileName
       a.click()
-      setTimeout(() => URL.revokeObjectURL(url), 10_000)
 
-      setProgress({ stage: 'done', percent: 100, secondsRemaining: null })
+      // Keep blob URL alive long enough for slow browsers/large downloads.
+      setTimeout(() => URL.revokeObjectURL(url), 300_000)
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') {
-        setProgress({ stage: 'error', percent: 0, secondsRemaining: null, errorMessage: 'Export cancelled' })
+      if ((err instanceof DOMException && err.name === 'AbortError') || isFfmpegTerminateError(err)) {
+        // setProgress({ stage: 'error', percent: 0, secondsRemaining: null, errorMessage: 'Export cancelled' })
+        setProgress(null)
       } else {
         const msg = err instanceof Error ? err.message : String(err)
         setProgress({ stage: 'error', percent: 0, secondsRemaining: null, errorMessage: msg })
@@ -66,5 +80,5 @@ export function useExport(): UseExportReturn {
     }
   }
 
-  return { startExport, cancelExport, progress, isExporting }
+  return { startExport, cancelExport, resetExportState, progress, isExporting }
 }

@@ -11,7 +11,6 @@ const CANVAS_HEIGHT = 720
 export interface FFmpegInputArg {
   filePath: string
   isImage?: boolean
-  durationSeconds?: number
 }
 
 export interface FilterGraphResult {
@@ -136,12 +135,7 @@ export function buildFilterGraph(job: RenderJob): FilterGraphResult {
     // Input 0 = base canvas (from baseArgs)
     // Inputs 1..P = visual segments, in compositing order (bg first)
     for (let i = 0; i < visualSegments.length; i++) {
-      const seg = visualSegments[i]
-      inputs.push({
-        filePath: `media_${seg.mediaId}`,
-        isImage: seg.type === 'image',
-        durationSeconds: seg.type === 'image' ? Math.max(seg.timelineEnd - seg.timelineStart, 0.001) : undefined,
-      })
+      inputs.push({ filePath: `media_${visualSegments[i].mediaId}`, isImage: visualSegments[i].type === 'image' })
     }
 
     let lastVideoLabel = '0:v'

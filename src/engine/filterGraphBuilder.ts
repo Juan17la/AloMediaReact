@@ -10,8 +10,6 @@ const CANVAS_HEIGHT = 720
 
 export interface FFmpegInputArg {
   filePath: string
-  isImage?: boolean
-  durationSeconds?: number
 }
 
 export interface FilterGraphResult {
@@ -39,7 +37,7 @@ function buildVideoSegmentFilters(
   if (seg.type === 'image') {
     // Static image: loop a single frame, set fps, trim to clip duration, shift to timeline
     const duration = (seg.timelineEnd - seg.timelineStart).toFixed(3)
-    filters.push(`loop=1:size=1:start=0`)
+    filters.push(`loop=-1:size=1:start=0`)
     filters.push(`fps=25`)
     filters.push(`trim=end=${duration}`)
     filters.push(`setpts=PTS-STARTPTS+${seg.timelineStart}/TB`)
@@ -55,7 +53,9 @@ function buildVideoSegmentFilters(
     }
   }
 
-  filters.push(`scale=${scaledW}:${scaledH}`)
+  // force yuv420p so libx264 always receives a compatible pixel format regardless
+  // of what the source video uses (yuvj420p, yuv422p, etc.)
+  filters.push(`scale=${scaledW}:${scaledH},format=yuv420p`)
 
   if (seg.colorAdjustments) {
     const eq = buildEqFilter(seg.colorAdjustments)
@@ -97,7 +97,11 @@ function buildAudioSegmentFilters(seg: RenderSegment): string[] {
   return filters
 }
 
-export function buildFilterGraph(job: RenderJob): FilterGraphResult {
+export function buildFilterGraph(
+  job: RenderJob,
+  fileNames: Map<string, string>,
+  options: { skipVideoAudio?: boolean } = {},
+): FilterGraphResult {
   const { width: W, height: H } = job.resolution
   const fps = job.fps
   const duration = job.projectDuration
@@ -130,6 +134,8 @@ export function buildFilterGraph(job: RenderJob): FilterGraphResult {
 
   const inputs: FFmpegInputArg[] = []
   const filterParts: string[] = []
+  // Tracks audio labels actually generated; used to set audioOutputLabel correctly.
+  const audioLabels: string[] = []
 
   // Video filter chains
   if (hasVideo) {
@@ -138,9 +144,7 @@ export function buildFilterGraph(job: RenderJob): FilterGraphResult {
     for (let i = 0; i < visualSegments.length; i++) {
       const seg = visualSegments[i]
       inputs.push({
-        filePath: `media_${seg.mediaId}`,
-        isImage: seg.type === 'image',
-        durationSeconds: seg.type === 'image' ? Math.max(seg.timelineEnd - seg.timelineStart, 0.001) : undefined,
+        filePath: fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}`,
       })
     }
 
@@ -151,8 +155,9 @@ export function buildFilterGraph(job: RenderJob): FilterGraphResult {
       const inputIdx = i + 1 // +1 because input 0 is base canvas
 
       const t = seg.transform
-      const scaledW = Math.round((t?.width ?? CANVAS_WIDTH) * scaleX)
-      const scaledH = Math.round((t?.height ?? CANVAS_HEIGHT) * scaleY)
+      // Round to nearest even number: libx264 rejects odd-sized dimensions
+      const scaledW = Math.round((t?.width ?? CANVAS_WIDTH) * scaleX / 2) * 2
+      const scaledH = Math.round((t?.height ?? CANVAS_HEIGHT) * scaleY / 2) * 2
       const scaledX = Math.round((t?.x ?? 0) * scaleX)
       const scaledY = Math.round((t?.y ?? 0) * scaleY)
 
@@ -168,29 +173,31 @@ export function buildFilterGraph(job: RenderJob): FilterGraphResult {
     }
   }
 
-  // Audio filter chains 
+  // Audio filter chains
   if (hasAudio) {
-    const audioLabels: string[] = []
     // Audio-only segment inputs start after visual segment inputs
     const audioOnlyOffset = hasVideo ? visualSegments.length + 1 : 0
 
-    // Audio from video clips (share the same input index as the visual segment)
-    for (let i = 0; i < visualSegments.length; i++) {
-      const seg = visualSegments[i]
-      if (seg.type !== 'video') continue // images have no audio stream
+    // Audio from video clips (share the same input index as the visual segment).
+    // Skipped when skipVideoAudio=true (fallback for video files with no audio stream).
+    if (!options.skipVideoAudio) {
+      for (let i = 0; i < visualSegments.length; i++) {
+        const seg = visualSegments[i]
+        if (seg.type !== 'video') continue // images have no audio stream
 
-      const inputIdx = hasVideo ? i + 1 : i
-      const aLabel = `av${i}`
-      const aFilters = buildAudioSegmentFilters(seg)
-      filterParts.push(`[${inputIdx}:a]${aFilters.join(',')}[${aLabel}]`)
-      audioLabels.push(`[${aLabel}]`)
+        const inputIdx = hasVideo ? i + 1 : i
+        const aLabel = `av${i}`
+        const aFilters = buildAudioSegmentFilters(seg)
+        filterParts.push(`[${inputIdx}:a]${aFilters.join(',')}[${aLabel}]`)
+        audioLabels.push(`[${aLabel}]`)
+      }
     }
 
     // Audio-only clips
     for (let i = 0; i < audioOnlySegments.length; i++) {
       const seg = audioOnlySegments[i]
       const inputIdx = audioOnlyOffset + i
-      inputs.push({ filePath: `media_${seg.mediaId}` })
+      inputs.push({ filePath: fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}` })
 
       const aLabel = `ao${i}`
       const aFilters = buildAudioSegmentFilters(seg)
@@ -210,6 +217,8 @@ export function buildFilterGraph(job: RenderJob): FilterGraphResult {
     inputs,
     filterComplex: filterParts.join(';'),
     videoOutputLabel: hasVideo ? '[vout]' : null,
-    audioOutputLabel: hasAudio ? '[aout]' : null,
+    // Only set audioOutputLabel when [aout] was actually created in the filter complex.
+    // hasAudio being true does NOT guarantee [aout] exists (video may have no audio stream).
+    audioOutputLabel: audioLabels.length > 0 ? '[aout]' : null,
   }
 }

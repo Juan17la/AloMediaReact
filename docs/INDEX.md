@@ -1,85 +1,56 @@
-# AloMedia — Documentation Index
+# AloMedia Documentation Index
 
-AloMedia is a browser-based, non-linear video editor built with React, TypeScript, Zustand, and FFmpeg.wasm.
+This folder documents the current architecture of AloMedia as implemented in the `src` codebase.
 
----
+## Start Here
 
-## Documents
+| Document                                 | Purpose                                              |
+| ---------------------------------------- | ---------------------------------------------------- |
+| [GETTING_STARTED.md](GETTING_STARTED.md) | Local setup, required env vars, and first editor run |
+| [CONFIGURATION.md](CONFIGURATION.md)     | Vite, TypeScript, ESLint, and deployment headers     |
 
-### Getting Started
+## Architecture
 
-| Document | Description |
-|---|---|
-| [GETTING_STARTED.md](GETTING_STARTED.md) | Setup, first run, project structure, and first editing workflow |
-| [CONFIGURATION.md](CONFIGURATION.md) | Vite, TypeScript, and environment variable configuration |
+| Document                                   | Purpose                                                                |
+| ------------------------------------------ | ---------------------------------------------------------------------- |
+| [ARCHITECTURE.md](ARCHITECTURE.md)         | High-level system structure, layer boundaries, and data flow           |
+| [DATA_MODEL.md](DATA_MODEL.md)             | Core project and clip types used by store/player/engine                |
+| [STATE_MANAGEMENT.md](STATE_MANAGEMENT.md) | Zustand slice-based store, history, and non-serializable runtime state |
 
-### Architecture & Design
+## Editor Runtime
 
-| Document | Description |
-|---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System overview, layered architecture diagram, and key design decisions |
-| [DATA_MODEL.md](DATA_MODEL.md) | All TypeScript types: Project, Track, Clip, Transform, ColorAdjustments, AudioConfig |
-| [STATE_MANAGEMENT.md](STATE_MANAGEMENT.md) | Zustand editor store, action categories, undo/redo system, proxy state |
+| Document                                     | Purpose                                                                |
+| -------------------------------------------- | ---------------------------------------------------------------------- |
+| [PLAYER.md](PLAYER.md)                       | Real-time playback architecture and synchronization                    |
+| [FFMPEG.md](FFMPEG.md)                       | Export pipeline (`buildRenderJob` -> `runExport`) and proxy generation |
+| [VIDEO_EDITOR.md](VIDEO_EDITOR.md)           | Editor UX and page-level flow                                          |
+| [EDITOR_COMPONENTS.md](EDITOR_COMPONENTS.md) | Component-level technical reference                                    |
+| [HOOKS_AND_UTILS.md](HOOKS_AND_UTILS.md)     | Shared hooks and pure utility modules                                  |
+| [STYLES_UI.md](STYLES_UI.md)                 | Theme tokens and styling conventions                                   |
 
-### Core Subsystems
+## Auth and Routing
 
-| Document | Description |
-|---|---|
-| [PLAYER.md](PLAYER.md) | Real-time playback engine: RAF loop, double-buffer video, audio pool, clip index |
-| [FFMPEG.md](FFMPEG.md) | Engine layer: proxy generation, final MP4 export, filter utility functions |
+| Document                               | Purpose                                           |
+| -------------------------------------- | ------------------------------------------------- |
+| [AUTHENTICATION.md](AUTHENTICATION.md) | Cookie session model and `AuthProvider` lifecycle |
+| [ROUTES.md](ROUTES.md)                 | Route tree, guards, and API client integration    |
 
-### Editor
-
-| Document | Description |
-|---|---|
-| [VIDEO_EDITOR.md](VIDEO_EDITOR.md) | Editor user guide: layout, clips, timeline, inspector, export |
-| [EDITOR_COMPONENTS.md](EDITOR_COMPONENTS.md) | Technical reference for every editor React component |
-| [HOOKS_AND_UTILS.md](HOOKS_AND_UTILS.md) | Custom hooks (usePlayer, useTimeline, useAuth) and all utility modules |
-| [STYLES_UI.md](STYLES_UI.md) | Color palette, Tailwind conventions, and design system |
-
-### Authentication & Routing
-
-| Document | Description |
-|---|---|
-| [AUTHENTICATION.md](AUTHENTICATION.md) | httpOnly cookie session management, AuthProvider, auth flow phases |
-| [ROUTES.md](ROUTES.md) | Route tree, PublicRoute/PrivateRoute guards, API layer |
-
-### Development Reference
-
-| Document | Description |
-|---|---|
-| [EDITOR_FIXES_2026-03-13.md](EDITOR_FIXES_2026-03-13.md) | Log of editor bug fixes from March 2026 |
-| [audio-fix.md](audio-fix.md) | Audio synchronization fix notes |
-
----
-
-## Architecture at a Glance
+## Architecture Snapshot
 
 ```
-Browser
-├── React App
-│   ├── AuthProvider         session state via httpOnly cookie
-│   └── Router
-│       ├── /auth/*          login, register, recover
-│       ├── /dashboard       project gallery
-│       └── /editor          VideoEditor
-│           ├── MediaLibrary      import + proxy generation
-│           ├── PreviewPlayer     canvas + transport
-│           │   ├── Double-buffer video (primary track)
-│           │   ├── Secondary <video> elements (extra tracks)
-│           │   └── AudioPool (one <audio> per track)
-│           ├── Toolbar
-│           ├── Timeline          tracks + clips
-│           └── InspectorPanel    color, audio, speed
-│
-├── Zustand Store
-│   ├── project (tracks → clips, media catalog)
-│   ├── playhead, isPlaying, timelineScale
-│   ├── history stack (deep-clone snapshots)
-│   └── proxyMap + fileMap (non-reactive)
-│
-└── Engine Layer (WASM)
-    ├── ffmpegEngine      final MP4 render
-    ├── proxyEngine       360p proxy (background queue)
-    └── renderPipeline    Project → RenderJob (pure transform)
+main.tsx
+└── QueryClientProvider
+    └── AuthProvider
+        └── RouterProvider
+            ├── /auth/* (PublicRoute)
+            ├── /dashboard, /editor/:projectId (PrivateRoute)
+            └── /editor (direct editor route for development)
+
+Editor Page (VideoEditor)
+├── Zustand store (slice-composed editor state)
+├── Player subsystem (RAF + media sync)
+└── Engine subsystem
+    ├── renderPipeline.ts (Project -> RenderJob)
+    ├── exportOrchestrator.ts (FFmpeg IO + progress stages)
+    └── proxyEngine.ts (queued 640x360 proxies)
 ```

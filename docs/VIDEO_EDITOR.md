@@ -1,11 +1,11 @@
-# Video Editor Documentation
-# AloMedia — Video Editor Guide
+# AloMedia Video Editor Guide
 
 ## Overview
 
 The video editor is the core feature of AloMedia. It implements a **non-destructive, multi-track editing** workflow: source media files are never modified. Instead, `Clip` objects describe which portion of each file to use and where to place it on the timeline. The final output is assembled from these instructions during export.
 
 For a technical deep-dive into the editor's subsystems, see:
+
 - [DATA_MODEL.md](DATA_MODEL.md) — Project, Track, Clip types
 - [STATE_MANAGEMENT.md](STATE_MANAGEMENT.md) — Zustand store and history
 - [PLAYER.md](PLAYER.md) — Real-time playback engine
@@ -56,6 +56,7 @@ Tracks are horizontal lanes on the timeline. Every project starts with one video
 ### Clips
 
 A clip is a time-boxed reference to a portion of a media file. The clip defines:
+
 - Where it sits on the timeline (`timelineStart`, `timelineEnd`)
 - Which part of the source file to play (`mediaStart`, `mediaEnd`)
 - Per-clip effects: transform, color grading, audio config, playback speed
@@ -108,16 +109,17 @@ Drag the **right edge** of a clip to extend or shorten its timeline duration. Th
 
 ### Clip Context Menu (Right-Click)
 
-| Action | Description |
-|---|---|
+| Action            | Description                                                         |
+| ----------------- | ------------------------------------------------------------------- |
 | Split at Playhead | Divides the clip at the current playhead into two independent clips |
-| Copy | Copies the clip to the clipboard |
-| Delete | Removes the clip from the track |
-| Extract Audio | (Video clips only) Creates a linked AudioClip on a new audio track |
+| Copy              | Copies the clip to the clipboard                                    |
+| Delete            | Removes the clip from the track                                     |
+| Extract Audio     | (Video clips only) Creates a linked AudioClip on a new audio track  |
 
 ### Track Controls
 
 Each track header (left side) has:
+
 - **Drag handle** for reordering tracks (changes compositing order)
 - **Visibility toggle** (eye icon)
 - **Lock toggle**
@@ -134,6 +136,7 @@ The center panel shows a real-time preview of the composition at the current pla
 **Canvas**: A 1280×720 logical canvas scaled to fit the panel. All active clips across all tracks are composited simultaneously — foreground tracks (lower `order`) appear on top.
 
 **Transport controls**:
+
 - Skip to start / Skip to end
 - Rewind 5 s / Forward 5 s
 - Play / Pause
@@ -153,14 +156,14 @@ The right panel shows per-clip properties for the selected clip. It has up to th
 
 Available for video and image clips. Provides seven per-clip adjustments:
 
-| Parameter | Effect |
-|---|---|
-| Brightness | Overall lightness / darkness |
-| Contrast | Difference between light and dark areas |
-| Saturation | Color intensity (0 = grayscale) |
-| Gamma | Mid-tone correction |
-| Exposure | Simulates camera exposure change |
-| Shadow | Lift or crush the shadow region |
+| Parameter  | Effect                                  |
+| ---------- | --------------------------------------- |
+| Brightness | Overall lightness / darkness            |
+| Contrast   | Difference between light and dark areas |
+| Saturation | Color intensity (0 = grayscale)         |
+| Gamma      | Mid-tone correction                     |
+| Exposure   | Simulates camera exposure change        |
+| Shadow     | Lift or crush the shadow region         |
 | Definition | Unsharp mask (micro-contrast / clarity) |
 
 Changes are visible **live** in the preview canvas as CSS filters. Gamma, shadow, and definition are approximated in the preview; the full adjustment accuracy is only reproduced in the final FFmpeg export.
@@ -169,13 +172,13 @@ Changes are visible **live** in the preview canvas as CSS filters. Gamma, shadow
 
 Available for video and audio clips.
 
-| Control | Range | Notes |
-|---|---|---|
-| Mute | on/off | Completely silences the clip |
-| Volume | 0–200% | Values above 100% amplify via Web Audio GainNode |
-| Fade In | seconds | Ramps volume from silence at clip start |
-| Fade Out | seconds | Ramps volume to silence at clip end |
-| Balance | L to R | Stereo pan position |
+| Control  | Range   | Notes                                            |
+| -------- | ------- | ------------------------------------------------ |
+| Mute     | on/off  | Completely silences the clip                     |
+| Volume   | 0–200%  | Values above 100% amplify via Web Audio GainNode |
+| Fade In  | seconds | Ramps volume from silence at clip start          |
+| Fade Out | seconds | Ramps volume to silence at clip end              |
+| Balance  | L to R  | Stereo pan position                              |
 
 ### Speed Tab — Playback Speed
 
@@ -199,6 +202,7 @@ Note: Clipboard contents, proxy states, and playback position are not part of th
 Click **Export** in the top bar to render the full timeline to an MP4 file.
 
 The export process:
+
 1. `buildRenderJob()` converts the project to a flat list of `RenderSegment` objects (pure data, no React).
 2. `renderJob()` passes these segments to the FFmpeg WASM engine.
 3. FFmpeg writes all source files into its virtual filesystem, builds a filter graph (overlay compositing for multi-track, color/audio/speed filters per clip), and muxes the output to MP4.
@@ -212,11 +216,12 @@ Export runs entirely in the browser. For complex multi-track projects with many 
 
 **Save** serializes the current project to a JSON file (via `projectSerializer.ts`) and triggers a browser download. The JSON contains all track and clip metadata, including color and audio settings, but not the media binary files.
 
-**Load** reads a previously saved JSON file and restores the project state. After loading, the user must re-import the original media files for playback to work, since file data is not embedded in the save file.
-2. **Clips**: Each clip rendered with:
-   - Correct timeline position (left = `timelineStart * timelineScale`)
-   - Correct width (width = `(timelineEnd - timelineStart) * timelineScale`)
-   - Selection state (highlighted if `selectedClipId === clipId`)
+**Load** reads a previously saved JSON file and restores the project state. After loading, the user must re-import the original media files for playback to work, since file data is not embedded in the save file. 2. **Clips**: Each clip rendered with:
+
+- Correct timeline position (left = `timelineStart * timelineScale`)
+- Correct width (width = `(timelineEnd - timelineStart) * timelineScale`)
+- Selection state (highlighted if `selectedClipId === clipId`)
+
 3. **Gap areas**: Empty space before/after clips where new media can be dropped
 4. **Playhead line**: Vertical indicator showing current play position
 
@@ -235,6 +240,7 @@ The playhead position is stored in `editorStore.playhead` (in seconds).
 ### Synchronization
 
 When the playhead moves, the preview player must:
+
 1. Update all media elements to show the correct frame
 2. Pause any audio that's no longer active
 3. Start playing any newly-active audio
@@ -273,6 +279,7 @@ The canvas rendering system:
 5. **RequestAnimationFrame Loop**: Continues at 60fps for smooth preview
 
 The transform system applies:
+
 - **Position**: x, y offset in pixels
 - **Scale**: width, height as absolute pixel dimensions
 - **Rotation**: 2D rotation in degrees around the center
@@ -288,6 +295,7 @@ Audio is handled separately from video:
 5. **Drift Correction**: If audio drifts, it's re-seeked to the exact position
 
 This complexity is necessary because:
+
 - Video and audio may be on separate media elements
 - Multiple audio tracks need to play simultaneously
 - Synchronization between video and audio must be tight
@@ -386,10 +394,12 @@ When rendering a clip:
 AloMedia maintains a complete history of project states:
 
 **HistoryEntry**: Contains:
+
 - Snapshot of the entire project state
 - Description of the change (e.g., "Added clip", "Moved clip")
 
 **Store State**:
+
 - `history`: Array of all previous states
 - `historyIndex`: Current position in history (0 = initial state)
 
@@ -425,6 +435,7 @@ Returns true if any existing clip on the track overlaps the time range [start, e
 ### Algorithm
 
 For each existing clip on the track:
+
 ```
 clipStart <= newEnd AND clipEnd >= newStart
 ```
@@ -449,6 +460,7 @@ At any given playhead position, determining which clips should be visible is com
 4. Return the first clip found from the highest-priority track with an active clip
 
 This ensures:
+
 - Only one video clip visible at a time (even with overlapping clips)
 - The topmost overlapping clip is displayed
 - Correct clip transitions happen at timeline boundaries
@@ -481,19 +493,21 @@ Synchronizing video, audio, and canvas rendering is one of the hardest problems 
 The `useMediaSync` hook coordinates all these timing sources:
 
 **Input State**:
+
 - Current playhead position
 - Play/pause state
 - Whether app is in focus
 - Volume and mute level
 
 **Output State**:
+
 - Three video element refs (primary, buffer, secondary)
 - Method to get object URLs for media files
 - Method to handle frame updates
 
 **Synchronization Process**:
 
-1. **Per-frame (RAF)**: 
+1. **Per-frame (RAF)**:
    - Read current time from primary video element
    - Calculate media time for current clip
    - Compare against playhead
@@ -512,6 +526,7 @@ The `useMediaSync` hook coordinates all these timing sources:
 ### Drift Correction
 
 Over time, playback can drift:
+
 ```
 actualTime - expectedTime > DRIFT_CORRECTION_THRESHOLD
 ```
@@ -566,7 +581,7 @@ For fast lookup of active clips, a clip index structure can be built:
 
 ```typescript
 interface ClipIndex {
-  [trackId]: Clip[]  // Sorted by start time
+  [trackId]: Clip[]; // Sorted by start time
 }
 ```
 

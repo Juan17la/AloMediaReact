@@ -140,7 +140,7 @@ export interface RenderSegment {
   audioConfig?: AudioConfig
 }
 
-export type ExportOutputFormat = "mp4" | "webm" | "mov" | "mkv" | "avi"
+export type ExportOutputFormat = "mp4" | "mov" | "mkv" | "avi"
 export type ExportVideoCodec = "h264" | "vp9" | "av1"
 
 export interface RenderJob {

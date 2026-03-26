@@ -14,12 +14,6 @@ export const EXPORT_FORMAT_PROFILES: Record<ExportOutputFormat, ExportFormatProf
     audioCodec: "aac",
     mimeType: "video/mp4",
   },
-  webm: {
-    videoCodec: "libvpx-vp9",
-    videoArgs: ["-b:v", "0", "-crf", "30"],
-    audioCodec: "libopus",
-    mimeType: "video/webm",
-  },
   mov: {
     videoCodec: "libx264",
     videoArgs: ["-preset", "fast", "-crf", "23"],

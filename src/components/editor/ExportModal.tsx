@@ -2,6 +2,8 @@ import { useState } from "react"
 import type { ExportOptions } from "../../engine/renderPipeline"
 import type { ExportProgress } from "../../engine/exportProgress"
 import { formatTimeRemaining } from "../../engine/exportProgress"
+import type { ExportOutputFormat } from "../../project/projectTypes"
+import { EXPORT_FORMAT_PROFILES } from "../../constants/exportFormats"
 
 interface ExportModalProps {
   isExporting: boolean
@@ -30,7 +32,7 @@ export function ExportModal({
   onClose,
   defaultFileName,
 }: ExportModalProps) {
-  const [format, setFormat] = useState<'mp4' | 'webm'>('mp4')
+  const [format, setFormat] = useState<ExportOutputFormat>('mp4')
   const [resolution, setResolution] = useState<{ width: number; height: number }>({ width: 1280, height: 720 })
   const [fps, setFps] = useState(30)
   const [fileName, setFileName] = useState(defaultFileName)
@@ -82,7 +84,7 @@ export function ExportModal({
             <div className="flex flex-col gap-1.5">
               <label className="text-muted text-xs uppercase tracking-wider">Format</label>
               <div className="flex gap-2">
-                {(['mp4', 'webm'] as const).map(f => (
+                {(['mp4', 'webm', 'mov', 'mkv', 'avi'] as const).map(f => (
                   <button
                     key={f}
                     onClick={() => setFormat(f)}

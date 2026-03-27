@@ -12,9 +12,13 @@ function formatBalance(v: number): string {
 }
 
 function parseVolumePercentInput(text: string): number | null {
-  const parsed = Number.parseFloat(text)
-  if (!Number.isFinite(parsed)) return null
-  return parsed / 100
+  const sanitized = text.replace(',', '.').replace(/[^\d.-]/g, '');
+  const parsed = Number.parseFloat(sanitized);
+
+  if (Number.isNaN(parsed) || !Number.isFinite(parsed)) {
+    return null;
+  }
+  return parsed / 100;
 }
 
 interface AudioConfigPanelProps {

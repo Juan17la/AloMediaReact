@@ -1,9 +1,17 @@
-import type { Clip, Project, RenderJob, RenderSegment } from "../project/projectTypes"
+import type {
+  Clip,
+  ExportOutputFormat,
+  ExportVideoCodec,
+  Project,
+  RenderJob,
+  RenderSegment,
+} from "../project/projectTypes"
 import { getProjectDuration } from "../utils/time"
 import { DEFAULT_SPEED } from "../constants/speed"
 
 export interface ExportOptions {
-  outputFormat: 'mp4' | 'webm'
+  outputFormat: ExportOutputFormat
+  codec?: ExportVideoCodec
   resolution: { width: number; height: number }
   fps: number
   outputFileName: string
@@ -112,6 +120,7 @@ export function buildRenderJob(
   return {
     segments,
     outputFormat: options.outputFormat,
+    codec: options.codec,
     resolution: options.resolution,
     fps: options.fps,
     outputFileName: options.outputFileName,

@@ -17,6 +17,14 @@ export function safeMediaFileName(mediaId: string, file: File): string {
   return `media_${mediaId}.${ext}`
 }
 
+export function getLowercaseExtension(fileName: string): string {
+  return fileName.split('.').pop()?.toLowerCase() ?? ''
+}
+
+export function isGifFileName(fileName: string): boolean {
+  return getLowercaseExtension(fileName) === 'gif'
+}
+
 /**
  * Reads an output file from the FFmpeg virtual FS and returns its bytes.
  * Throws `ErrnoError` if the file does not exist (e.g. FFmpeg exited non-zero).

@@ -11,6 +11,12 @@ function formatBalance(v: number): string {
   return v > 0 ? `+${v.toFixed(2)}` : v.toFixed(2)
 }
 
+function parseVolumePercentInput(text: string): number | null {
+  const parsed = Number.parseFloat(text)
+  if (!Number.isFinite(parsed)) return null
+  return parsed / 100
+}
+
 interface AudioConfigPanelProps {
   clipId: string
 }
@@ -99,7 +105,8 @@ export function AudioConfigPanel({ clipId }: AudioConfigPanelProps) {
         step={0.01}
         defaultValue={DEFAULT_AUDIO_CONFIG.volume}
         formatDisplay={value => `${Math.round(value * 100)}%`}
-        formatInput={value => value.toFixed(2)}
+        formatInput={value => Math.round(value * 100).toString()}
+        parseInput={parseVolumePercentInput}
         onChange={v => set("volume", v)}
         onReset={() => reset("volume")}
         disabled={config.muted}

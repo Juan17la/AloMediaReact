@@ -178,6 +178,16 @@ export function buildFilterGraph(
     }
   }
 
+  // Ensure final composed video stream has a pixel format compatible with
+  // common encoders (e.g. libx264 expects yuv420p). Intermediate image
+  // overlays keep alpha (rgba) so PNG transparency is preserved during
+  // composition; convert to yuv420p after all overlays are applied.
+  let videoOutputLabel: string | null = hasVideo ? '[vout]' : null
+  if (hasVideo) {
+    filterParts.push(`[vout]format=yuv420p[vout_final]`)
+    videoOutputLabel = '[vout_final]'
+  }
+
   // Audio filter chains
   if (hasAudio) {
     // Audio-only segment inputs start after visual segment inputs
@@ -221,7 +231,7 @@ export function buildFilterGraph(
     baseArgs,
     inputs,
     filterComplex: filterParts.join(';'),
-    videoOutputLabel: hasVideo ? '[vout]' : null,
+    videoOutputLabel: videoOutputLabel,
     // Only set audioOutputLabel when [aout] was actually created in the filter complex.
     // hasAudio being true does NOT guarantee [aout] exists (video may have no audio stream).
     audioOutputLabel: audioLabels.length > 0 ? '[aout]' : null,

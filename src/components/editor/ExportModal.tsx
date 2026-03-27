@@ -2,6 +2,10 @@ import { useState } from "react"
 import type { ExportOptions } from "../../engine/renderPipeline"
 import type { ExportProgress } from "../../engine/exportProgress"
 import { formatTimeRemaining } from "../../engine/exportProgress"
+import type { ExportOutputFormat } from "../../project/projectTypes"
+import { EXPORT_FORMAT_PROFILES } from "../../constants/exportFormats"
+
+const AVAILABLE_FORMATS: ExportOutputFormat[] = Object.keys(EXPORT_FORMAT_PROFILES) as ExportOutputFormat[]
 
 interface ExportModalProps {
   isExporting: boolean
@@ -30,7 +34,7 @@ export function ExportModal({
   onClose,
   defaultFileName,
 }: ExportModalProps) {
-  const [format, setFormat] = useState<'mp4' | 'webm'>('mp4')
+  const [format, setFormat] = useState<ExportOutputFormat>('mp4')
   const [resolution, setResolution] = useState<{ width: number; height: number }>({ width: 1280, height: 720 })
   const [fps, setFps] = useState(30)
   const [fileName, setFileName] = useState(defaultFileName)
@@ -58,8 +62,8 @@ export function ExportModal({
     progress?.secondsRemaining != null
       ? `${formatTimeRemaining(progress.secondsRemaining)} remaining`
       : progress?.stage === 'encoding'
-      ? 'Calculating…'
-      : null
+        ? 'Calculating…'
+        : null
 
   return (
     <div
@@ -82,15 +86,14 @@ export function ExportModal({
             <div className="flex flex-col gap-1.5">
               <label className="text-muted text-xs uppercase tracking-wider">Format</label>
               <div className="flex gap-2">
-                {(['mp4', 'webm'] as const).map(f => (
+                {AVAILABLE_FORMATS.map(f => (
                   <button
                     key={f}
                     onClick={() => setFormat(f)}
-                    className={`px-4 py-1.5 rounded text-sm font-medium border transition-colors ${
-                      format === f
-                        ? 'bg-accent-red border-accent-red text-white'
-                        : 'border-dark-border text-muted hover:text-accent-white'
-                    }`}
+                    className={`px-4 py-1.5 rounded text-sm font-medium border transition-colors ${format === f
+                      ? 'bg-accent-red border-accent-red text-white'
+                      : 'border-dark-border text-muted hover:text-accent-white'
+                      }`}
                   >
                     {f.toUpperCase()}
                   </button>
@@ -112,11 +115,10 @@ export function ExportModal({
                     <button
                       key={r.label}
                       onClick={() => setResolution({ width: r.w, height: r.h })}
-                      className={`px-3 py-1.5 rounded text-sm font-medium border transition-colors ${
-                        selected
-                          ? 'bg-accent-red border-accent-red text-white'
-                          : 'border-dark-border text-muted hover:text-accent-white'
-                      }`}
+                      className={`px-3 py-1.5 rounded text-sm font-medium border transition-colors ${selected
+                        ? 'bg-accent-red border-accent-red text-white'
+                        : 'border-dark-border text-muted hover:text-accent-white'
+                        }`}
                     >
                       {r.label}
                     </button>
@@ -133,11 +135,10 @@ export function ExportModal({
                   <button
                     key={f}
                     onClick={() => setFps(f)}
-                    className={`px-4 py-1.5 rounded text-sm font-medium border transition-colors ${
-                      fps === f
-                        ? 'bg-accent-red border-accent-red text-white'
-                        : 'border-dark-border text-muted hover:text-accent-white'
-                    }`}
+                    className={`px-4 py-1.5 rounded text-sm font-medium border transition-colors ${fps === f
+                      ? 'bg-accent-red border-accent-red text-white'
+                      : 'border-dark-border text-muted hover:text-accent-white'
+                      }`}
                   >
                     {f} fps
                   </button>

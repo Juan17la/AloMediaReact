@@ -6,6 +6,7 @@ import { loadFFmpeg, getFFmpeg } from "../engine/ffmpegEngine"
 import { runExport } from "../engine/exportOrchestrator"
 import type { ExportProgress } from "../engine/exportProgress"
 import { isFfmpegTerminateError } from "../engine/ffmpegUtils"
+import { EXPORT_FORMAT_PROFILES } from "../constants/exportFormats"
 
 export interface UseExportReturn {
   startExport: (options: ExportOptions) => void
@@ -55,7 +56,7 @@ export function useExport(): UseExportReturn {
 
       const output = await runExport(ffmpeg, job, fileMap, setProgress, controller.signal)
 
-      const mimeType = options.outputFormat === 'webm' ? 'video/webm' : 'video/mp4'
+      const mimeType = EXPORT_FORMAT_PROFILES[options.outputFormat].mimeType
       const safeData = new Uint8Array(output)
       const blob = new Blob([safeData], { type: mimeType })
       const url = URL.createObjectURL(blob)

@@ -5,6 +5,7 @@ import { buildFilterGraph } from "./filterGraphBuilder"
 import type { ExportProgress } from "./exportProgress"
 import { estimateTimeRemaining } from "./exportProgress"
 import { isFfmpegTerminateError, safeMediaFileName } from "./ffmpegUtils"
+import { EXPORT_FORMAT_PROFILES } from "../constants/exportFormats"
 
 export async function runExport(
   ffmpeg: FFmpeg,
@@ -201,6 +202,7 @@ function buildExecArgs(
   outputFile: string,
 ): string[] {
   const args: string[] = []
+  const profile = EXPORT_FORMAT_PROFILES[job.outputFormat]
 
   // Base canvas (lavfi color source)
   args.push(...graph.baseArgs)
@@ -225,20 +227,12 @@ function buildExecArgs(
 
   // Video codec
   if (graph.videoOutputLabel) {
-    if (job.outputFormat === 'webm') {
-      args.push('-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '30')
-    } else {
-      args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '23')
-    }
+    args.push('-c:v', profile.videoCodec, ...profile.videoArgs)
   }
 
   // Audio codec
   if (graph.audioOutputLabel) {
-    if (job.outputFormat === 'webm') {
-      args.push('-c:a', 'libopus')
-    } else {
-      args.push('-c:a', 'aac')
-    }
+    args.push('-c:a', profile.audioCodec)
   }
 
   args.push('-t', `${job.projectDuration}`)

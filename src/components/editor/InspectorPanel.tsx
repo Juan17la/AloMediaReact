@@ -1,46 +1,16 @@
-import { useEffect, useMemo, useState } from "react"
-import { RotateCcw } from "lucide-react"
+import { useMemo, useState } from "react"
 import type { Clip } from "../../project/projectTypes"
-import { useEditorStore } from "../../store/editorStore"
-import { DEFAULT_SPEED, MAX_SPEED, MIN_SPEED } from "../../constants/speed"
-import { RangeSlider } from "../ui/RangeSlider"
 import { AudioConfigPanel } from "./AudioConfigPanel"
 import { ColorAdjustmentsPanel } from "./ColorAdjustmentsPanel"
+import { SpeedConfigPanel } from "./SpeedConfigPanel" // Import the new panel
 
 type InspectorTab = "video" | "audio" | "speed"
-
-const SPEED_STEP = 0.05
-const SPEED_LOG_DENOMINATOR = Math.log(MAX_SPEED) - Math.log(MIN_SPEED)
-
-function positionToSpeed(position: number): number {
-  return Math.exp(Math.log(MIN_SPEED) + position * SPEED_LOG_DENOMINATOR)
-}
-
-function speedToPosition(speed: number): number {
-  return (Math.log(speed) - Math.log(MIN_SPEED)) / SPEED_LOG_DENOMINATOR
-}
-
-function quantizeSpeed(speed: number): number {
-  const clamped = Math.max(MIN_SPEED, Math.min(MAX_SPEED, speed))
-  return Math.max(MIN_SPEED, Math.min(MAX_SPEED, Math.round(clamped / SPEED_STEP) * SPEED_STEP))
-}
 
 interface InspectorPanelProps {
   clip: Clip
 }
 
 export function InspectorPanel({ clip }: InspectorPanelProps) {
-  const setClipSpeed = useEditorStore(s => s.setClipSpeed)
-
-  const speed = useEditorStore(s => {
-    for (const track of s.project.tracks) {
-      const c = track.clips.find(c => c.id === clip.id)
-      if (c && (c.type === "video" || c.type === "audio")) {
-        return c.speed ?? DEFAULT_SPEED
-      }
-    }
-    return DEFAULT_SPEED
-  })
 
   const tabs = useMemo<InspectorTab[]>(() => {
     if (clip.type === "image") return ["video"]
@@ -50,115 +20,19 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
   }, [clip.type])
 
   const [activeTab, setActiveTab] = useState<InspectorTab>(tabs[0] ?? "video")
-
-  useEffect(() => {
-    setActiveTab(tabs[0] ?? "video")
-  }, [clip.id, tabs])
-
-  const speedPosition = speedToPosition(Math.max(MIN_SPEED, Math.min(MAX_SPEED, speed)))
-
-  function handleSpeedPositionChange(position: number) {
-    const computedSpeed = positionToSpeed(position)
-    setClipSpeed(clip.id, quantizeSpeed(computedSpeed))
-  }
+  const effectiveTab = tabs.includes(activeTab) ? activeTab : (tabs[0] ?? "video")
 
   function renderContent(): React.ReactNode {
-    if (activeTab === "video") {
-      return <ColorAdjustmentsPanel clipId={clip.id} />
+    switch (effectiveTab) {
+      case "video":
+        return <ColorAdjustmentsPanel clipId={clip.id} />
+      case "audio":
+        return <AudioConfigPanel clipId={clip.id} />
+      case "speed":
+        return <SpeedConfigPanel clipId={clip.id} /> // Use the new component
+      default:
+        return null
     }
-
-    if (activeTab === "audio") {
-      return <AudioConfigPanel clipId={clip.id} />
-    }
-
-    // Speed tab
-    return (
-      <div className="w-full">
-        {/* Section header */}
-        <div
-          style={{
-            height: 24,
-            background: "var(--color-dark)",
-            padding: "0 8px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            borderBottom: "1px solid var(--color-dark-border)",
-            marginBottom: 8,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "var(--color-muted)",
-            }}
-          >
-            Speed
-          </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{
-                fontFamily: "'Courier New', monospace",
-                fontSize: 10,
-                color: "var(--color-accent-white)",
-                minWidth: 36,
-                textAlign: "right",
-              }}
-            >
-              {speed.toFixed(2)}×
-            </span>
-            <button
-              onClick={() => setClipSpeed(clip.id, DEFAULT_SPEED)}
-              disabled={Math.abs(speed - DEFAULT_SPEED) <= 0.001}
-              title="Reset to default"
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: 0,
-                border: "none",
-                background: "transparent",
-                color: "var(--color-muted)",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: 0,
-                opacity: Math.abs(speed - DEFAULT_SPEED) <= 0.001 ? 0.3 : 1,
-              }}
-              aria-label="Reset speed to default"
-            >
-              <RotateCcw size={10} />
-            </button>
-          </div>
-        </div>
-
-        {/* Min/max labels */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "0 8px 4px",
-          }}
-        >
-          <span style={{ fontSize: 9, color: "var(--color-muted)" }}>0.1×</span>
-          <span style={{ fontSize: 9, color: "var(--color-muted)" }}>5.0×</span>
-        </div>
-
-        <div style={{ padding: "0 8px 8px" }}>
-          <RangeSlider
-            value={speedPosition}
-            min={0}
-            max={1}
-            step={0.001}
-            label="Speed"
-            onChange={handleSpeedPositionChange}
-          />
-        </div>
-      </div>
-    )
   }
 
   const showTabs = tabs.length > 1
@@ -182,51 +56,30 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
           padding: "0 8px",
         }}
       >
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "var(--color-muted)",
-          }}
-        >
+        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-muted)" }}>
           Inspector
         </span>
       </div>
 
-      {/* Tab bar */}
       {showTabs && (
-        <div
-          className="flex shrink-0"
-          style={{
-            height: 32,
-            background: "var(--color-dark)",
-            borderBottom: "1px solid var(--color-dark-border)",
-          }}
-        >
+        <div className="flex shrink-0" style={{ height: 32, background: "var(--color-dark)", borderBottom: "1px solid var(--color-dark-border)" }}>
           {tabs.map(tab => {
-            const active = activeTab === tab
+            const active = effectiveTab === tab
             const label = tab === "video" ? "Video" : tab === "audio" ? "Audio" : "Speed"
-
             return (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                type="button"
                 style={{
                   height: "100%",
                   padding: "0 14px",
                   fontSize: 11,
                   fontWeight: 600,
-                  borderRadius: 0,
-                  border: "none",
                   background: "transparent",
                   color: active ? "var(--color-accent-white)" : "var(--color-muted)",
                   borderBottom: active ? "2px solid var(--color-accent-red)" : "2px solid transparent",
                   cursor: "pointer",
-                  fontFamily: "inherit",
-                  letterSpacing: "0.02em",
+                  border: "none"
                 }}
               >
                 {label}
@@ -236,7 +89,7 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
         </div>
       )}
 
-      <div className="overflow-y-auto flex-1" style={{ padding: showTabs ? "8px 0" : "8px 0" }}>
+      <div className="overflow-y-auto flex-1">
         {renderContent()}
       </div>
     </aside>

@@ -1,22 +1,11 @@
 import { useNavigate } from "react-router";
-import { Plus, Film, Search, ChevronRight, Clock, Sparkles } from "lucide-react";
+import { Plus, Film, Search, ChevronRight, Clock, Users, Sparkles } from "lucide-react";
 import Navbar from "../../components/Navbar";
-import ProjectCard from "../../components/ProjectCard";
 import PrimaryButton from "../../components/PrimaryButton";
 import ActionCard from "../../components/ActionCard";
+import { OwnProjectsList } from "../../components/projects/OwnProjectsList";
+import { SharedProjectsList } from "../../components/projects/SharedProjectsList";
 
-// Array of objects: each entry represents a project card (id, name, thumbnail, date).
-// Iterated with .map() in the JSX; the loop index (idx) is used to compute a
-// staggered animationDelay per card: 0.15 + idx * 0.05s.
-const SAMPLE_PROJECTS = [
-  { id: "1", name: "Summer Vlog 2026", thumbnail: null, date: "Feb 25" },
-  { id: "2", name: "Product Demo v2", thumbnail: null, date: "Feb 20" },
-  { id: "3", name: "Tutorial Series Ep.1", thumbnail: null, date: "Feb 15" },
-  { id: "4", name: "Brand Intro Animation", thumbnail: null, date: "Feb 10" },
-];
-
-// Array of objects: each entry holds the icon component, label, and description
-// for a quick-action card. Iterated with .map() to render an <ActionCard> per entry.
 const QUICK_ACTIONS = [
   { icon: Film, label: "Import Media", desc: "Upload video, audio or images" },
   { icon: Sparkles, label: "Templates", desc: "Start from a pre-made template" },
@@ -84,13 +73,13 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          {/* Recent Projects */}
+          {/* My Projects */}
           <section className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <Clock className="w-5 h-5 text-accent-red" />
                 <h2 className="text-xl font-bold text-accent-white tracking-wide">
-                  Recent Projects
+                  My Projects
                 </h2>
               </div>
               <a
@@ -101,17 +90,20 @@ export default function DashboardPage() {
                 <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </a>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {SAMPLE_PROJECTS.map((project, idx) => (
-                <ProjectCard
-                  key={project.id}
-                  {...project}
-                  style={{ animationDelay: `${0.15 + idx * 0.05}s` }}
-                />
-              ))}
-            </div>
+            <OwnProjectsList />
           </section>
+
+          {/* Shared With Me */}
+          <section className="animate-slide-up" style={{ animationDelay: "0.15s" }}>
+            <div className="flex items-center gap-3 mb-6">
+              <Users className="w-5 h-5 text-accent-red" />
+              <h2 className="text-xl font-bold text-accent-white tracking-wide">
+                Shared With Me
+              </h2>
+            </div>
+            <SharedProjectsList />
+          </section>
+
           {/* Quick Actions */}
           <section className="animate-slide-up pb-8" style={{ animationDelay: "0.2s" }}>
             <h2 className="text-xl font-bold text-accent-white tracking-wide mb-6">

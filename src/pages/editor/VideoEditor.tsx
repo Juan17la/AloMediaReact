@@ -1,24 +1,100 @@
-import { useRef, useState } from "react"
-import { FolderOpen, Save, Share2, Film } from "lucide-react"
+import { useRef, useState, useEffect, useCallback } from "react"
+import type { CSSProperties } from "react"
+import { useParams, useNavigate, useBlocker } from "react-router"
 import { MediaLibrary } from "../../components/editor/MediaLibrary"
 import { Timeline } from "../../components/editor/Timeline"
 import { Toolbar } from "../../components/editor/Toolbar"
 import { PreviewPlayer } from "../../components/editor/PreviewPlayer"
 import { InspectorPanel } from "../../components/editor/InspectorPanel"
 import { ExportModal } from "../../components/editor/ExportModal"
-import { useEditorStore } from "../../store/editorStore"
-import { exportProjectJSON, loadProject } from "../../project/projectSerializer"
+import { EditorToolbar } from "../../components/editor/EditorToolbar"
+import { SaveProjectModal } from "../../components/editor/SaveProjectModal"
+import { ShareProjectModal } from "../../components/editor/ShareProjectModal"
+import { UnsavedChangesModal } from "../../components/editor/UnsavedChangesModal"
+import { useEditorStore, fileMap } from "../../store/editorStore"
+import { loadProject } from "../../project/projectSerializer"
 import { useExport } from "../../hooks/useExport"
 import { useEditorKeyboardShortcuts } from "../../hooks/useEditorKeyboardShortcuts"
+import { getProjectById, createProject, updateProject } from "../../services/projectService"
+import { serializeTimeline, deserializeTimeline } from "../../utils/timelineSerializer"
+import type { ApiProject } from "../../types/projectApiTypes"
+import type { Project } from "../../project/projectTypes"
+import { ApiError } from "../../api/errors"
+import { MediaRelinkDialog } from "../../components/editor/MediaRelinkDialog"
+import { saveFileToCache, evictExpiredEntries } from "../../services/fileCacheService"
+import { EditorErrorBoundary } from "../../components/editor/EditorErrorBoundary"
 
 export default function VideoEditor() {
+  const { projectId } = useParams<{ projectId: string }>()
+  const navigate = useNavigate()
+
   const project = useEditorStore(s => s.project)
+  const resetProject = useEditorStore(s => s.resetProject)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(project.name)
   const [showExportModal, setShowExportModal] = useState(false)
   const loadInputRef = useRef<HTMLInputElement>(null)
 
-  const { startExport, cancelExport, progress, isExporting } = useExport()
+  // API project state
+  const [apiProject, setApiProject] = useState<ApiProject | null>(null)
+  const [isLoadingProject, setIsLoadingProject] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+
+  // Dirty tracking — compare store reference against the last known saved project
+  const [isDirty, setIsDirty] = useState(false)
+  const savedProjectRef = useRef<Project>(useEditorStore.getState().project)
+
+  useEffect(() => {
+    return useEditorStore.subscribe(state => {
+      if (state.project !== savedProjectRef.current) {
+        setIsDirty(true)
+      }
+    })
+  }, [])
+
+  // Auto-dismiss toast after 3 seconds
+  useEffect(() => {
+    if (!toast) return
+    const id = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(id)
+  }, [toast])
+
+  // Load project from API when projectId is present
+  useEffect(() => {
+    if (!projectId) return
+    const numericId = parseInt(projectId, 10)
+    if (isNaN(numericId)) return
+
+    setIsLoadingProject(true)
+    setLoadError(null)
+
+    getProjectById(numericId)
+      .then(async loaded => {
+        const editorProject = deserializeTimeline(loaded.timelineData)
+        savedProjectRef.current = editorProject
+        setIsDirty(false)
+        await useEditorStore.getState().loadProject(editorProject)
+        setTitleDraft(editorProject.name)
+        setApiProject(loaded)
+      })
+      .catch(err => {
+        setLoadError(err instanceof ApiError ? err.message : 'Failed to load project.')
+      })
+      .finally(() => setIsLoadingProject(false))
+  }, [projectId])
+
+  const missingMediaIds = useEditorStore(s => s.missingMediaIds)
+
+  // Evict stale IDB cache entries once on mount
+  useEffect(() => {
+    evictExpiredEntries().catch(() => {})
+  }, [])
+
+  const { startExport, cancelExport, resetExportState, progress, isExporting } = useExport()
   useEditorKeyboardShortcuts()
 
   const selectedClip = useEditorStore(s => {
@@ -29,16 +105,20 @@ export default function VideoEditor() {
     }
     return null
   })
-  const showInspector = selectedClip?.type === "video" || selectedClip?.type === "image" || selectedClip?.type === "audio"
+  const showInspector =
+    selectedClip?.type === "video" || selectedClip?.type === "image" || selectedClip?.type === "audio"
 
   function handleLoadFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = ev => {
+    reader.onload = async ev => {
       try {
         const loaded = loadProject(ev.target?.result as string)
-        useEditorStore.setState({ project: loaded })
+        savedProjectRef.current = loaded
+        setIsDirty(false)
+        await useEditorStore.getState().loadProject(loaded)
+        setTitleDraft(loaded.name)
       } catch (err) {
         alert(String(err))
       }
@@ -48,10 +128,95 @@ export default function VideoEditor() {
   }
 
   function commitTitle() {
+    const newName = titleDraft.trim() || "Untitled Project"
     useEditorStore.setState(s => ({
-      project: { ...s.project, name: titleDraft.trim() || "Untitled Project" },
+      project: { ...s.project, name: newName },
     }))
     setIsEditingTitle(false)
+  }
+
+  const handleSave = useCallback(() => {
+    if (!apiProject) {
+      setShowSaveModal(true)
+      return
+    }
+    const currentProject = useEditorStore.getState().project
+    setIsSaving(true)
+    updateProject(apiProject.id, {
+      name: currentProject.name,
+      timelineData: serializeTimeline(currentProject),
+    })
+      .then(updated => {
+        setApiProject(updated)
+        savedProjectRef.current = currentProject
+        setIsDirty(false)
+        setToast({ message: 'Project saved.', type: 'success' })
+        // Background: persist files to IDB cache so they survive reload
+        currentProject.media.forEach(m => {
+          const file = fileMap.get(m.id)
+          if (file) saveFileToCache(m.hash, file).catch(() => {})
+        })
+      })
+      .catch(err => {
+        const msg = err instanceof ApiError ? err.message : 'Failed to save project.'
+        setToast({ message: msg, type: 'error' })
+      })
+      .finally(() => setIsSaving(false))
+  }, [apiProject])
+
+  const handleSaveConfirm = useCallback(async (name: string) => {
+    const currentProject = useEditorStore.getState().project
+    setIsSaving(true)
+    try {
+      const created = await createProject({
+        name,
+        timelineData: serializeTimeline(currentProject),
+      })
+      useEditorStore.setState(s => ({ project: { ...s.project, name } }))
+      const updatedProject = useEditorStore.getState().project
+      savedProjectRef.current = updatedProject
+      setIsDirty(false)
+      setApiProject(created)
+      setShowSaveModal(false)
+      setTitleDraft(name)
+      navigate(`/editor/${created.id}`, { replace: true })
+      setToast({ message: 'Project saved.', type: 'success' })
+      // Background: persist files to IDB cache so they survive reload
+      useEditorStore.getState().project.media.forEach(m => {
+        const file = fileMap.get(m.id)
+        if (file) saveFileToCache(m.hash, file).catch(() => {})
+      })
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to save project.'
+      setToast({ message: msg, type: 'error' })
+    } finally {
+      setIsSaving(false)
+    }
+  }, [navigate])
+
+  // Block in-app navigation when there are unsaved changes
+  const blocker = useBlocker(isDirty)
+
+  if (isLoadingProject) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-dark text-accent-white">
+        <p className="text-sm text-muted">Loading project…</p>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-dark text-accent-white flex-col gap-4">
+        <p className="text-sm text-red-400">{loadError}</p>
+        <button
+          onClick={() => navigate('/dashboard')}
+          style={ghostButtonStyle}
+        >
+          Back to dashboard
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -137,146 +302,51 @@ export default function VideoEditor() {
 
         <div className="flex-1" />
 
-        {/* Action buttons */}
-        <div className="flex items-center" style={{ gap: 4, padding: "0 8px" }}>
-          <button
-            onClick={() => loadInputRef.current?.click()}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              height: 28,
-              padding: "0 10px",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.04em",
-              borderRadius: 8,
-              border: "1px solid var(--color-dark-border)",
-              background: "var(--color-dark-elevated)",
-              color: "var(--color-accent-white)",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-dark-border)" }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-dark-elevated)" }}
-          >
-            <FolderOpen size={12} />
-            Load
-          </button>
-
-          <button
-            onClick={() => exportProjectJSON(project)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              height: 28,
-              padding: "0 10px",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.04em",
-              borderRadius: 8,
-              border: "1px solid var(--color-dark-border)",
-              background: "var(--color-dark-elevated)",
-              color: "var(--color-accent-white)",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-dark-border)" }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-dark-elevated)" }}
-          >
-            <Save size={12} />
-            Save
-          </button>
-
-          <button
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              height: 28,
-              padding: "0 10px",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.04em",
-              borderRadius: 8,
-              border: "1px solid var(--color-dark-border)",
-              background: "var(--color-dark-elevated)",
-              color: "var(--color-accent-white)",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-dark-border)" }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "var(--color-dark-elevated)" }}
-          >
-            <Share2 size={12} />
-            Share
-          </button>
-
-          <button
-            onClick={() => setShowExportModal(true)}
-            disabled={isExporting}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              height: 28,
-              padding: "0 10px",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.04em",
-              borderRadius: 8,
-              border: "1px solid var(--color-blood-red-light)",
-              background: "var(--color-accent-red)",
-              color: "#ffffff",
-              cursor: isExporting ? "not-allowed" : "pointer",
-              opacity: isExporting ? 0.6 : 1,
-              fontFamily: "inherit",
-            }}
-            onMouseEnter={e => { if (!isExporting) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-blood-red-light)" }}
-            onMouseLeave={e => { if (!isExporting) (e.currentTarget as HTMLButtonElement).style.background = "var(--color-accent-red)" }}
-          >
-            <Film size={12} />
-            Export
-          </button>
-        </div>
+        <EditorToolbar
+          apiProject={apiProject}
+          isSaving={isSaving}
+          isExporting={isExporting}
+          onLoad={() => loadInputRef.current?.click()}
+          onSave={handleSave}
+          onShare={() => setShowShareModal(true)}
+          onExport={() => setShowExportModal(true)}
+        />
       </header>
 
       {/* ── Middle row: Media panel + Preview + Inspector ── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden" style={{ gap: 0 }}>
-        {/* Media Library — fixed 240px */}
-        <aside
-          className="shrink-0 flex flex-col overflow-hidden"
-          style={{
-            width: 240,
-            background: "var(--color-dark-surface)",
-            borderRight: "1px solid var(--color-dark-border)",
-          }}
-        >
-          <MediaLibrary />
-        </aside>
+      <EditorErrorBoundary onReset={resetProject}>
+        <div className="flex flex-1 min-h-0 overflow-hidden" style={{ gap: 0 }}>
+          <aside
+            className="shrink-0 flex flex-col overflow-hidden"
+            style={{
+              width: 240,
+              background: "var(--color-dark-surface)",
+              borderRight: "1px solid var(--color-dark-border)",
+            }}
+          >
+            <MediaLibrary />
+          </aside>
 
-        {/* Preview Player — flex 1 */}
-        <div
-          className="flex flex-1 min-h-0 min-w-0 overflow-hidden"
-          style={{ background: "var(--color-dark)", minWidth: 480 }}
-        >
-          <PreviewPlayer />
+          <div
+            className="flex flex-1 min-h-0 min-w-0 overflow-hidden"
+            style={{ background: "var(--color-dark)", minWidth: 480 }}
+          >
+            <PreviewPlayer />
+          </div>
+
+          {showInspector && selectedClip ? (
+            <InspectorPanel clip={selectedClip} />
+          ) : null}
         </div>
 
-        {/* Inspector Panel — fixed 280px, hidden when no clip */}
-        {showInspector && selectedClip ? (
-          <InspectorPanel clip={selectedClip} />
-        ) : null}
-      </div>
+        {/* ── Toolbar ── */}
+        <Toolbar />
 
-      {/* ── Toolbar ── */}
-      <Toolbar />
-
-      {/* ── Timeline ── */}
-      <div className="flex flex-col shrink-0 overflow-hidden" style={{ height: 260 }}>
-        <Timeline />
-      </div>
+        {/* ── Timeline ── */}
+        <div className="flex flex-col shrink-0 overflow-hidden" style={{ height: 260 }}>
+          <Timeline />
+        </div>
+      </EditorErrorBoundary>
 
       <input
         ref={loadInputRef}
@@ -285,6 +355,19 @@ export default function VideoEditor() {
         className="hidden"
         onChange={handleLoadFile}
       />
+
+      {/* Toast notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-lg text-sm font-medium shadow-xl border ${
+            toast.type === 'success'
+              ? 'bg-dark-card border-dark-border text-accent-white'
+              : 'bg-dark-card border-red-800/50 text-red-400'
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
 
       {showExportModal && (
         <ExportModal
@@ -295,14 +378,58 @@ export default function VideoEditor() {
           }}
           onCancel={() => {
             cancelExport()
+            resetExportState()
             setShowExportModal(false)
           }}
           onClose={() => {
-            if (!isExporting) setShowExportModal(false)
+            if (!isExporting) {
+              resetExportState()
+              setShowExportModal(false)
+            }
           }}
           defaultFileName={`${project.name}_export`}
         />
       )}
+
+      {showSaveModal && (
+        <SaveProjectModal
+          initialName={project.name}
+          onConfirm={handleSaveConfirm}
+          onCancel={() => setShowSaveModal(false)}
+          isSaving={isSaving}
+        />
+      )}
+
+      {showShareModal && apiProject && (
+        <ShareProjectModal
+          projectId={apiProject.id}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
+
+      {blocker.state === 'blocked' && (
+        <UnsavedChangesModal
+          onLeave={() => blocker.proceed?.()}
+          onStay={() => blocker.reset?.()}
+        />
+      )}
+
+      {missingMediaIds.size > 0 && (
+        <MediaRelinkDialog
+          onClose={() => useEditorStore.setState({ missingMediaIds: new Set() })}
+        />
+      )}
     </div>
   )
+}
+
+const ghostButtonStyle: CSSProperties = {
+  padding: '8px 16px',
+  borderRadius: 8,
+  fontSize: 13,
+  border: '1px solid var(--color-dark-border)',
+  background: 'transparent',
+  color: 'var(--color-muted)',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
 }

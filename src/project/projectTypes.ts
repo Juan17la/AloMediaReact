@@ -140,9 +140,13 @@ export interface RenderSegment {
   audioConfig?: AudioConfig
 }
 
+export type ExportOutputFormat = "mp4" | "mov" | "mkv" | "avi"
+export type ExportVideoCodec = "h264" | "vp9" | "av1"
+
 export interface RenderJob {
   segments: RenderSegment[]
-  outputFormat: "mp4" | "webm"
+  outputFormat: ExportOutputFormat
+  codec?: ExportVideoCodec
   resolution: { width: number; height: number }
   fps: number
   outputFileName: string

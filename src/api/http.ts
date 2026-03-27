@@ -25,15 +25,15 @@ export async function http<T>(
   path: string,
   options: RequestInit & { parse?: boolean } = {}
 ): Promise<T> {
-  const { parse = true, ...fetchOptions } = options
+  const { parse = true, headers: customHeaders, ...restFetchOptions } = options
 
   const res = await fetch(`${BASE_URL}${path}`, {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(fetchOptions.headers || {})
+      ...(customHeaders as Record<string, string> || {})
     },
-    ...fetchOptions
+    ...restFetchOptions
   })
 
   if (!parse) {

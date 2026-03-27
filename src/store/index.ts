@@ -1,0 +1,7 @@
+export { useEditorStore, fileMap } from "./editorStore"
+export type { EditorStore, ProxyState } from "./editorStore"
+export type { ProjectSlice } from "./slices/projectSlice"
+export type { PlaybackSlice } from "./slices/playbackSlice"
+export type { UiSlice } from "./slices/uiSlice"
+export type { HistorySlice } from "./slices/historySlice"
+export type { ProxySlice } from "./slices/proxySlice"

@@ -92,7 +92,7 @@ export function InspectorSliderRow({
 
     return (
         <div
-            className={`flex flex-col gap-1 px-2 py-1.5 editor-transition ${disabled ? "opacity-40 pointer-events-none" : "opacity-100"} ${className}`}
+            className={`flex flex-col px-2 py-1 editor-transition ${disabled ? "opacity-40 pointer-events-none" : "opacity-100"} ${className}`}
         >
             {/* Label Row */}
             <div className="flex justify-between items-center mb-0.5">
@@ -144,7 +144,7 @@ export function InspectorSliderRow({
                             setIsEditing(false);
                         }
                     }}
-                    className="w-12 h-5 bg-dark border border-dark-border text-[10px] font-mono text-right px-1 rounded-sm text-accent-white focus:border-accent-red focus:ring-1 focus:ring-accent-red/30 transition-all outline-none"
+                    className="w-9 h-5 border border-dark-card text-[10px] font-mono text-right px-1 rounded-sm text-accent-white focus:border-accent-red focus:ring-1 focus:ring-accent-red/30 transition-all outline-none"
                 />
 
                 {/* Reset Button */}

@@ -3,6 +3,7 @@ import { buildEqFilter, buildShadowFilter, buildDefinitionFilter } from "../util
 import { buildFullAudioFilterChain } from "../utils/audioFilters"
 import { buildAudioSpeedFilter } from "../utils/speedFilters"
 import { DEFAULT_SPEED } from "../constants/speed"
+import { isGifFileName } from "./ffmpegUtils"
 
 // The preview canvas coordinate space. All Transform values are in these units.
 const CANVAS_WIDTH = 1280
@@ -29,16 +30,19 @@ function buildVideoSegmentFilters(
   seg: RenderSegment,
   scaledW: number,
   scaledH: number,
+  fps: number,
+  inputFilePath: string,
 ): string[] {
   const speed = seg.speed ?? DEFAULT_SPEED
+  const isAnimatedGif = seg.type === 'image' && isGifFileName(inputFilePath)
 
   const filters: string[] = []
 
-  if (seg.type === 'image') {
+  if (seg.type === 'image' && !isAnimatedGif) {
     // Static image: loop a single frame, set fps, trim to clip duration, shift to timeline
     const duration = (seg.timelineEnd - seg.timelineStart).toFixed(3)
     filters.push(`loop=-1:size=1:start=0`)
-    filters.push(`fps=25`)
+    filters.push(`fps=${fps}`)
     filters.push(`trim=end=${duration}`)
     filters.push(`setpts=PTS-STARTPTS+${seg.timelineStart}/TB`)
   } else {
@@ -53,9 +57,9 @@ function buildVideoSegmentFilters(
     }
   }
 
-  // force yuv420p so libx264 always receives a compatible pixel format regardless
-  // of what the source video uses (yuvj420p, yuv422p, etc.)
-  filters.push(`scale=${scaledW}:${scaledH},format=yuv420p`)
+  // Keep alpha for image overlays (e.g. PNG/GIF transparency), use yuv420p for videos.
+  const pixelFormat = seg.type === 'image' ? 'rgba' : 'yuv420p'
+  filters.push(`scale=${scaledW}:${scaledH},format=${pixelFormat}`)
 
   if (seg.colorAdjustments) {
     const eq = buildEqFilter(seg.colorAdjustments)
@@ -160,8 +164,9 @@ export function buildFilterGraph(
       const scaledH = Math.round((t?.height ?? CANVAS_HEIGHT) * scaleY / 2) * 2
       const scaledX = Math.round((t?.x ?? 0) * scaleX)
       const scaledY = Math.round((t?.y ?? 0) * scaleY)
+      const inputFilePath = fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}`
 
-      const segFilters = buildVideoSegmentFilters(seg, scaledW, scaledH)
+      const segFilters = buildVideoSegmentFilters(seg, scaledW, scaledH, fps, inputFilePath)
       const vLabel = `v${i}`
       filterParts.push(`[${inputIdx}:v]${segFilters.join(',')}[${vLabel}]`)
 

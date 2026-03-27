@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react"
-import { RotateCcw } from "lucide-react"
+import { useMemo, useState } from "react"
 import type { Clip } from "../../project/projectTypes"
 import { useEditorStore } from "../../store/editorStore"
 import { DEFAULT_SPEED, MAX_SPEED, MIN_SPEED } from "../../constants/speed"
-import { RangeSlider } from "../ui/RangeSlider"
+import { InspectorSliderRow } from "../ui/InspectorSliderRow"
 import { AudioConfigPanel } from "./AudioConfigPanel"
 import { ColorAdjustmentsPanel } from "./ColorAdjustmentsPanel"
 
@@ -50,10 +49,7 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
   }, [clip.type])
 
   const [activeTab, setActiveTab] = useState<InspectorTab>(tabs[0] ?? "video")
-
-  useEffect(() => {
-    setActiveTab(tabs[0] ?? "video")
-  }, [clip.id, tabs])
+  const effectiveTab = tabs.includes(activeTab) ? activeTab : (tabs[0] ?? "video")
 
   const speedPosition = speedToPosition(Math.max(MIN_SPEED, Math.min(MAX_SPEED, speed)))
 
@@ -63,11 +59,11 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
   }
 
   function renderContent(): React.ReactNode {
-    if (activeTab === "video") {
+    if (effectiveTab === "video") {
       return <ColorAdjustmentsPanel clipId={clip.id} />
     }
 
-    if (activeTab === "audio") {
+    if (effectiveTab === "audio") {
       return <AudioConfigPanel clipId={clip.id} />
     }
 
@@ -82,7 +78,6 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
             padding: "0 8px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
             borderBottom: "1px solid var(--color-dark-border)",
             marginBottom: 8,
           }}
@@ -98,41 +93,6 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
           >
             Speed
           </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span
-              style={{
-                fontFamily: "'Courier New', monospace",
-                fontSize: 10,
-                color: "var(--color-accent-white)",
-                minWidth: 36,
-                textAlign: "right",
-              }}
-            >
-              {speed.toFixed(2)}×
-            </span>
-            <button
-              onClick={() => setClipSpeed(clip.id, DEFAULT_SPEED)}
-              disabled={Math.abs(speed - DEFAULT_SPEED) <= 0.001}
-              title="Reset to default"
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: 0,
-                border: "none",
-                background: "transparent",
-                color: "var(--color-muted)",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: 0,
-                opacity: Math.abs(speed - DEFAULT_SPEED) <= 0.001 ? 0.3 : 1,
-              }}
-              aria-label="Reset speed to default"
-            >
-              <RotateCcw size={10} />
-            </button>
-          </div>
         </div>
 
         {/* Min/max labels */}
@@ -147,16 +107,24 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
           <span style={{ fontSize: 9, color: "var(--color-muted)" }}>5.0×</span>
         </div>
 
-        <div style={{ padding: "0 8px 8px" }}>
-          <RangeSlider
-            value={speedPosition}
-            min={0}
-            max={1}
-            step={0.001}
-            label="Speed"
-            onChange={handleSpeedPositionChange}
-          />
-        </div>
+        <InspectorSliderRow
+          label="Playback Speed"
+          value={speed}
+          min={MIN_SPEED}
+          max={MAX_SPEED}
+          step={SPEED_STEP}
+          defaultValue={DEFAULT_SPEED}
+          sliderValue={speedPosition}
+          sliderMin={0}
+          sliderMax={1}
+          sliderStep={0.001}
+          onSliderChange={handleSpeedPositionChange}
+          onChange={nextSpeed => setClipSpeed(clip.id, quantizeSpeed(nextSpeed))}
+          onReset={() => setClipSpeed(clip.id, DEFAULT_SPEED)}
+          formatDisplay={currentSpeed => `${currentSpeed.toFixed(2)}×`}
+          formatInput={currentSpeed => currentSpeed.toFixed(2)}
+          resetAriaLabel="Reset speed to default"
+        />
       </div>
     )
   }
@@ -206,7 +174,7 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
           }}
         >
           {tabs.map(tab => {
-            const active = activeTab === tab
+            const active = effectiveTab === tab
             const label = tab === "video" ? "Video" : tab === "audio" ? "Audio" : "Speed"
 
             return (

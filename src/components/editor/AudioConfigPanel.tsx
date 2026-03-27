@@ -1,119 +1,8 @@
-import { RotateCcw, Volume2, VolumeX } from "lucide-react"
+import { Volume2, VolumeX } from "lucide-react"
 import type { AudioConfig } from "../../project/projectTypes"
 import { useEditorStore } from "../../store/editorStore"
 import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig"
-import { RangeSlider } from "../ui/RangeSlider"
-
-interface SliderRowProps {
-  label: string
-  value: number
-  min: number
-  max: number
-  step: number
-  defaultValue: number
-  displayValue: string
-  onChange: (v: number) => void
-  onReset: () => void
-  disabled?: boolean
-}
-
-function SliderRow({
-  label,
-  value,
-  min,
-  max,
-  step,
-  defaultValue,
-  displayValue,
-  onChange,
-  onReset,
-  disabled = false,
-}: SliderRowProps) {
-  const isDefault = value === defaultValue
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-        padding: "0 8px",
-        height: 28,
-        justifyContent: "center",
-        opacity: disabled ? 0.4 : 1,
-        pointerEvents: disabled ? "none" : undefined,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        {/* Label */}
-        <span
-          style={{
-            fontSize: 10,
-            color: "var(--color-muted-light)",
-            width: 72,
-            flexShrink: 0,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {label}
-        </span>
-
-        {/* Slider */}
-        <div style={{ flex: 1 }}>
-          <RangeSlider
-            value={value}
-            min={min}
-            max={max}
-            step={step}
-            label={label}
-            onChange={onChange}
-          />
-        </div>
-
-        {/* Value readout */}
-        <span
-          style={{
-            fontFamily: "'Courier New', monospace",
-            fontSize: 10,
-            color: "var(--color-accent-white)",
-            width: 36,
-            textAlign: "right",
-            flexShrink: 0,
-          }}
-        >
-          {displayValue}
-        </span>
-
-        {/* Reset */}
-        <button
-          onClick={onReset}
-          disabled={isDefault}
-          title="Reset to default"
-          style={{
-            width: 16,
-            height: 16,
-            borderRadius: 0,
-            border: "none",
-            background: "transparent",
-            color: "var(--color-muted)",
-            cursor: isDefault ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 0,
-            opacity: isDefault ? 0.3 : 1,
-            flexShrink: 0,
-          }}
-          aria-label={`Reset ${label} to default`}
-        >
-          <RotateCcw size={10} />
-        </button>
-      </div>
-    </div>
-  )
-}
+import { InspectorSliderRow } from "../ui/InspectorSliderRow"
 
 function formatBalance(v: number): string {
   if (Math.abs(v) <= 0.001) return "C"
@@ -202,51 +91,55 @@ export function AudioConfigPanel({ clipId }: AudioConfigPanelProps) {
         </button>
       </div>
 
-      <SliderRow
+      <InspectorSliderRow
         label="Volume"
         value={config.volume}
         min={0}
         max={2}
         step={0.01}
         defaultValue={DEFAULT_AUDIO_CONFIG.volume}
-        displayValue={`${Math.round(config.volume * 100)}%`}
+        formatDisplay={value => `${Math.round(value * 100)}%`}
+        formatInput={value => value.toFixed(2)}
         onChange={v => set("volume", v)}
         onReset={() => reset("volume")}
         disabled={config.muted}
       />
 
-      <SliderRow
+      <InspectorSliderRow
         label="Fade In"
         value={config.fadeInDuration}
         min={0}
         max={10}
         step={0.1}
         defaultValue={DEFAULT_AUDIO_CONFIG.fadeInDuration}
-        displayValue={`${config.fadeInDuration.toFixed(1)}s`}
+        formatDisplay={value => `${value.toFixed(1)}s`}
+        formatInput={value => value.toFixed(1)}
         onChange={v => set("fadeInDuration", v)}
         onReset={() => reset("fadeInDuration")}
       />
 
-      <SliderRow
+      <InspectorSliderRow
         label="Fade Out"
         value={config.fadeOutDuration}
         min={0}
         max={10}
         step={0.1}
         defaultValue={DEFAULT_AUDIO_CONFIG.fadeOutDuration}
-        displayValue={`${config.fadeOutDuration.toFixed(1)}s`}
+        formatDisplay={value => `${value.toFixed(1)}s`}
+        formatInput={value => value.toFixed(1)}
         onChange={v => set("fadeOutDuration", v)}
         onReset={() => reset("fadeOutDuration")}
       />
 
-      <SliderRow
+      <InspectorSliderRow
         label="Balance"
         value={config.balance}
         min={-1}
         max={1}
         step={0.01}
         defaultValue={DEFAULT_AUDIO_CONFIG.balance}
-        displayValue={formatBalance(config.balance)}
+        formatDisplay={formatBalance}
+        formatInput={value => value.toFixed(2)}
         onChange={v => set("balance", v)}
         onReset={() => reset("balance")}
       />

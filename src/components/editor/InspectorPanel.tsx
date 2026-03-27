@@ -204,9 +204,9 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
         </div>
       )}
 
-      <div className="overflow-y-auto flex-1" style={{ padding: showTabs ? "8px 0" : "8px 0" }}>
+      <div className="overflow-y-auto flex-1" >
         {renderContent()}
       </div>
-    </aside>
+    </aside >
   )
 }

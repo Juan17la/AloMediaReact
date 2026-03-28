@@ -60,15 +60,6 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
 
   const isAudio = clip.type === "audio"
 
-  // Clip colors per spec
-  const bgColor = isAudio ? "#0f2a0f" : "#1a1a3a"
-  const borderColor = isSelected
-    ? "var(--color-accent-red)"
-    : isAudio
-      ? "#1a4a1a"
-      : "#2a2a5a"
-  const borderWidth = isSelected ? 2 : 1
-
   function handleResizeMouseDown(e: React.MouseEvent) {
     e.stopPropagation()
     e.preventDefault()
@@ -119,15 +110,21 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
           width: Math.max(width, 4),
           top: 2,
           bottom: 2,
-          background: bgColor,
-          border: `${borderWidth}px solid ${borderColor}`,
-          borderRadius: 0,
+          background: isSelected ? "rgba(180,20,20,0.22)" : "rgba(180,20,20,0.10)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+          border: isSelected ? "1px solid rgba(220,40,40,0.75)" : "1px solid rgba(180,20,20,0.20)",
+          ...(isSelected ? {} : { borderTop: "1px solid rgba(180,20,20,0.38)" }),
+          borderRadius: 6,
           cursor: isDragging ? "grabbing" : "grab",
           overflow: "hidden",
           boxSizing: "border-box",
           userSelect: "none",
           opacity: isDragging ? 0.7 : 1,
-          // Audio waveform decorative background
+          boxShadow: isSelected
+            ? "inset 0 1px 0 rgba(255,255,255,0.10), 0 2px 6px rgba(0,0,0,0.30), 0 0 0 2px rgba(180,20,20,0.40)"
+            : "inset 0 1px 0 rgba(255,255,255,0.10), 0 2px 6px rgba(0,0,0,0.30)",
+          transition: "background 120ms ease, border-color 120ms ease, box-shadow 120ms ease",
           backgroundImage: isAudio ? AUDIO_WAVEFORM_BG : undefined,
           backgroundRepeat: isAudio ? "repeat-x" : undefined,
           backgroundPosition: isAudio ? "0 center" : undefined,
@@ -149,20 +146,20 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
         {/* Clip label */}
         <span
           style={{
-            fontSize: 9,
-            fontWeight: 600,
+            fontSize: 11,
+            fontWeight: 500,
             padding: "0 6px 0 6px",
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
             display: "block",
             lineHeight: "100%",
-            color: "var(--color-muted-light)",
+            color: "rgba(255,255,255,0.85)",
             position: "absolute",
             top: "50%",
             transform: "translateY(-50%)",
             left: 3,
-            right: 6,
+            right: 14,
           }}
         >
           {getClipLabel()}
@@ -173,15 +170,14 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
           onMouseDown={handleResizeMouseDown}
           onMouseEnter={() => setResizeHovered(true)}
           onMouseLeave={() => setResizeHovered(false)}
+          className="clip-resize-handle"
           style={{
             position: "absolute",
             right: 0,
             top: 0,
             bottom: 0,
-            width: 6,
-            background: resizeHovered ? "var(--color-accent-red)" : "var(--color-dark-border-light)",
+            width: 12,
             cursor: "ew-resize",
-            transition: "background-color 100ms",
           }}
         />
       </div>
@@ -193,36 +189,40 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
             position: "fixed",
             top: contextMenu.y,
             left: contextMenu.x,
-            background: "var(--color-dark-card)",
-            border: "1px solid var(--color-dark-border)",
-            borderRadius: 0,
+            background: "rgba(12, 13, 16, 0.95)",
+            backdropFilter: "blur(24px) saturate(150%)",
+            WebkitBackdropFilter: "blur(24px) saturate(150%)",
+            border: "1px solid rgba(255, 255, 255, 0.10)",
+            borderRadius: 10,
+            padding: 6,
             zIndex: 100,
             minWidth: 160,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.45), 0 16px 32px rgba(0,0,0,0.35)",
           }}
         >
           <div
-            style={{ padding: "6px 12px", cursor: "pointer", fontSize: 11, color: "var(--color-accent-white)" }}
+            style={{ padding: "8px 12px", cursor: "pointer", fontSize: 13, color: "rgba(255, 255, 255, 0.80)", borderRadius: 6, transition: "background 100ms ease, color 100ms ease" }}
             onClick={e => { e.stopPropagation(); splitClip(clip.id, playhead); setContextMenu(null) }}
-            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--color-dark-elevated)" }}
-            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "transparent" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255, 255, 255, 0.08)"; (e.currentTarget as HTMLDivElement).style.color = "rgba(255, 255, 255, 1.0)" }}
+            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; (e.currentTarget as HTMLDivElement).style.color = "rgba(255, 255, 255, 0.80)" }}
           >
             Split at playhead
           </div>
           {clip.type === "video" && (
             <div
-              style={{ padding: "6px 12px", cursor: "pointer", fontSize: 11, color: "var(--color-accent-white)" }}
+              style={{ padding: "8px 12px", cursor: "pointer", fontSize: 13, color: "rgba(255, 255, 255, 0.80)", borderRadius: 6, transition: "background 100ms ease, color 100ms ease" }}
               onClick={e => { e.stopPropagation(); extractAudioFromClip(clip.id); setContextMenu(null) }}
-              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--color-dark-elevated)" }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "transparent" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255, 255, 255, 0.08)"; (e.currentTarget as HTMLDivElement).style.color = "rgba(255, 255, 255, 1.0)" }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; (e.currentTarget as HTMLDivElement).style.color = "rgba(255, 255, 255, 0.80)" }}
             >
               Extract Audio
             </div>
           )}
+          <div style={{ height: 1, margin: "4px 0", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }} />
           <div
-            style={{ padding: "6px 12px", cursor: "pointer", fontSize: 11, color: "var(--color-destructive-light)" }}
+            style={{ padding: "8px 12px", cursor: "pointer", fontSize: 13, color: "rgba(220, 60, 60, 0.90)", borderRadius: 6, transition: "background 100ms ease" }}
             onClick={e => { e.stopPropagation(); removeClip(clip.id); setContextMenu(null) }}
-            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--color-dark-elevated)" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "rgba(255, 255, 255, 0.08)" }}
             onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "transparent" }}
           >
             Remove clip

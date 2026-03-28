@@ -42,8 +42,11 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
       className="shrink-0 flex flex-col overflow-hidden"
       style={{
         width: 280,
-        background: "var(--color-dark-surface)",
-        borderLeft: "1px solid var(--color-dark-border)",
+        background: "rgba(255, 255, 255, 0.04)",
+        backdropFilter: "blur(24px) saturate(150%)",
+        WebkitBackdropFilter: "blur(24px) saturate(150%)",
+        borderLeft: "1px solid rgba(255, 255, 255, 0.08)",
+        padding: "0",
       }}
     >
       {/* Panel header */}
@@ -51,18 +54,18 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
         className="flex items-center shrink-0"
         style={{
           height: 28,
-          background: "var(--color-dark)",
-          borderBottom: showTabs ? "none" : "1px solid var(--color-dark-border)",
-          padding: "0 8px",
+          background: "transparent",
+          borderBottom: showTabs ? "none" : "1px solid rgba(255, 255, 255, 0.07)",
+          padding: "0 16px",
         }}
       >
-        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-muted)" }}>
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255, 255, 255, 0.40)" }}>
           Inspector
         </span>
       </div>
 
       {showTabs && (
-        <div className="flex shrink-0" style={{ height: 32, background: "var(--color-dark)", borderBottom: "1px solid var(--color-dark-border)" }}>
+        <div className="flex shrink-0" style={{ height: 32, background: "transparent", borderBottom: "1px solid rgba(255, 255, 255, 0.07)" }}>
           {tabs.map(tab => {
             const active = effectiveTab === tab
             const label = tab === "video" ? "Video" : tab === "audio" ? "Audio" : "Speed"
@@ -79,7 +82,9 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
                   color: active ? "var(--color-accent-white)" : "var(--color-muted)",
                   borderBottom: active ? "2px solid var(--color-accent-red)" : "2px solid transparent",
                   cursor: "pointer",
-                  border: "none"
+                  border: "none",
+                  borderRadius: 0,
+                  transition: "color 120ms ease-out",
                 }}
               >
                 {label}
@@ -89,7 +94,7 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
         </div>
       )}
 
-      <div className="overflow-y-auto flex-1">
+      <div className="overflow-y-auto flex-1" style={{ padding: "12px 12px" }}>
         {renderContent()}
       </div>
     </aside>

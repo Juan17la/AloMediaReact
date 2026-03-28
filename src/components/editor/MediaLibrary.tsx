@@ -205,8 +205,14 @@ export function MediaLibrary() {
   return (
     <div
       ref={dropZoneRef}
-      className="flex flex-col h-full overflow-hidden relative"
-      style={{ background: "var(--color-dark-surface)" }}
+      className="flex flex-col h-full overflow-hidden relative margin-4"
+      style={{
+        width: 280,
+        backdropFilter: "blur(24px) saturate(150%)",
+        WebkitBackdropFilter: "blur(24px) saturate(150%)",
+        borderLeft: "1px solid rgba(255, 255, 255, 0.08)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 12px rgba(0,0,0,0.35), 0 16px 32px rgba(0,0,0,0.20)",
+      }}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -244,10 +250,9 @@ export function MediaLibrary() {
 
       {/* Panel header */}
       <div
-        className="flex items-center shrink-0"
+        className="flex items-center shrink-0 my-1 mx-3 py-2"
         style={{
-          height: 28,
-          background: "var(--color-dark)",
+          height: 40,
           borderBottom: "1px solid var(--color-dark-border)",
           padding: "0 8px",
         }}
@@ -265,39 +270,53 @@ export function MediaLibrary() {
           Media
         </span>
         <button
+          className="bg-linear-to-r from-blood-red to-crimson text-accent-white"
           onClick={() => inputRef.current?.click()}
           title="Add media"
           style={{
-            width: 20,
-            height: 20,
-            borderRadius: "50%",
-            background: "var(--color-dark-elevated)",
-            border: "1px solid var(--color-dark-border)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            color: "var(--color-muted-light)",
-            flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              height: 28,
+              padding: '0 10px',
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              borderRadius: 8,
+              border: '1px solid rgba(255, 255, 255, 0.10)',
+              background: 'rgba(255, 255, 255, 0.05)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              color: 'rgba(255, 255, 255, 0.80)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              transition: 'background 120ms ease-out, border-color 120ms ease-out',
           }}
+          onMouseEnter={e => { (e.currentTarget).style.background = 'rgba(255, 255, 255, 0.09)'; (e.currentTarget).style.borderColor = 'rgba(255, 255, 255, 0.18)' }}
+          onMouseLeave={e => { (e.currentTarget).style.background = 'rgba(255, 255, 255, 0.05)'; (e.currentTarget).style.borderColor = 'rgba(255, 255, 255, 0.10)' }}
         >
-          <Plus size={11} />
+          <Plus size={14} /> 
+          Add Files
         </button>
       </div>
 
       {/* Search bar */}
       {hasItems && (
         <div
-          className="flex items-center shrink-0"
+          className="flex items-center shrink-0 media-search-bar my-1 mx-3"
           style={{
-            height: 28,
-            background: "var(--color-input-bg)",
-            borderBottom: "1px solid var(--color-dark-border)",
-            padding: "0 8px",
+            background: "rgba(0,0,0,0.30)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 8,
+            padding: "8px 12px",
+            backdropFilter: "blur(16px) saturate(140%)",
+            WebkitBackdropFilter: "blur(16px) saturate(140%)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
             gap: 6,
+            transition: "border-color 150ms ease, box-shadow 150ms ease",
           }}
         >
-          <Search size={11} style={{ color: "var(--color-muted)", flexShrink: 0 }} />
+          <Search size={11} style={{ color: "rgba(255,255,255,0.30)", flexShrink: 0 }} />
           <input
             type="text"
             placeholder="Search..."
@@ -356,12 +375,11 @@ export function MediaLibrary() {
       {/* Media grid — 2 cols, 1px gap acts as border */}
       {hasItems && (
         <div
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto my-1 mx-3"
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: 1,
-            background: "var(--color-dark-border)",
+            gridGap: 2,
             alignContent: "start",
           }}
         >

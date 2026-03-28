@@ -92,11 +92,12 @@ export function InspectorSliderRow({
 
     return (
         <div
-            className={`flex flex-col px-2 py-1 editor-transition ${disabled ? "opacity-40 pointer-events-none" : "opacity-100"} ${className}`}
+            className={`flex flex-col editor-transition ${disabled ? "opacity-40 pointer-events-none" : "opacity-100"} ${className}`}
+            style={{ marginBottom: 10, gap: 4 }}
         >
             {/* Label Row */}
-            <div className="flex justify-between items-center mb-0.5">
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-light select-none">
+            <div className="flex justify-between items-center">
+                <span style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.50)" }} className="select-none">
                     {label}
                 </span>
             </div>
@@ -144,7 +145,7 @@ export function InspectorSliderRow({
                             setIsEditing(false);
                         }
                     }}
-                    className="w-9 h-5 border border-dark-card text-[10px] font-mono text-right px-1 rounded-sm text-accent-white focus:border-accent-red focus:ring-1 focus:ring-accent-red/30 transition-all outline-none"
+                    className="w-9 h-5 glass-input text-[10px] font-mono text-right px-1 outline-none"
                 />
 
                 {/* Reset Button */}

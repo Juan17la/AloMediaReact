@@ -39,20 +39,20 @@ export function ShareProjectModal({ projectId, onClose }: ShareProjectModalProps
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
+      style={{ backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
       onClick={onClose}
     >
       <div
-        className="modal-panel w-120 py-7 px-12 flex flex-col gap-5"
+        className="modal-panel w-120 flex flex-col gap-5"
         onClick={e => e.stopPropagation()}
       >
-        <h2 className="text-accent-white font-semibold text-base tracking-wide">Share project</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "rgba(255, 255, 255, 0.92)" }}>Share project</h2>
         {success ? (
           <p className="text-sm text-green-400">Project shared successfully.</p>
         ) : (
           <>
             <div className="flex flex-col gap-1.5">
-              <label className="text-muted text-[11px] uppercase tracking-widest">Collaborator email</label>
+              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.40)" }}>Collaborator email</label>
               <input
                 autoFocus
                 type="email"
@@ -64,10 +64,11 @@ export function ShareProjectModal({ projectId, onClose }: ShareProjectModalProps
               />
               {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
             </div>
-            <div className="flex justify-end gap-2 pt-1">
+            <div className="flex justify-end gap-2.5" style={{ marginTop: 8 }}>
               <button
                 onClick={onClose}
-                className="btn-ghost px-4 py-2 rounded-lg text-sm text-muted border border-white/10"
+                className="btn-ghost px-4 py-2 rounded-lg text-sm border border-white/10 bg-white/5"
+                style={{ color: "rgba(255, 255, 255, 0.80)" }}
               >
                 Cancel
               </button>

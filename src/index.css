@@ -63,12 +63,12 @@
 
 html {
   scroll-behavior: smooth;
-  background-color: #0b0b0f;
+  background-color: #000000;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-dark);
+  background-color: #000000;
   color: var(--color-accent-white);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -308,7 +308,7 @@ select:focus {
 
   /* Range input sizing — fixed, no hover height changes */
   --thumb-size: 14px;
-  --track-height: 6px;
+  --track-height: 4px;
 
   /* Animation timing */
   --duration-fast: 100ms;
@@ -355,7 +355,7 @@ input[type='range'].editor-range::-webkit-slider-runnable-track {
   background: linear-gradient(
     to right,
     var(--color-accent) var(--range-fill, 0%),
-    var(--color-dark-elevated) var(--range-fill, 0%)
+    rgba(255, 255, 255, 0.10) var(--range-fill, 0%)
   );
   border-radius: 9999px;
   /* No height transition — prevents layout reflow on hover/focus */
@@ -368,13 +368,19 @@ input[type='range'].editor-range::-webkit-slider-thumb {
   height: var(--thumb-size);
   border-radius: 50%;
   background: var(--color-accent);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.40);
   margin-top: calc((var(--track-height) - var(--thumb-size)) / 2);
-  /* No scale transform — use box-shadow only for state feedback */
-  transition: box-shadow 150ms var(--ease-snap);
+  cursor: pointer;
+  transition: filter 100ms var(--ease-snap), transform 80ms var(--ease-snap);
 }
 
 input[type='range'].editor-range::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 20%, transparent);
+  filter: brightness(1.12);
+}
+
+input[type='range'].editor-range::-webkit-slider-thumb:active {
+  transform: scale(1.15);
 }
 
 input[type='range'].editor-range:focus-visible::-webkit-slider-thumb {
@@ -395,7 +401,7 @@ input[type='range'].editor-range:focus-visible::-webkit-slider-thumb {
 /* Firefox */
 input[type='range'].editor-range::-moz-range-track {
   height: var(--track-height);
-  background: var(--color-dark-elevated);
+  background: rgba(255, 255, 255, 0.10);
   border-radius: 9999px;
   transition: background-color var(--duration-base) var(--ease-snap);
 }
@@ -409,14 +415,16 @@ input[type='range'].editor-range::-moz-range-progress {
 input[type='range'].editor-range::-moz-range-thumb {
   width: var(--thumb-size);
   height: var(--thumb-size);
-  border: none;
+  border: 2px solid rgba(255, 255, 255, 0.25);
   border-radius: 50%;
   background: var(--color-accent);
-  transition: box-shadow 150ms var(--ease-snap);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.40);
+  cursor: pointer;
+  transition: filter 100ms var(--ease-snap), transform 80ms var(--ease-snap);
 }
 
 input[type='range'].editor-range::-moz-range-thumb:hover {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 20%, transparent);
+  filter: brightness(1.12);
 }
 
 input[type="password"]::-ms-reveal,
@@ -428,44 +436,21 @@ input[type="password"]::-ms-clear {
 /* Modal / overlay surfaces                                             */
 /* ------------------------------------------------------------------ */
 
-/* Glass panel for modal dialogs — same material language as glass-card */
+/* Glass panel for modal dialogs — liquid glass surface */
 .modal-panel {
   position: relative;
-  background: linear-gradient(
-    135deg,
-    rgba(28, 28, 38, 0.94) 0%,
-    rgba(18, 18, 26, 0.97) 100%
-  );
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  padding: 32px 40px;
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.05) inset,
-    0 2px 4px rgba(0, 0, 0, 0.5),
-    0 8px 16px rgba(0, 0, 0, 0.4),
-    0 24px 48px rgba(0, 0, 0, 0.3),
-    0 48px 80px rgba(0, 0, 0, 0.2);
-}
-.modal-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    rgba(255, 255, 255, 0.02) 100%
-  );
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  pointer-events: none;
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 4px 8px rgba(0, 0, 0, 0.35),
+    0 12px 24px rgba(0, 0, 0, 0.25),
+    0 32px 56px rgba(0, 0, 0, 0.18);
 }
 
 /* ------------------------------------------------------------------ */
@@ -473,21 +458,28 @@ input[type="password"]::-ms-clear {
 /* Same precision treatment as auth-input, reusable across the app.   */
 /* ------------------------------------------------------------------ */
 .editor-input {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.30);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   border-radius: 8px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.90);
+  box-sizing: border-box;
   transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.editor-input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
 }
 .editor-input:hover {
   border-color: rgba(255, 255, 255, 0.14);
 }
 .editor-input:focus {
   outline: none;
-  border-color: rgba(192, 57, 43, 0.5);
+  border-color: rgba(192, 57, 43, 0.55);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 0 0 3px rgba(192, 57, 43, 0.12);
+    0 0 0 3px rgba(192, 57, 43, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 /* ------------------------------------------------------------------ */
@@ -495,16 +487,11 @@ input[type="password"]::-ms-clear {
 /* Use for primary actions in editor modals (Export, Save, Share…).   */
 /* ------------------------------------------------------------------ */
 .btn-accent {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 2px 8px rgba(192, 57, 43, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
   transition: filter 120ms ease-out, box-shadow 120ms ease-out, transform 120ms ease-out;
 }
 .btn-accent:hover:not(:disabled) {
-  filter: brightness(0.85);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.20),
-    0 2px 8px rgba(192, 57, 43, 0.18);
+  filter: brightness(0.86);
 }
 .btn-accent:active:not(:disabled) {
   transform: scale(0.97);
@@ -522,6 +509,8 @@ input[type="password"]::-ms-clear {
 /* Ghost / cancel button — material fill shift, no glow               */
 /* ------------------------------------------------------------------ */
 .btn-ghost {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition:
     background 120ms ease-out,
     border-color 120ms ease-out,
@@ -529,8 +518,8 @@ input[type="password"]::-ms-clear {
     transform 120ms ease-out;
 }
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.18);
   color: var(--color-accent-white);
 }
 .btn-ghost:active:not(:disabled) {
@@ -540,4 +529,125 @@ input[type="password"]::-ms-clear {
   opacity: 0.35;
   cursor: not-allowed;
 }
- 
+
+/* ------------------------------------------------------------------ */
+/* Media library search bar — glass input with focus-within ring       */
+/* ------------------------------------------------------------------ */
+.media-search-bar input:focus {
+  box-shadow: none;
+}
+.media-search-bar:focus-within {
+  border-color: rgba(192, 57, 43, 0.50) !important;
+  box-shadow:
+    0 0 0 3px rgba(192, 57, 43, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.media-search-bar:focus-within svg {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+.media-search-bar svg {
+  transition: color 150ms ease;
+}
+.media-search-bar input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* ------------------------------------------------------------------ */
+/* Timeline clip resize grabber — wider hit area with visual indicator */
+/* ------------------------------------------------------------------ */
+.clip-resize-handle {
+  background: transparent !important;
+}
+.clip-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 0 3px 3px 0;
+  transition: background 120ms ease, box-shadow 120ms ease;
+  pointer-events: none;
+}
+.clip-resize-handle:hover::after {
+  background: rgba(255, 255, 255, 0.55);
+}
+.clip-resize-handle:active::after {
+  background: rgba(210, 40, 40, 0.90);
+  box-shadow: 0 0 8px rgba(180, 20, 20, 0.50);
+}
+
+/* ------------------------------------------------------------------ */
+/* Glass input — compact inspector inputs (no padding override)        */
+/* ------------------------------------------------------------------ */
+.glass-input {
+  background: rgba(0, 0, 0, 0.30);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.glass-input:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.glass-input:focus {
+  outline: none;
+  border-color: rgba(192, 57, 43, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 3px rgba(192, 57, 43, 0.12);
+}
+
+/* ------------------------------------------------------------------ */
+/* Timeline track rows — alternating glass backgrounds                 */
+/* (inline style uses `background: undefined` to let these apply)      */
+/* ------------------------------------------------------------------ */
+.timeline-track-row:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.025);
+}
+.timeline-track-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+/* ------------------------------------------------------------------ */
+/* Transport button active states                                       */
+/* ------------------------------------------------------------------ */
+.transport-btn:active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  transform: scale(0.94);
+}
+.transport-btn-primary:active {
+  filter: brightness(0.82);
+  transform: scale(0.94);
+}
+
+/* ------------------------------------------------------------------ */
+/* Toolbar button active state                                          */
+/* ------------------------------------------------------------------ */
+.toolbar-btn:active {
+  background: rgba(255, 255, 255, 0.10) !important;
+  transform: scale(0.92);
+}
+
+/* ------------------------------------------------------------------ */
+/* Global button focus-visible ring                                     */
+/* ------------------------------------------------------------------ */
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.50);
+}
+
+/* ------------------------------------------------------------------ */
+/* All buttons — shared cursor and box-sizing                           */
+/* ------------------------------------------------------------------ */
+button {
+  box-sizing: border-box;
+}
+button:not(:disabled) {
+  cursor: pointer;
+}

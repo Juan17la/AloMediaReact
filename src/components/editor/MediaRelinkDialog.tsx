@@ -27,6 +27,7 @@ function TypeLabel({ type }: { type: Media["type"] }) {
         fontWeight: 700,
         letterSpacing: "0.08em",
         padding: "1px 4px",
+        borderRadius: 4,
         background: colors[type],
         color: "rgba(255,255,255,0.85)",
         textTransform: "uppercase",
@@ -118,7 +119,9 @@ export function MediaRelinkDialog({ onClose }: Props) {
         position: "fixed",
         inset: 0,
         zIndex: 100,
-        background: "rgba(0,0,0,0.72)",
+        background: "rgba(0,0,0,0.65)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -126,30 +129,34 @@ export function MediaRelinkDialog({ onClose }: Props) {
     >
       <div
         style={{
-          background: "var(--color-dark-surface)",
-          border: "1px solid var(--color-dark-border)",
-          borderRadius: 8,
+          background: "rgba(255, 255, 255, 0.04)",
+          backdropFilter: "blur(32px) saturate(160%)",
+          WebkitBackdropFilter: "blur(32px) saturate(160%)",
+          border: "1px solid rgba(255, 255, 255, 0.10)",
+          borderTop: "1px solid rgba(255, 255, 255, 0.18)",
+          borderRadius: 20,
           width: 440,
           maxHeight: "78vh",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
+          boxShadow: "0 1px 0 rgba(255,255,255,0.08) inset, 0 4px 8px rgba(0,0,0,0.35), 0 12px 24px rgba(0,0,0,0.25), 0 32px 56px rgba(0,0,0,0.18)",
         }}
       >
         {/* Header */}
         <div
           style={{
-            padding: "12px 16px",
-            borderBottom: "1px solid var(--color-dark-border)",
+            padding: "16px 20px 12px",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.07)",
             display: "flex",
             alignItems: "baseline",
             gap: 8,
           }}
         >
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-accent-white)", flex: 1 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em", color: "rgba(255, 255, 255, 0.92)", flex: 1 }}>
             Missing Media
           </span>
-          <span style={{ fontSize: 11, color: "var(--color-muted)" }}>
+          <span style={{ fontSize: 11, color: "rgba(255, 255, 255, 0.40)" }}>
             {remainingCount} of {initialMissingMedia.length} unresolved
           </span>
         </div>
@@ -158,10 +165,10 @@ export function MediaRelinkDialog({ onClose }: Props) {
         <p
           style={{
             margin: 0,
-            padding: "8px 16px",
-            fontSize: 11,
-            color: "var(--color-muted)",
-            borderBottom: "1px solid var(--color-dark-border)",
+            padding: "8px 20px",
+            fontSize: 12,
+            color: "rgba(255, 255, 255, 0.50)",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.07)",
             lineHeight: 1.5,
           }}
         >
@@ -179,9 +186,9 @@ export function MediaRelinkDialog({ onClose }: Props) {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  padding: "7px 16px",
+                  padding: "7px 20px",
                   gap: 10,
-                  borderBottom: "1px solid var(--color-dark-border)",
+                  borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
                   opacity: isMatched ? 0.6 : 1,
                 }}
               >
@@ -228,11 +235,11 @@ export function MediaRelinkDialog({ onClose }: Props) {
         {unrecognized.length > 0 && (
           <div
             style={{
-              margin: "8px 16px 0",
-              padding: "6px 10px",
+              margin: "8px 20px 0",
+              padding: "8px 12px",
               background: "rgba(127,29,29,0.3)",
-              border: "1px solid #7f1d1d",
-              borderRadius: 4,
+              border: "1px solid rgba(220, 60, 60, 0.30)",
+              borderRadius: 8,
               fontSize: 11,
               color: "#f87171",
             }}
@@ -245,8 +252,8 @@ export function MediaRelinkDialog({ onClose }: Props) {
         {/* Footer */}
         <div
           style={{
-            padding: "12px 16px",
-            borderTop: "1px solid var(--color-dark-border)",
+            padding: "12px 20px",
+            borderTop: "1px solid rgba(255, 255, 255, 0.07)",
             display: "flex",
             alignItems: "center",
             gap: 8,
@@ -258,16 +265,17 @@ export function MediaRelinkDialog({ onClose }: Props) {
             disabled={isProcessing || allResolved}
             style={{
               flex: 1,
-              padding: "7px 0",
+              padding: "8px 0",
               background: "var(--color-accent-red)",
               border: "none",
-              borderRadius: 4,
+              borderRadius: 8,
               fontSize: 12,
               fontWeight: 600,
               color: "#fff",
               cursor: isProcessing || allResolved ? "not-allowed" : "pointer",
-              opacity: isProcessing || allResolved ? 0.5 : 1,
+              opacity: isProcessing || allResolved ? 0.35 : 1,
               fontFamily: "inherit",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15)",
             }}
           >
             {isProcessing ? "Matching…" : "Select Files"}
@@ -275,10 +283,10 @@ export function MediaRelinkDialog({ onClose }: Props) {
           <button
             onClick={onClose}
             style={{
-              padding: "7px 16px",
-              background: "transparent",
-              border: "1px solid var(--color-dark-border)",
-              borderRadius: 4,
+              padding: "8px 16px",
+              background: "rgba(255, 255, 255, 0.05)",
+              border: "1px solid rgba(255, 255, 255, 0.10)",
+              borderRadius: 8,
               fontSize: 12,
               fontWeight: allResolved ? 600 : 400,
               color: allResolved ? "var(--color-accent-white)" : "var(--color-muted)",

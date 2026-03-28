@@ -220,15 +220,23 @@ export default function VideoEditor() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-dark text-accent-white font-sans select-none cursor-default">
+    <div className="flex flex-col h-screen overflow-hidden text-accent-white font-sans select-none cursor-default" style={{ background: "#000000", position: "relative", zIndex: 0 }}>
+
+      {/* Atmospheric glow 1 — bottom-left */}
+      <div style={{ position: "absolute", bottom: 0, left: 0, width: 700, height: 700, borderRadius: "50%", background: "rgba(180,20,20,0.15)", filter: "blur(160px)", pointerEvents: "none", zIndex: -1, display: "none" }} />
+      {/* Atmospheric glow 2 — top-right */}
+      <div style={{ position: "absolute", top: 0, right: 0, width: 500, height: 500, borderRadius: "50%", background: "rgba(100,0,0,0.10)", filter: "blur(200px)", pointerEvents: "none", zIndex: -1, display: "none" }} />
 
       {/* ── Topbar ── */}
       <header
-        className="flex items-center shrink-0 gap-0"
+        className="flex items-center shrink-0"
         style={{
-          height: 40,
-          background: "var(--color-dark)",
-          borderBottom: "1px solid var(--color-dark-border)",
+          height: 50,
+          background: "rgba(255,255,255,0.04)",
+          backdropFilter: "blur(28px) saturate(160%)",
+          WebkitBackdropFilter: "blur(28px) saturate(160%)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 12px rgba(0,0,0,0.40), 0 8px 24px rgba(0,0,0,0.25)",
         }}
       >
         {/* Logo */}
@@ -240,7 +248,8 @@ export default function VideoEditor() {
             height: "100%",
           }}
         >
-          <span
+          <a
+            href="/"
             style={{
               fontWeight: 700,
               fontSize: 13,
@@ -249,7 +258,7 @@ export default function VideoEditor() {
             }}
           >
             ALO
-          </span>
+          </a>
         </div>
 
         {/* Project title */}
@@ -315,13 +324,11 @@ export default function VideoEditor() {
 
       {/* ── Middle row: Media panel + Preview + Inspector ── */}
       <EditorErrorBoundary onReset={resetProject}>
-        <div className="flex flex-1 min-h-0 overflow-hidden" style={{ gap: 0 }}>
+        <div className="flex flex-1 min-h-0 overflow-hidden gap-0">
           <aside
-            className="shrink-0 flex flex-col overflow-hidden"
+            className="shrink-0 flex flex-col overflow-hidden border-r border-white/10"
             style={{
-              width: 240,
-              background: "var(--color-dark-surface)",
-              borderRight: "1px solid var(--color-dark-border)",
+              width: 280,
             }}
           >
             <MediaLibrary />
@@ -329,7 +336,7 @@ export default function VideoEditor() {
 
           <div
             className="flex flex-1 min-h-0 min-w-0 overflow-hidden"
-            style={{ background: "var(--color-dark)", minWidth: 480 }}
+            style={{minWidth: 480}}
           >
             <PreviewPlayer />
           </div>
@@ -359,11 +366,25 @@ export default function VideoEditor() {
       {/* Toast notification */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-lg text-sm font-medium shadow-xl border ${
-            toast.type === 'success'
-              ? 'bg-dark-card border-dark-border text-accent-white'
-              : 'bg-dark-card border-red-800/50 text-red-400'
-          }`}
+          style={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            zIndex: 50,
+            padding: "12px 18px",
+            background: "rgba(18, 20, 24, 0.95)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.10)",
+            borderLeft: toast.type === 'success'
+              ? "3px solid rgba(60, 200, 100, 0.80)"
+              : "3px solid var(--color-accent-red)",
+            borderRadius: 10,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
+            fontSize: 13,
+            fontWeight: 500,
+            color: "rgba(255, 255, 255, 0.88)",
+          }}
         >
           {toast.message}
         </div>
@@ -427,9 +448,11 @@ const ghostButtonStyle: CSSProperties = {
   padding: '8px 16px',
   borderRadius: 8,
   fontSize: 13,
-  border: '1px solid var(--color-dark-border)',
-  background: 'transparent',
-  color: 'var(--color-muted)',
+  border: '1px solid rgba(255, 255, 255, 0.10)',
+  background: 'rgba(255, 255, 255, 0.05)',
+  backdropFilter: 'blur(8px)',
+  WebkitBackdropFilter: 'blur(8px)',
+  color: 'rgba(255, 255, 255, 0.80)',
   cursor: 'pointer',
   fontFamily: 'inherit',
 }

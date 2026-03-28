@@ -51,26 +51,22 @@ export function ColorAdjustmentsPanel({ clipId }: ColorAdjustmentsPanelProps) {
     ]
 
   return (
-    <div className="w-full">
+    <div className="w-full" style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.07)", borderRadius: 10, padding: "14px 16px", marginBottom: 12 }}>
       {/* Section header */}
       <div
         style={{
-          height: 24,
-          background: "var(--color-dark)",
-          padding: "0 8px",
           display: "flex",
           alignItems: "center",
-          borderBottom: "1px solid var(--color-dark-border)",
-          marginBottom: 4,
+          marginBottom: 12,
         }}
       >
         <span
           style={{
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: "0.14em",
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: "0.06em",
             textTransform: "uppercase",
-            color: "var(--color-muted)",
+            color: "rgba(255, 255, 255, 0.40)",
           }}
         >
           Color Adjustments

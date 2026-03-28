@@ -44,21 +44,23 @@ function TrackControlBtn({
       style={{
         width: 20,
         height: 20,
-        borderRadius: 0,
+        borderRadius: 6,
         border: "none",
         background: "transparent",
         color: danger && hovered
           ? "#f87171"
           : active
             ? "var(--color-accent-red)"
-            : "var(--color-muted)",
+            : hovered
+              ? "rgba(255,255,255,0.75)"
+              : "rgba(255,255,255,0.35)",
         cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
         opacity: hidden ? 0 : 1,
-        transition: "opacity 150ms, color 150ms",
+        transition: "opacity 120ms ease-out, color 120ms ease-out",
         padding: 0,
       }}
     >
@@ -91,7 +93,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
   const [headerHovered, setHeaderHovered] = useState(false)
 
   const isOver = dragOverTrackId === track.id
-  const rowHeight = track.type === "video" ? 48 : 40
+  const rowHeight = track.type === "video" ? 55 : 50
 
   function isCompatibleDrop(mediaType: MediaType, trackType: TrackType): boolean {
     if (mediaType === "audio") return trackType === "audio"
@@ -164,11 +166,12 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      className="timeline-track-row"
       style={{
         display: "flex",
         height: rowHeight,
-        background: isOver ? "var(--color-dark-elevated)" : "var(--color-dark-surface)",
-        borderBottom: "1px solid var(--color-dark-border)",
+        background: isOver ? "rgba(255,255,255,0.06)" : undefined,
+        borderBottom: "1px solid rgba(255,255,255,0.05)",
         borderTop: reorderOver ? "2px solid var(--color-accent-red)" : undefined,
         minWidth: "100%",
         boxSizing: "border-box",
@@ -186,14 +189,13 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
           width: TRACK_HEADER_WIDTH,
           flexShrink: 0,
           height: "100%",
-          background: isOver ? "var(--color-dark-elevated)" : "var(--color-dark)",
-          borderRight: "1px solid var(--color-dark-border)",
+          borderRight: "1px solid rgba(255,255,255,0.08)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "0 6px 0 0",
           boxSizing: "border-box",
-          gap: 2,
+          gap: 4,
         }}
       >
         {/* Grip handle — dotted texture on far left */}
@@ -204,7 +206,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
             e.dataTransfer.effectAllowed = 'move'
           }}
           style={{
-            width: 8,
+            width: 14,
             height: "100%",
             flexShrink: 0,
             cursor: "grab",
@@ -218,11 +220,11 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
           <TypeIcon size={11} style={{ color: "var(--color-muted)", flexShrink: 0 }} />
           <span
             style={{
-              fontSize: 10,
+              fontSize: 11,
               fontWeight: 600,
               letterSpacing: "0.06em",
               textTransform: "uppercase",
-              color: "var(--color-muted-light)",
+              color: "rgba(255,255,255,0.50)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
@@ -233,7 +235,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
         </div>
 
         {/* Track action buttons */}
-        <div style={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, flexShrink: 0 }}>
           <TrackControlBtn
             icon={isVisible ? <Eye size={11} /> : <EyeOff size={11} />}
             label={isVisible ? "Hide track" : "Show track"}

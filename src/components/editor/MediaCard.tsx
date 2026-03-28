@@ -5,10 +5,22 @@ import { MediaContextMenu } from "./MediaContextMenu"
 
 function formatDuration(media: Media): string {
   if (media.type === "image") return "IMG"
+
   const secs = Math.round(media.duration ?? 0)
-  const m = Math.floor(secs / 60)
+
+  const h = Math.floor(secs / 3600)
+  const m = Math.floor((secs % 3600) / 60)
   const s = secs % 60
-  return `${m}:${String(s).padStart(2, "0")}`
+
+  if (h > 0) {
+    return `${h.toString().padStart(2, "0")}:${m
+      .toString()
+      .padStart(2, "0")}:${s.toString().padStart(2, "0")}`
+  }
+
+  return `${m.toString().padStart(2, "0")}:${s
+    .toString()
+    .padStart(2, "0")}`
 }
 
 function getTypeBadgeColor(type: Media["type"]): string {
@@ -101,10 +113,15 @@ export function MediaCard({ media, objectUrl, proxyStatus, onInsertAtPlayhead }:
           display: "flex",
           flexDirection: "column",
           width: "100%",
-          background: "var(--color-dark-card)",
+          background: hovered ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.05)",
+          border: `1px solid ${hovered ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.07)"}`,
+          borderRadius: 8,
+          padding: 6,
+          boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
           cursor: "pointer",
           overflow: "hidden",
           userSelect: "none",
+          transition: "background 120ms ease, border-color 120ms ease",
         }}
       >
         {/* Thumbnail area — 16:9 */}
@@ -165,7 +182,6 @@ export function MediaCard({ media, objectUrl, proxyStatus, onInsertAtPlayhead }:
         <div
           style={{
             height: 28,
-            background: "var(--color-dark-elevated)",
             padding: "0 6px",
             display: "flex",
             alignItems: "center",
@@ -230,12 +246,19 @@ export function LoadingCard({ fileName }: { fileName: string }) {
   return (
     <div
       style={{
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
-        background: "var(--color-dark-card)",
-        overflow: "hidden",
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          background: "rgba(255,255,255,0.09)",
+          border: `1px solid "rgba(255,255,255,0.14)"`,
+          borderRadius: 8,
+          padding: 6,
+          boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
+          cursor: "pointer",
+          overflow: "hidden",
+          userSelect: "none",
+          transition: "background 120ms ease, border-color 120ms ease",
       }}
     >
       {/* Thumbnail placeholder — 16:9 */}
@@ -247,6 +270,7 @@ export function LoadingCard({ fileName }: { fileName: string }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          borderRadius: 4,
         }}
       >
         <div
@@ -263,11 +287,13 @@ export function LoadingCard({ fileName }: { fileName: string }) {
       {/* Info strip */}
       <div
         style={{
-          height: 28,
-          background: "var(--color-dark-elevated)",
-          padding: "0 6px",
-          display: "flex",
-          alignItems: "center",
+            height: 28,
+            padding: "0 6px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 4,
+            position: "relative",
         }}
       >
         <span

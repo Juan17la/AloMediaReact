@@ -19,15 +19,15 @@ export function SaveProjectModal({ initialName, onConfirm, onCancel, isSaving }:
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
+      style={{ backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
     >
       <div
-        className="modal-panel w-120 py-7 px-12 flex flex-col gap-5"
+        className="modal-panel w-120 flex flex-col gap-5"
         onClick={e => e.stopPropagation()}
       >
-        <h2 className="text-accent-white font-semibold text-base tracking-wide">Save project</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "rgba(255, 255, 255, 0.92)" }}>Save project</h2>
         <div className="flex flex-col gap-1.5">
-          <label className="text-muted text-[11px] uppercase tracking-widest">Project name</label>
+          <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.40)" }}>Project name</label>
           <input
             autoFocus
             value={name}
@@ -37,11 +37,12 @@ export function SaveProjectModal({ initialName, onConfirm, onCancel, isSaving }:
             spellCheck={false}
           />
         </div>
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex justify-end gap-2.5" style={{ marginTop: 8 }}>
           <button
             onClick={onCancel}
             disabled={isSaving}
-            className="btn-ghost px-4 py-2 rounded-lg text-sm text-muted border border-white/10"
+            className="btn-ghost px-4 py-2 rounded-lg text-sm border border-white/10 bg-white/5"
+            style={{ color: "rgba(255, 255, 255, 0.80)" }}
           >
             Cancel
           </button>

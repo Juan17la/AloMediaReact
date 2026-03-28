@@ -1,5 +1,6 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg"
 import { toBlobURL, fetchFile } from "@ffmpeg/util"
+import { safeMediaFileName } from "./ffmpegUtils"
 
 const ffmpegProxy = new FFmpeg()
 
@@ -30,7 +31,7 @@ async function runProxy(
   onReady: (objectUrl: string) => void,
   onError: () => void
 ): Promise<void> {
-  const inputName = `input_${mediaId}`
+  const inputName = safeMediaFileName(mediaId, file)
   const outputName = `proxy_${mediaId}.mp4`
   try {
     await loadProxyFFmpeg()
@@ -51,7 +52,7 @@ async function runProxy(
   } catch {
     onError()
   } finally {
-    await ffmpegProxy.deleteFile(inputName).catch(() => {})
-    await ffmpegProxy.deleteFile(outputName).catch(() => {})
+    await ffmpegProxy.deleteFile(inputName).catch(() => { })
+    await ffmpegProxy.deleteFile(outputName).catch(() => { })
   }
 }

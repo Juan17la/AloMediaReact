@@ -120,7 +120,12 @@ export function Timeline() {
   return (
     <div
       className="flex flex-1 flex-col overflow-hidden"
-      style={{ background: "var(--color-dark-surface)" }}
+      style={{
+        backdropFilter: "blur(20px) saturate(140%)",
+        WebkitBackdropFilter: "blur(20px) saturate(140%)",
+        borderTop: "1px solid rgba(255,255,255,0.10)",
+        boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.05), 0 -4px 16px rgba(0,0,0,0.25)",
+      }}
     >
       {/* Scrollable timeline area */}
       <div
@@ -132,7 +137,7 @@ export function Timeline() {
           <PlayheadBar totalWidth={totalWidth} duration={rulerDuration} majorInterval={majorInterval} />
 
           {/* Tracks area */}
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", background: "rgba(255,255,255,0.02)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
             {/* Major gridlines */}
             <div className="absolute left-0 right-0 pointer-events-none" style={{ top: 0, bottom: 0, zIndex: 1 }}>
               {majorTickTimes.map(t => (

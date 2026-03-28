@@ -21,6 +21,10 @@ export default function DashboardPage() {
       <div className="fixed inset-0 bg-dark" />
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(122,26,26,0.12)_0%,transparent_60%)]" />
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(45,10,20,0.15)_0%,transparent_50%)]" />
+      {/* Atmospheric accent glow — upper-right edge */}
+      <div className="fixed -top-[10%] -right-[5%] w-[520px] h-[520px] rounded-full bg-blood-red/[0.08] blur-[120px] pointer-events-none" />
+      {/* Secondary glow — lower-left edge */}
+      <div className="fixed -bottom-[8%] -left-[5%] w-[420px] h-[420px] rounded-full bg-burgundy/[0.10] blur-[100px] pointer-events-none" />
 
       <Navbar />
 
@@ -54,7 +58,7 @@ export default function DashboardPage() {
                     icon={Plus}
                     size="lg"
                     onClick={() => navigate("/editor/new")}
-                    className="shadow-lg shadow-blood-red/25 hover:shadow-blood-red/40 hover:scale-[1.02] active:scale-[0.99]"
+                    className="shadow-lg shadow-blood-red/25 active:scale-[0.99]"
                   >
                     New Project
                   </PrimaryButton>

@@ -53,35 +53,32 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(0, 0, 0, 0.65)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
       onPointerDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
+        className="modal-panel"
         style={{
-          background: "var(--color-dark-elevated)",
-          border: "1px solid var(--color-dark-border)",
-          borderRadius: 0,
           width: 520,
-          padding: 20,
         }}
       >
-        <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+        <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
           <h2
             style={{
-              fontSize: 10,
+              fontSize: 16,
               fontWeight: 700,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "var(--color-muted)",
+              letterSpacing: "-0.01em",
+              color: "rgba(255, 255, 255, 0.92)",
             }}
           >
             Keyboard Shortcuts
           </h2>
           <button
             onClick={onClose}
-            style={{ background: "transparent", border: "none", color: "var(--color-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-accent-white)" }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "var(--color-muted)" }}
+            style={{ background: "transparent", border: "none", borderRadius: 6, padding: 6, color: "rgba(255, 255, 255, 0.55)", cursor: "pointer", display: "flex", alignItems: "center", transition: "color 120ms ease-out, background 120ms ease-out" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255, 255, 255, 0.90)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(255, 255, 255, 0.07)" }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255, 255, 255, 0.55)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent" }}
           >
             <X size={14} />
           </button>
@@ -91,16 +88,16 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
             <div key={ci} className="flex flex-col" style={{ gap: 2 }}>
               {col.map(({ keys, action }) => (
                 <div key={keys} className="flex items-center justify-between" style={{ padding: "2px 0" }}>
-                  <span style={{ fontSize: 10, color: "var(--color-muted)" }}>{action}</span>
+                  <span style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.80)" }}>{action}</span>
                   <kbd
                     style={{
                       fontSize: 10,
                       fontFamily: "'Courier New', monospace",
-                      background: "var(--color-dark-card)",
-                      border: "1px solid var(--color-dark-border)",
-                      borderRadius: 0,
-                      padding: "1px 6px",
-                      color: "var(--color-muted-light)",
+                      background: "rgba(0, 0, 0, 0.30)",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      borderRadius: 6,
+                      padding: "2px 8px",
+                      color: "rgba(255, 255, 255, 0.60)",
                       marginLeft: 12,
                       flexShrink: 0,
                     }}
@@ -144,9 +141,9 @@ function ToolbarBtn({
   const [hovered, setHovered] = useState(false)
 
   const bg = snapOn
-    ? "var(--color-blood-red)"
+    ? "rgba(192, 57, 43, 0.12)"
     : active || hovered
-      ? "var(--color-dark-elevated)"
+      ? "rgba(255, 255, 255, 0.07)"
       : "transparent"
 
   const iconColor = disabled
@@ -154,8 +151,8 @@ function ToolbarBtn({
     : snapOn || active
       ? "var(--color-accent-red)"
       : hovered
-        ? "var(--color-accent-white)"
-        : "var(--color-muted-light)"
+        ? "rgba(255, 255, 255, 0.90)"
+        : "rgba(255, 255, 255, 0.55)"
 
   return (
     <button
@@ -170,19 +167,20 @@ function ToolbarBtn({
       onPointerCancel={onPointerCancel}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className="toolbar-btn"
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         width: 28,
         height: 28,
-        borderRadius: 0,
+        borderRadius: 6,
         border: "none",
         background: bg,
         color: iconColor,
         cursor: disabled ? "not-allowed" : "pointer",
         flexShrink: 0,
-        transition: "background-color 150ms, color 150ms",
+        transition: "background-color 120ms ease-out, color 120ms ease-out",
       }}
     >
       <span style={{ display: "flex", alignItems: "center", width: 14, height: 14 }}>
@@ -217,13 +215,13 @@ function TrackBtn({
         gap: 5,
         height: 28,
         padding: "0 8px",
-        borderRadius: 0,
+        borderRadius: 6,
         border: "none",
-        background: hovered ? "var(--color-dark-elevated)" : "transparent",
-        color: hovered ? "var(--color-accent-white)" : "var(--color-muted-light)",
+        background: hovered ? "rgba(255, 255, 255, 0.07)" : "transparent",
+        color: hovered ? "var(--color-accent-red)" : "var(--color-muted-light)",
         cursor: "pointer",
         flexShrink: 0,
-        transition: "background-color 150ms, color 150ms",
+        transition: "background-color 120ms ease-out, color 120ms ease-out",
         fontFamily: "inherit",
         fontSize: 10,
         fontWeight: 600,
@@ -323,9 +321,11 @@ export function Toolbar() {
         className="flex items-center shrink-0"
         style={{
           height: 36,
-          background: "var(--color-dark)",
-          borderTop: "1px solid var(--color-dark-border)",
-          borderBottom: "1px solid var(--color-dark-border)",
+          backdropFilter: "blur(20px) saturate(140%)",
+          WebkitBackdropFilter: "blur(20px) saturate(140%)",
+          borderTop: "1px solid rgba(255,255,255,0.09)",
+          borderBottom: "1px solid rgba(255,255,255,0.05)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.30)",
           padding: "0 8px",
           gap: 0,
           position: "sticky",

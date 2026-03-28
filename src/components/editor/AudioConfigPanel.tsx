@@ -47,26 +47,22 @@ export function AudioConfigPanel({ clipId }: AudioConfigPanelProps) {
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full" style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.07)", borderRadius: 10, padding: "14px 16px", marginBottom: 12 }}>
       {/* Section header */}
       <div
         style={{
-          height: 24,
-          background: "var(--color-dark)",
-          padding: "0 8px",
           display: "flex",
           alignItems: "center",
-          borderBottom: "1px solid var(--color-dark-border)",
-          marginBottom: 4,
+          marginBottom: 12,
         }}
       >
         <span
           style={{
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: "0.14em",
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: "0.06em",
             textTransform: "uppercase",
-            color: "var(--color-muted)",
+            color: "rgba(255, 255, 255, 0.40)",
           }}
         >
           Audio Configuration
@@ -77,13 +73,14 @@ export function AudioConfigPanel({ clipId }: AudioConfigPanelProps) {
       <div
         style={{
           height: 28,
-          padding: "0 8px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 10,
         }}
       >
-        <span style={{ fontSize: 10, color: "var(--color-muted-light)" }}>Mute</span>
+        <span style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.50)" }}>Mute</span>
         <button
           onClick={() => set("muted", !config.muted)}
           aria-label={config.muted ? "Unmute" : "Mute"}
@@ -91,10 +88,13 @@ export function AudioConfigPanel({ clipId }: AudioConfigPanelProps) {
           style={{
             background: "transparent",
             border: "none",
-            color: "var(--color-muted)",
+            borderRadius: 6,
+            padding: 6,
+            color: config.muted ? "var(--color-accent-red)" : "rgba(255, 255, 255, 0.55)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
+            transition: "color 120ms ease-out, background 120ms ease-out",
           }}
         >
           {config.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}

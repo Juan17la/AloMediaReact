@@ -49,6 +49,7 @@ function TransportBtn({
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      className={primary ? "transport-btn transport-btn-primary" : "transport-btn"}
       style={{
         display: "flex",
         alignItems: "center",
@@ -56,12 +57,20 @@ function TransportBtn({
         width: primary ? 32 : 28,
         height: primary ? 32 : 28,
         flexShrink: 0,
-        borderRadius: 0,
+        borderRadius: 6,
         border: "none",
-        background: primary || hovered ? "var(--color-dark-elevated)" : "transparent",
-        color: "var(--color-muted-light)",
+        background: primary
+          ? "var(--color-accent-red)"
+          : hovered
+            ? "rgba(255,255,255,0.07)"
+            : "transparent",
+        color: primary
+          ? "rgba(255,255,255,0.95)"
+          : hovered
+            ? "rgba(255,255,255,0.90)"
+            : "rgba(255,255,255,0.55)",
         cursor: "pointer",
-        transition: "background-color 150ms",
+        transition: "color 120ms ease-out, background-color 120ms ease-out",
       }}
     >
       <span style={{ display: "flex", alignItems: "center", width: primary ? 16 : 14, height: primary ? 16 : 14 }}>
@@ -171,20 +180,21 @@ export function PreviewPlayer() {
   return (
     <div className="flex flex-col min-h-0 h-full w-full items-center justify-center">
       {/* Canvas area */}
-      <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden">
+      <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden my-2">
         <div
           ref={canvasContainerRef}
           onClick={handleCanvasClick}
           style={{
             position: "relative",
-            background: "#000000",
+            background: "#0b0b0f",
             overflow: "hidden",
             cursor: "default",
             aspectRatio: "16 / 9",
             height: "100%",
             maxWidth: "100%",
             width: "auto",
-            border: "1px solid var(--color-dark-border)",
+            border: "2px solid rgba(255,255,255,0.07)",
+            borderBottom: "2px solid rgba(255,255,255,0.04)",
           }}
         >
           <div
@@ -194,6 +204,7 @@ export function PreviewPlayer() {
               width: 1280,
               height: 720,
               transformOrigin: "0 0",
+              background: "#000000",
               pointerEvents: selectedClipId ? "none" : undefined,
             }}
           >
@@ -265,12 +276,14 @@ export function PreviewPlayer() {
 
       {/* Transport bar */}
       <div
-        className="w-full shrink-0 flex items-center"
+        className="w-full shrink-0 flex items-center py-5 px-2"
         style={{
-          height: 36,
-          background: "var(--color-dark)",
-          borderTop: "1px solid var(--color-dark-border)",
-          padding: "0 4px",
+          height: 40,
+          backdropFilter: "blur(24px) ",
+          WebkitBackdropFilter: "blur(24px) saturate(150%)",
+          borderTop: "1px solid rgba(255,255,255,0.10)",
+          borderBottom: "1px solid rgba(255,255,255,0.05)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 10px rgba(0,0,0,0.35), 0 12px 28px rgba(0,0,0,0.22)",
           gap: 0,
         }}
       >

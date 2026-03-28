@@ -193,7 +193,9 @@ function setupGainNode(
     gainNode = ctx.createGain()
     // Disconnect source from any current connection (e.g. pass-through added
     // by disconnectAll) before inserting the gain node into the chain.
-    try { source.disconnect() } catch (_e) { }
+    try { source.disconnect() } catch (_e) {
+      return
+    }
     source.connect(gainNode)
     gainNodes.set(trackId, gainNode)
     // Connect to destination immediately so audio is audible by default.
@@ -265,7 +267,9 @@ function setupPannerOnly(
     pannerNode = ctx.createStereoPanner()
     // Disconnect source from any current connection (e.g. pass-through added
     // by disconnectAll) before inserting the panner into the chain.
-    try { source.disconnect() } catch (_e) { }
+    try { source.disconnect() } catch (_e) {
+      // Silently ignore if source was not previously connected (e.g. first time setup)
+    }
     source.connect(pannerNode)
     pannerNode.connect(ctx.destination)
     pannerNodes.set(trackId, pannerNode)
@@ -339,7 +343,9 @@ export function disconnectAll(): void {
       if (source && ctx && ctx.state !== "closed") {
         source.connect(ctx.destination)
       }
-    } catch (_e) { }
+    } catch (_e) { 
+      // Silently ignore errors during cleanup (e.g. context already closed)
+    }
   }
   gainNodes.clear()
   pannerNodes.clear()

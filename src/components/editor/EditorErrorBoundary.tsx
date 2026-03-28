@@ -67,12 +67,13 @@ const detailStyle: CSSProperties = {
 
 const buttonStyle: CSSProperties = {
   marginTop: 4,
-  padding: "6px 16px",
-  borderRadius: 6,
-  border: "1px solid var(--color-dark-border)",
-  background: "transparent",
-  color: "var(--color-muted-light)",
+  padding: "8px 16px",
+  borderRadius: 8,
+  border: "1px solid rgba(255, 255, 255, 0.10)",
+  background: "rgba(255, 255, 255, 0.05)",
+  color: "rgba(255, 255, 255, 0.80)",
   fontSize: 12,
+  fontWeight: 600,
   cursor: "pointer",
   fontFamily: "inherit",
 }

@@ -39,11 +39,11 @@ export function ShareProjectModal({ projectId, onClose }: ShareProjectModalProps
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+      style={{ backgroundColor: 'rgba(0,0,0,0.75)' }}
       onClick={onClose}
     >
       <div
-        className="bg-dark-card border border-dark-border rounded-lg w-[420px] p-6 flex flex-col gap-5 shadow-2xl"
+        className="modal-panel w-120 py-7 px-12 flex flex-col gap-5"
         onClick={e => e.stopPropagation()}
       >
         <h2 className="text-accent-white font-semibold text-base tracking-wide">Share project</h2>
@@ -52,7 +52,7 @@ export function ShareProjectModal({ projectId, onClose }: ShareProjectModalProps
         ) : (
           <>
             <div className="flex flex-col gap-1.5">
-              <label className="text-muted text-xs uppercase tracking-wider">Collaborator email</label>
+              <label className="text-muted text-[11px] uppercase tracking-widest">Collaborator email</label>
               <input
                 autoFocus
                 type="email"
@@ -60,21 +60,21 @@ export function ShareProjectModal({ projectId, onClose }: ShareProjectModalProps
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleShare() }}
-                className="bg-dark border border-dark-border rounded px-3 py-1.5 text-sm text-accent-white focus:outline-none focus:border-accent-red placeholder:text-muted"
+                className="editor-input w-full px-3 py-2 text-sm text-accent-white placeholder:text-white/25"
               />
               {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
             </div>
             <div className="flex justify-end gap-2 pt-1">
               <button
                 onClick={onClose}
-                className="px-4 py-2 rounded text-sm text-muted hover:text-accent-white border border-dark-border transition-colors"
+                className="btn-ghost px-4 py-2 rounded-lg text-sm text-muted border border-white/10"
               >
                 Cancel
               </button>
               <button
                 onClick={handleShare}
                 disabled={isLoading || !email.trim()}
-                className="px-5 py-2 rounded text-sm font-semibold bg-accent-red text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="btn-accent px-5 py-2 rounded-lg text-sm font-semibold bg-accent-red text-white"
               >
                 {isLoading ? 'Sharing…' : 'Share'}
               </button>

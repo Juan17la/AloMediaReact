@@ -1,6 +1,6 @@
 import { useState, type SyntheticEvent } from "react";
 import { Link, useNavigate } from "react-router";
-import { Mail, Lock, User, Eye, EyeOff, Chrome, Github } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Chrome, Github, AlertCircle } from "lucide-react";
 import { signUp } from "../../services/authService";
 import { ApiError } from "../../api/errors";
 import { useAuth } from "../../hooks/useAuth";
@@ -21,29 +21,34 @@ function PasswordField({
   const [show, setShow] = useState(false);
 
   return (
-    <div className="relative">
-      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted transition-colors pointer-events-none" />
-      <input
-        type={show ? "text" : "password"}
-        name={name}
-        placeholder={placeholder}
-        required
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={`w-full bg-input-bg border rounded-xl py-3.5 pl-12 pr-12 text-accent-white placeholder-muted text-sm font-medium hover:border-dark-border-light focus:border-accent-red transition-all duration-200 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden ${
-          hasError ? "border-red-500" : "border-input-border"
-        }`}
-      />
-      <button
-        type="button"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => setShow((v) => !v)}
-        tabIndex={-1}
-        aria-label={show ? "Hide password" : "Show password"}
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-light hover:text-accent-white transition-colors cursor-pointer"
-      >
-        {show ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-      </button>
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={name} className="text-[13px] text-white/50 tracking-wide pl-1">
+        {placeholder}
+      </label>
+      <div className="relative group">
+        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150 pointer-events-none" />
+        <input
+          id={name}
+          type={show ? "text" : "password"}
+          name={name}
+          required
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`auth-input w-full rounded-lg py-3 pl-12 pr-12 text-accent-white text-sm font-medium [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden ${
+            hasError ? "input-error" : ""
+          }`}
+        />
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setShow((v) => !v)}
+          tabIndex={-1}
+          aria-label={show ? "Hide password" : "Show password"}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors duration-150 cursor-pointer"
+        >
+          {show ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+        </button>
+      </div>
     </div>
   );
 }
@@ -82,86 +87,109 @@ export default function RegisterPage() {
       setIsPending(false);
     }
   };
-  
+
   const handleOAuthSignUpGoogle = () => {
     window.location.href = import.meta.env.VITE_BASE_URL + "/oauth2/authorize/google";
   }
 
   return (
-    <div className="glass-card rounded-3xl p-8 sm:p-10 shadow-2xl shadow-black/40 animate-slide-up">
-      <h1 className="text-3xl font-bold text-center mb-1 tracking-wide text-gradient-red">
+    <div className="auth-glass-card py-7 px-12 max-w-195 mx-auto w-full animate-slide-up">
+      <h1 className="text-3xl font-extrabold text-center mb-1 tracking-[-0.02em] text-gradient-red">
         Create Account
       </h1>
-      <p className="text-muted text-sm text-center mb-8">
+      <p className="text-[13px] text-white/40 text-center mb-8 tracking-wide">
         Join AloMedia and start creating
       </p>
 
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Column 1: Form Fields */}
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-4 order-1">
-          <div className="flex flex-col gap-1">
+      <div className="flex flex-col sm:flex-row sm:items-stretch gap-8">
+
+        {/* Left: Form */}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-5">
+          {/* Email */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="email" className="text-[13px] text-white/50 tracking-wide pl-1">
+              Email address
+            </label>
             <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted group-focus-within:text-accent-red transition-colors" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
               <input
+                id="email"
                 type="email"
                 name="email"
-                placeholder="Email address"
+                placeholder="you@example.com"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className={`w-full bg-input-bg border rounded-xl py-3.5 pl-12 pr-4 text-accent-white placeholder-muted text-sm font-medium hover:border-dark-border-light focus:border-accent-red transition-all duration-200 ${
-                  apiError?.fieldMessage("email") ? "border-red-500" : "border-input-border"
+                className={`auth-input w-full rounded-lg py-3 pl-12 pr-4 text-accent-white placeholder-white/25 text-sm font-medium ${
+                  apiError?.fieldMessage("email") ? "input-error" : ""
                 }`}
               />
             </div>
             {apiError?.fieldMessage("email") && (
-              <p className="text-xs text-red-400 pl-1">{apiError.fieldMessage("email")}</p>
+              <div className="flex items-center gap-1.5 pl-1 animate-error-slide">
+                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                <p className="text-xs text-red-400">{apiError.fieldMessage("email")}</p>
+              </div>
             )}
           </div>
 
+          {/* Name fields */}
           <div className="flex gap-3">
-            <div className="flex flex-col gap-1 flex-1">
+            <div className="flex flex-col gap-1.5 flex-1">
+              <label htmlFor="firstName" className="text-[13px] text-white/50 tracking-wide pl-1">
+                First name
+              </label>
               <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted group-focus-within:text-accent-red transition-colors" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
                 <input
+                  id="firstName"
                   type="text"
                   name="firstName"
-                  placeholder="First name"
                   required
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className={`w-full bg-input-bg border rounded-xl py-3.5 pl-12 pr-4 text-accent-white placeholder-muted text-sm font-medium hover:border-dark-border-light focus:border-accent-red transition-all duration-200 ${
-                    apiError?.fieldMessage("firstName") ? "border-red-500" : "border-input-border"
+                  className={`auth-input w-full rounded-lg py-3 pl-12 pr-4 text-accent-white text-sm font-medium ${
+                    apiError?.fieldMessage("firstName") ? "input-error" : ""
                   }`}
                 />
               </div>
               {apiError?.fieldMessage("firstName") && (
-                <p className="text-xs text-red-400 pl-1">{apiError.fieldMessage("firstName")}</p>
+                <div className="flex items-center gap-1.5 pl-1 animate-error-slide">
+                  <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                  <p className="text-xs text-red-400">{apiError.fieldMessage("firstName")}</p>
+                </div>
               )}
             </div>
 
-            <div className="flex flex-col gap-1 flex-1">
+            <div className="flex flex-col gap-1.5 flex-1">
+              <label htmlFor="lastName" className="text-[13px] text-white/50 tracking-wide pl-1">
+                Last name
+              </label>
               <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted group-focus-within:text-accent-red transition-colors" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
                 <input
+                  id="lastName"
                   type="text"
                   name="lastName"
-                  placeholder="Last name"
                   required
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className={`w-full bg-input-bg border rounded-xl py-3.5 pl-12 pr-4 text-accent-white placeholder-muted text-sm font-medium hover:border-dark-border-light focus:border-accent-red transition-all duration-200 ${
-                    apiError?.fieldMessage("lastName") ? "border-red-500" : "border-input-border"
+                  className={`auth-input w-full rounded-lg py-3 pl-12 pr-4 text-accent-white text-sm font-medium ${
+                    apiError?.fieldMessage("lastName") ? "input-error" : ""
                   }`}
                 />
               </div>
               {apiError?.fieldMessage("lastName") && (
-                <p className="text-xs text-red-400 pl-1">{apiError.fieldMessage("lastName")}</p>
+                <div className="flex items-center gap-1.5 pl-1 animate-error-slide">
+                  <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                  <p className="text-xs text-red-400">{apiError.fieldMessage("lastName")}</p>
+                </div>
               )}
             </div>
           </div>
 
-          <div className="flex flex-col gap-1">
+          {/* Password */}
+          <div className="flex flex-col gap-1.5">
             <PasswordField
               name="password"
               placeholder="Password"
@@ -170,11 +198,15 @@ export default function RegisterPage() {
               hasError={!!apiError?.fieldMessage("password")}
             />
             {apiError?.fieldMessage("password") && (
-              <p className="text-xs text-red-400 pl-1">{apiError.fieldMessage("password")}</p>
+              <div className="flex items-center gap-1.5 pl-1 animate-error-slide">
+                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                <p className="text-xs text-red-400">{apiError.fieldMessage("password")}</p>
+              </div>
             )}
           </div>
 
-          <div className="flex flex-col gap-1">
+          {/* Confirm Password */}
+          <div className="flex flex-col gap-1.5">
             <PasswordField
               name="confirmPassword"
               placeholder="Confirm password"
@@ -183,57 +215,64 @@ export default function RegisterPage() {
               hasError={passwordMismatch}
             />
             {passwordMismatch && (
-              <p className="text-xs text-red-400 pl-1">Passwords do not match.</p>
+              <div className="flex items-center gap-1.5 pl-1 animate-error-slide">
+                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                <p className="text-xs text-red-400">Passwords do not match.</p>
+              </div>
             )}
           </div>
 
           {/* General (non-field) error */}
           {error && (!apiError || apiError.fields.length === 0) && (
-            <p className="text-xs text-red-400 text-center -mt-1">{error.message}</p>
+            <div className="flex items-center justify-center gap-1.5 -mt-1 animate-error-slide">
+              <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+              <p className="text-xs text-red-400">{error.message}</p>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={isPending}
-            className="w-full bg-linear-to-r from-blood-red to-crimson hover:from-blood-red-light hover:to-blood-red-glow text-accent-white font-semibold py-3.5 rounded-xl transition-all duration-300 text-sm tracking-wide shadow-lg shadow-blood-red/25 hover:shadow-blood-red/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100"
+            className="auth-btn-primary w-full bg-linear-to-r from-blood-red to-crimson text-accent-white font-semibold py-3.5 rounded-lg text-sm tracking-wide cursor-pointer"
           >
-            {isPending ? "Creating account…" : "Create Account"}
+            {isPending ? "Creating account\u2026" : "Create Account"}
           </button>
         </form>
 
-        {/* Divider */}
-        <div className="hidden md:flex flex-col items-center gap-3 px-2 order-2">
-          <div className="flex-1 w-px bg-linear-to-b from-transparent via-dark-border to-transparent" />
-          <span className="text-muted text-xs font-semibold uppercase tracking-widest">or</span>
-          <div className="flex-1 w-px bg-linear-to-b from-transparent via-dark-border to-transparent" />
-        </div>
+        {/* Vertical divider (sm+) */}
+        <div className="hidden sm:block w-px self-stretch bg-linear-to-b from-transparent via-white/8 to-transparent" />
+        {/* Horizontal divider (mobile) */}
+        <div className="sm:hidden h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
 
-        {/* Column 2: OAuth */}
-        <div className="flex-1 flex flex-col gap-4 order-3">
+        {/* Right: OAuth */}
+        <div className="flex flex-col gap-2.5 sm:flex-1 sm:justify-center">
+          <span className="text-white/35 text-[11px] font-semibold uppercase tracking-[0.08em] text-center mb-1">
+            or continue with
+          </span>
           <button
             type="button"
-            className="flex items-center justify-center gap-3 w-full bg-dark-card/60 hover:bg-dark-elevated/80 border border-dark-border hover:border-dark-border-light text-accent-white font-semibold py-3.5 rounded-xl transition-all duration-200 text-sm group cursor-pointer"
+            className="auth-btn-secondary flex items-center justify-center gap-3 w-full border border-dark-border text-accent-white font-semibold py-3.5 rounded-lg text-sm group cursor-pointer"
             onClick={handleOAuthSignUpGoogle}
           >
-            <Chrome className="w-5 h-5 text-muted group-hover:text-accent-white transition-colors" />
+            <Chrome className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-150" />
             Sign up with Google
           </button>
-
           <button
             type="button"
-            className="flex items-center justify-center gap-3 w-full bg-dark-card/60 hover:bg-dark-elevated/80 border border-dark-border hover:border-dark-border-light text-accent-white font-semibold py-3.5 rounded-xl transition-all duration-200 text-sm group cursor-pointer"
+            className="auth-btn-secondary flex items-center justify-center gap-3 w-full border border-dark-border text-accent-white font-semibold py-3.5 rounded-lg text-sm group cursor-pointer"
           >
-            <Github className="w-5 h-5 text-muted group-hover:text-accent-white transition-colors" />
+            <Github className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-150" />
             Sign up with GitHub
           </button>
         </div>
+
       </div>
 
-      <p className="text-center text-muted text-sm mt-8">
+      <p className="text-center text-white/45 text-sm mt-8">
         Already have an account?{" "}
         <Link
           to="/auth/login"
-          className="text-accent-red hover:text-rose-muted font-bold transition-colors duration-200"
+          className="text-accent-red hover:text-rose-muted font-bold transition-colors duration-150"
         >
           Sign In
         </Link>

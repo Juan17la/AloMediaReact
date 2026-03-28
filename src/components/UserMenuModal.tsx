@@ -29,7 +29,16 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, children }: U
   return (
     <div
       ref={ref}
-      className="absolute right-0 top-full mt-2 p-1 w-44 rounded-md bg-dark-elevated border border-dark-border shadow-lg shadow-black/30 z-50"
+      className="absolute right-0 top-full mt-2 p-1 w-44 z-50"
+      style={{
+        background: "rgba(255, 255, 255, 0.04)",
+        backdropFilter: "blur(32px) saturate(160%)",
+        WebkitBackdropFilter: "blur(32px) saturate(160%)",
+        border: "1px solid rgba(255, 255, 255, 0.10)",
+        borderTop: "1px solid rgba(255, 255, 255, 0.18)",
+        borderRadius: 20,
+        boxShadow: "0 1px 0 rgba(255,255,255,0.08) inset, 0 4px 8px rgba(0,0,0,0.35), 0 12px 24px rgba(0,0,0,0.25), 0 32px 56px rgba(0,0,0,0.18)",
+      }}
     >
       <button
         type="button"

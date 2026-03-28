@@ -60,11 +60,11 @@ export function PlayheadBar({ totalWidth, duration, majorInterval }: PlayheadBar
         position: "relative",
         height: 24,
         minWidth: totalWidth,
-        borderBottom: "1px solid var(--color-dark-border)",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
         cursor: "pointer",
         userSelect: "none",
         flexShrink: 0,
-        background: "var(--color-dark)",
+        background: "rgba(255,255,255,0.03)",
       }}
     >
       {ticks.map(({ t, isMajor }) => (
@@ -85,18 +85,17 @@ export function PlayheadBar({ totalWidth, duration, majorInterval }: PlayheadBar
             style={{
               width: 1,
               height: isMajor ? 10 : 5,
-              background: isMajor
-                ? "var(--color-dark-border-light)"
-                : "var(--color-dark-border-light)",
+              background: "rgba(255,255,255,0.15)",
               opacity: isMajor ? 1 : 0.5,
             }}
           />
           {isMajor && (
             <span
               style={{
-                fontSize: 9,
+                fontSize: 10,
                 fontFamily: "'Courier New', monospace",
-                color: "var(--color-muted)",
+                color: "rgba(255,255,255,0.35)",
+                letterSpacing: "0.03em",
                 marginLeft: 2,
                 lineHeight: 1,
               }}

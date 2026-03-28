@@ -152,7 +152,41 @@ export function PreviewPlayer() {
     )
   }, [activeClips, primaryVideoClip])
 
-  secondaryClipsRef.current = secondaryVideoClips
+  // Keep a ref copy of secondary clips but do the assignment in an effect
+  // to avoid updating refs during render (eslint: react-hooks/refs).
+  useEffect(() => {
+    secondaryClipsRef.current = secondaryVideoClips
+  }, [secondaryVideoClips])
+
+  // Measure preview container size and provide width/height to children
+  const [previewSize, setPreviewSize] = useState({ width: 640, height: 360 })
+  useEffect(() => {
+    const container = canvasContainerRef.current
+    if (!container) return
+
+    function update() {
+      const c = canvasContainerRef.current
+      if (!c) return
+      setPreviewSize({ width: c.clientWidth || 640, height: c.clientHeight || 360 })
+    }
+
+    update()
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", update)
+      return () => window.removeEventListener("resize", update)
+    }
+    const ro = new ResizeObserver(() => update())
+    ro.observe(container)
+    return () => ro.disconnect()
+  }, [])
+
+  // Ensure playbackRate is set from clip data in an effect, not during render
+  useEffect(() => {
+    for (const clip of secondaryVideoClips) {
+      const el = secondaryVideoElemsRef.current.get(clip.id)
+      if (el) el.playbackRate = clip.speed ?? DEFAULT_SPEED
+    }
+  }, [secondaryVideoClips])
 
   function handleCanvasClick(e: React.MouseEvent<HTMLDivElement>) {
     const rect = canvasContainerRef.current!.getBoundingClientRect()
@@ -163,7 +197,7 @@ export function PreviewPlayer() {
       if (clip.type === "audio") return false
       const t = clip.transform
       return canvasX >= t.x && canvasX <= t.x + t.width
-          && canvasY >= t.y && canvasY <= t.y + t.height
+        && canvasY >= t.y && canvasY <= t.y + t.height
     })
     setSelectedClip(hit ? hit.id : undefined)
   }
@@ -212,10 +246,7 @@ export function PreviewPlayer() {
               <video
                 key={clip.id}
                 ref={el => {
-                  if (el) {
-                    el.playbackRate = clip.speed ?? DEFAULT_SPEED
-                    secondaryVideoElemsRef.current.set(clip.id, el)
-                  }
+                  if (el) secondaryVideoElemsRef.current.set(clip.id, el)
                   else secondaryVideoElemsRef.current.delete(clip.id)
                 }}
                 src={getPlaybackUrl(clip.mediaId)}
@@ -253,8 +284,8 @@ export function PreviewPlayer() {
             return (
               <TransformOverlay
                 clip={selectedClip}
-                previewWidth={canvasContainerRef.current?.clientWidth ?? 640}
-                previewHeight={canvasContainerRef.current?.clientHeight ?? 360}
+                previewWidth={previewSize.width}
+                previewHeight={previewSize.height}
                 onUpdate={t => updateClipTransform(selectedClipId, t)}
                 onCommit={() => commitTransform(selectedClipId)}
               />

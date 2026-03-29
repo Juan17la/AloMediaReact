@@ -6,6 +6,7 @@ import { generateId } from "../../utils/id"
 import { generateProxy } from "../../engine/proxyEngine"
 import type { Clip, Media, Track } from "../../project/projectTypes"
 import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig"
+import { triggerFileInputRef } from "../../utils/fileInputTrigger"
 import { DEFAULT_COLOR_ADJUSTMENTS } from "../../constants/colorAdjustments"
 import { DEFAULT_SPEED } from "../../constants/speed"
 import { toMs, toSeconds } from "../../utils/time"
@@ -15,8 +16,8 @@ interface PendingMedia {
   fileName: string
 }
 
-// Module-level ref so keyboard shortcut hook can trigger the file input
-export const triggerFileInputRef = { current: null as (() => void) | null }
+// Shared trigger ref is imported from utils to avoid exporting non-component
+// values from a component file (required by react-refresh plugin).
 
 const ghostBtn =
   "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-white/80 bg-white/5 border border-white/10 hover:bg-white/9 hover:border-white/[0.18] active:scale-95 transition-all duration-100 cursor-pointer"
@@ -58,8 +59,9 @@ export function MediaLibrary() {
   }
 
   useEffect(() => {
+    const urls = objectUrlsRef.current
     return () => {
-      objectUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
+      urls.forEach(url => URL.revokeObjectURL(url))
     }
   }, [])
 
@@ -136,7 +138,7 @@ export function MediaLibrary() {
       accepted.forEach(f => dt.items.add(f))
       await handleFiles(dt.files)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addMedia, setProxyState])
 
   function insertMediaAtPlayhead(item: Media) {

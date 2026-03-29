@@ -100,43 +100,51 @@ export function useMediaSync({
   useEffect(() => { syncAudioPool(audioElementsRef.current, allTrackIds) }, [allTrackIds])
   useEffect(() => () => { destroyAudioPool(audioElementsRef.current) }, [])
 
-  function syncMediaElements(ph: number): void {
-    const p = useEditorStore.getState().project
-    // Use raw file URL (not proxy) for the primary buffer so audio is preserved.
-    // Proxies are generated with -an (no audio). Secondary elements are muted and
-    // can keep using the proxy URL for smooth scrubbing.
-    const getUrl = (id: string) => registryRef.current.getObjectUrl(id)
-    const getIsPlaying = () => isPlayingRef.current
+  const syncMediaElements = useRef<(ph: number) => void | null>(null)
 
-    managerRef.current?.syncVideo(ph, p.tracks, getUrl, getIsPlaying)
+  // Stable sync implementation that reads latest values from refs.
+  useEffect(() => {
+    const impl = (ph: number) => {
+      const p = useEditorStore.getState().project
+      // Use raw file URL (not proxy) for the primary buffer so audio is preserved.
+      // Proxies are generated with -an (no audio). Secondary elements are muted and
+      // can keep using the proxy URL for smooth scrubbing.
+      const getUrl = (id: string) => registryRef.current.getObjectUrl(id)
+      const getIsPlaying = () => isPlayingRef.current
 
-    syncSecondaryVideoTracks({
-      clips: secondaryClipsRef.current,
-      elements: secondaryVideoElemsRef.current,
-      playhead: ph,
-      isPlaying: isPlayingRef.current,
-    })
+      managerRef.current?.syncVideo(ph, p.tracks, getUrl, getIsPlaying)
 
-    prevActiveAudioIdsRef.current = syncAudioElements(
-      ph,
-      isPlayingRef.current,
-      clipIndexRef.current,
-      audioElementsRef.current,
-      prevActiveAudioIdsRef.current,
-      id => registryRef.current.getObjectUrl(id),
-      isMutedRef.current,
-      volumeRef.current,
-    )
-  }
+      syncSecondaryVideoTracks({
+        clips: secondaryClipsRef.current,
+        elements: secondaryVideoElemsRef.current,
+        playhead: ph,
+        isPlaying: isPlayingRef.current,
+      })
+
+      prevActiveAudioIdsRef.current = syncAudioElements(
+        ph,
+        isPlayingRef.current,
+        clipIndexRef.current,
+        audioElementsRef.current,
+        prevActiveAudioIdsRef.current,
+        id => registryRef.current.getObjectUrl(id),
+        isMutedRef.current,
+        volumeRef.current,
+      )
+    }
+
+    syncMediaElements.current = impl
+    return () => { syncMediaElements.current = null }
+  }, [secondaryClipsRef, secondaryVideoElemsRef])
 
   useEffect(() => {
-    onFrameRef.current = syncMediaElements
+    onFrameRef.current = ph => { if (syncMediaElements.current) syncMediaElements.current(ph) }
     return () => { onFrameRef.current = null }
-  }, [])
+  }, [onFrameRef])
 
   useEffect(() => {
     if (isPlayingRef.current) return
-    syncMediaElements(playhead)
+    if (syncMediaElements.current) syncMediaElements.current(playhead)
   }, [playhead])
 
   useEffect(() => {
@@ -165,12 +173,12 @@ export function useMediaSync({
       if (isPlaying) {
         el.muted = isMuted
         el.volume = volume
-        el.play().catch(() => {})
+        el.play().catch(() => { })
       } else {
         el.pause()
       }
     }
-  }, [isPlaying])
+  }, [isPlaying, isMuted, volume, playheadRef, secondaryVideoElemsRef])
 
   useEffect(() => () => { registryRef.current.revokeAll() }, [])
 

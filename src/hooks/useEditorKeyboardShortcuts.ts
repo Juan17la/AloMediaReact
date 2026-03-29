@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 import { useEditorStore } from "../store/editorStore"
 import { usePlayer } from "./usePlayer"
-import { triggerFileInputRef } from "../components/editor/MediaLibrary"
+import { triggerFileInputRef } from "../utils/fileInputTrigger"
 import {
   MIN_PIXELS_PER_SECOND,
   MAX_PIXELS_PER_SECOND,

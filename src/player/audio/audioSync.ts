@@ -5,6 +5,12 @@ import { DRIFT_CORRECTION_THRESHOLD_S } from "../../constants/timeline"
 import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig"
 import { DEFAULT_SPEED } from "../../constants/speed"
 
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext
+  }
+}
+
 type AudioBearingClip = AudioClip | VideoClip
 
 // Web Audio contexts and nodes are cached per track ID so they persist across frames
@@ -85,7 +91,7 @@ export function syncAudioElements(
       if (playing) {
         // Apply audio config + global settings
         applyAudioConfig(el, clipConfig, isMuted, volume, clip.trackId)
-        el.play().catch(() => {})
+        el.play().catch(() => { })
       }
     } else if (!playing) {
       if (el.readyState >= 1) el.currentTime = mediaTime
@@ -159,13 +165,15 @@ function setupGainNode(
 
   // Create or resume audio context
   if (!ctx) {
-    ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const Ctor = window.AudioContext || window.webkitAudioContext
+    if (!Ctor) return
+    ctx = new Ctor()
     audioContexts.set(trackId, ctx)
   }
 
   // Resume context if suspended (required by browser autoplay policy)
   if (ctx.state === "suspended") {
-    ctx.resume().catch(() => {})
+    ctx.resume().catch(() => { })
   }
 
   // Create media element source once (cannot be created twice for same element)
@@ -174,7 +182,7 @@ function setupGainNode(
       const newSource = ctx.createMediaElementSource(el)
       mediaElementSources.set(trackId, newSource)
       source = newSource
-    } catch (e) {
+    } catch (_e) {
       // Source already created for this element, continue
       return
     }
@@ -185,7 +193,9 @@ function setupGainNode(
     gainNode = ctx.createGain()
     // Disconnect source from any current connection (e.g. pass-through added
     // by disconnectAll) before inserting the gain node into the chain.
-    try { source.disconnect() } catch (e) {}
+    try { source.disconnect() } catch (_e) {
+      return
+    }
     source.connect(gainNode)
     gainNodes.set(trackId, gainNode)
     // Connect to destination immediately so audio is audible by default.
@@ -199,7 +209,7 @@ function setupGainNode(
   if (Math.abs(balance) > 0.001) {
     if (!pannerNode) {
       pannerNode = ctx.createStereoPanner()
-      
+
       // Disconnect old chain and rebuild with panner
       gainNode.disconnect()
       gainNode.connect(pannerNode)
@@ -233,12 +243,14 @@ function setupPannerOnly(
   let pannerNode = pannerNodes.get(trackId)
 
   if (!ctx) {
-    ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const Ctor = window.AudioContext || window.webkitAudioContext
+    if (!Ctor) return
+    ctx = new Ctor()
     audioContexts.set(trackId, ctx)
   }
 
   if (ctx.state === "suspended") {
-    ctx.resume().catch(() => {})
+    ctx.resume().catch(() => { })
   }
 
   if (!source) {
@@ -246,7 +258,7 @@ function setupPannerOnly(
       const newSource = ctx.createMediaElementSource(el)
       mediaElementSources.set(trackId, newSource)
       source = newSource
-    } catch (e) {
+    } catch (_e) {
       return
     }
   }
@@ -255,7 +267,9 @@ function setupPannerOnly(
     pannerNode = ctx.createStereoPanner()
     // Disconnect source from any current connection (e.g. pass-through added
     // by disconnectAll) before inserting the panner into the chain.
-    try { source.disconnect() } catch (e) {}
+    try { source.disconnect() } catch (_e) {
+      // Silently ignore if source was not previously connected (e.g. first time setup)
+    }
     source.connect(pannerNode)
     pannerNode.connect(ctx.destination)
     pannerNodes.set(trackId, pannerNode)
@@ -274,12 +288,14 @@ function disconnectPanNode(trackId: string): void {
   try {
     pannerNode.disconnect()
     gainNode.disconnect()
-    const ctx = audioContexts.get(trackId)
-    if (ctx) {
-      gainNode.connect(ctx.destination)
+    let ctx = audioContexts.get(trackId)
+    if (!ctx) {
+      const Ctor = window.AudioContext || window.webkitAudioContext
+      if (!Ctor) return
+      ctx = new Ctor()
+      audioContexts.set(trackId, ctx)
     }
-    pannerNodes.delete(trackId)
-  } catch (e) {
+  } catch {
     // Silently ignore errors
   }
 }
@@ -304,7 +320,7 @@ export function destroyAudioContext(trackId: string): void {
       source.disconnect()
       mediaElementSources.delete(trackId)
     }
-  } catch (e) {
+  } catch (_e) {
     // Silently ignore errors during cleanup
   }
   audioContexts.delete(trackId)
@@ -327,7 +343,9 @@ export function disconnectAll(): void {
       if (source && ctx && ctx.state !== "closed") {
         source.connect(ctx.destination)
       }
-    } catch (e) {}
+    } catch (_e) { 
+      // Silently ignore errors during cleanup (e.g. context already closed)
+    }
   }
   gainNodes.clear()
   pannerNodes.clear()

@@ -26,6 +26,44 @@ interface InspectorSliderRowProps {
     defaultTolerance?: number
 }
 
+// Slider row container
+const sliderRowContainer =
+  "flex flex-col editor-transition mb-2.5 gap-1"
+
+const sliderRowDisabled =
+  "opacity-40 pointer-events-none"
+
+const sliderRowEnabled =
+  "opacity-100"
+
+// Label styling
+const labelRow =
+  "flex justify-between items-center"
+
+const labelText =
+  "text-xs text-white/50 select-none"
+
+// Slider and input wrapper
+const sliderInputWrapper =
+  "flex items-center gap-2"
+
+const sliderFlex =
+  "flex-1 flex items-center"
+
+// Input styling
+const inputValue =
+  "w-9 h-5 bg-black/30 border border-white/[0.08] rounded-md px-1 text-[10px] font-mono text-right text-white/90 placeholder:text-white/25 focus:border-[var(--color-accent-red)]/55 focus:ring-2 focus:ring-[var(--color-accent-red)]/12 transition-all duration-150 box-border outline-none"
+
+// Reset button styling
+const resetButtonBase =
+  "p-1 rounded-sm editor-transition group"
+
+const resetButtonActive =
+  "opacity-60 hover:opacity-100 hover:bg-white/5 cursor-pointer"
+
+const resetButtonDisabled =
+  "opacity-20 cursor-default"
+
 function clamp(value: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, value))
 }
@@ -92,19 +130,18 @@ export function InspectorSliderRow({
 
     return (
         <div
-            className={`flex flex-col editor-transition ${disabled ? "opacity-40 pointer-events-none" : "opacity-100"} ${className}`}
-            style={{ marginBottom: 10, gap: 4 }}
+            className={[sliderRowContainer, disabled ? sliderRowDisabled : sliderRowEnabled, className].filter(Boolean).join(" ")}
         >
             {/* Label Row */}
-            <div className="flex justify-between items-center">
-                <span style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.50)" }} className="select-none">
+            <div className={labelRow}>
+                <span className={labelText}>
                     {label}
                 </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className={sliderInputWrapper}>
                 {/* The Slider */}
-                <div className="flex-1 flex items-center">
+                <div className={sliderFlex}>
                     <RangeSlider
                         value={effectiveSliderValue}
                         min={effectiveSliderMin}
@@ -145,7 +182,7 @@ export function InspectorSliderRow({
                             setIsEditing(false);
                         }
                     }}
-                    className="w-9 h-5 glass-input text-[10px] font-mono text-right px-1 outline-none"
+                    className={inputValue}
                 />
 
                 {/* Reset Button */}
@@ -153,7 +190,7 @@ export function InspectorSliderRow({
                     onClick={onReset}
                     disabled={isDefault}
                     title={resetTitle}
-                    className={`p-1 rounded-sm editor-transition group ${isDefault ? "opacity-20 cursor-default" : "opacity-60 hover:opacity-100 hover:bg-white/5 cursor-pointer"}`}
+                    className={[resetButtonBase, isDefault ? resetButtonDisabled : resetButtonActive].join(" ")}
                     aria-label={resetAriaLabel ?? `Reset ${label} to default`}
                 >
                     <RotateCcw size={10} className={`transform ${isDefault ? "" : "group-hover:-rotate-45 transition-transform"}`} />

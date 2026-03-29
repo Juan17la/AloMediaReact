@@ -4,6 +4,24 @@ import { useEditorStore } from "../../store/editorStore"
 import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig"
 import { InspectorSliderRow } from "../ui/InspectorSliderRow"
 
+// Glass card constant
+const glassCard =
+  "w-full bg-white/[0.03] border border-white/[0.07] rounded-lg p-3 mb-3"
+
+// Section label constant
+const sectionLabel =
+  "text-[11px] font-semibold tracking-[0.06em] uppercase text-white/40"
+
+// Mute button styling
+const muteButtonBase =
+  "bg-transparent border-none rounded-md p-1.5 transition-[color,background] duration-120 cursor-pointer flex items-center"
+
+const muteButtonActive =
+  "text-[var(--color-accent-red)]"
+
+const muteButtonInactive =
+  "text-white/55 hover:text-white/80"
+
 function formatBalance(v: number): string {
   if (Math.abs(v) <= 0.001) return "C"
   if (Math.abs(v - -1.0) <= 0.001) return "L"
@@ -47,55 +65,22 @@ export function AudioConfigPanel({ clipId }: AudioConfigPanelProps) {
   }
 
   return (
-    <div className="w-full" style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.07)", borderRadius: 10, padding: "14px 16px", marginBottom: 12 }}>
+    <div className={glassCard}>
       {/* Section header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          marginBottom: 12,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            color: "rgba(255, 255, 255, 0.40)",
-          }}
-        >
+      <div className="flex items-center mb-3">
+        <span className={sectionLabel}>
           Audio Configuration
         </span>
       </div>
 
       {/* Mute row */}
-      <div
-        style={{
-          height: 28,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 10,
-        }}
-      >
-        <span style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.50)" }}>Mute</span>
+      <div className="h-7 flex items-center justify-between gap-3 mb-2.5">
+        <span className="text-xs text-white/50">Mute</span>
         <button
           onClick={() => set("muted", !config.muted)}
           aria-label={config.muted ? "Unmute" : "Mute"}
           title={config.muted ? "Unmute" : "Mute"}
-          style={{
-            background: "transparent",
-            border: "none",
-            borderRadius: 6,
-            padding: 6,
-            color: config.muted ? "var(--color-accent-red)" : "rgba(255, 255, 255, 0.55)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            transition: "color 120ms ease-out, background 120ms ease-out",
-          }}
+          className={[muteButtonBase, config.muted ? muteButtonActive : muteButtonInactive].join(" ")}
         >
           {config.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
         </button>

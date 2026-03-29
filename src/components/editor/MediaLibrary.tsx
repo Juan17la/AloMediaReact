@@ -1,211 +1,236 @@
-import { useRef, useState, useEffect, useCallback } from "react"
-import { FilePlus2, Plus, Search } from "lucide-react"
-import { useEditorStore, fileMap } from "../../store/editorStore"
-import { MediaCard, LoadingCard } from "./MediaCard"
-import { generateId } from "../../utils/id"
-import { generateProxy } from "../../engine/proxyEngine"
-import type { Clip, Media, Track } from "../../project/projectTypes"
-import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig"
-import { triggerFileInputRef } from "../../utils/fileInputTrigger"
-import { DEFAULT_COLOR_ADJUSTMENTS } from "../../constants/colorAdjustments"
-import { DEFAULT_SPEED } from "../../constants/speed"
-import { toMs, toSeconds } from "../../utils/time"
+import { useRef, useState, useEffect, useCallback } from "react";
+import { FilePlus2, Plus, Search } from "lucide-react";
+import { useEditorStore, fileMap } from "../../store/editorStore";
+import { MediaCard, LoadingCard } from "./MediaCard";
+import { generateId } from "../../utils/id";
+import { generateProxy } from "../../engine/proxyEngine";
+import type { Clip, Media, Track } from "../../project/projectTypes";
+import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig";
+import { triggerFileInputRef } from "../../utils/fileInputTrigger";
+import { DEFAULT_COLOR_ADJUSTMENTS } from "../../constants/colorAdjustments";
+import { DEFAULT_SPEED } from "../../constants/speed";
+import { toMs, toSeconds } from "../../utils/time";
 
 interface PendingMedia {
-  tempId: string
-  fileName: string
+  tempId: string;
+  fileName: string;
 }
 
 // Shared trigger ref is imported from utils to avoid exporting non-component
 // values from a component file (required by react-refresh plugin).
 
 const ghostBtn =
-  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-white/80 bg-white/5 border border-white/10 hover:bg-white/9 hover:border-white/[0.18] active:scale-95 transition-all duration-100 cursor-pointer"
+  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-white/80 bg-white/5 border border-white/10 hover:bg-white/9 hover:border-white/[0.18] active:scale-95 transition-all duration-100 cursor-pointer";
 
 export function MediaLibrary() {
-  const addMedia = useEditorStore(s => s.addMedia)
-  const setProxyState = useEditorStore(s => s.setProxyState)
-  const proxyMap = useEditorStore(s => s.proxyMap)
-  const idbResolvedMediaIds = useEditorStore(s => s.idbResolvedMediaIds)
-  const media = useEditorStore(s => s.project.media ?? [])
-  const playhead = useEditorStore(s => s.playhead)
-  const tracks = useEditorStore(s => s.project.tracks ?? [])
-  const addClip = useEditorStore(s => s.addClip)
-  const addTrack = useEditorStore(s => s.addTrack)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [pending, setPending] = useState<PendingMedia[]>([])
-  const [isDragOver, setIsDragOver] = useState(false)
-  const [dropError, setDropError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const dropZoneRef = useRef<HTMLDivElement>(null)
+  const addMedia = useEditorStore((s) => s.addMedia);
+  const setProxyState = useEditorStore((s) => s.setProxyState);
+  const proxyMap = useEditorStore((s) => s.proxyMap);
+  const idbResolvedMediaIds = useEditorStore((s) => s.idbResolvedMediaIds);
+  const media = useEditorStore((s) => s.project.media ?? []);
+  const playhead = useEditorStore((s) => s.playhead);
+  const tracks = useEditorStore((s) => s.project.tracks ?? []);
+  const addClip = useEditorStore((s) => s.addClip);
+  const addTrack = useEditorStore((s) => s.addTrack);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [pending, setPending] = useState<PendingMedia[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [dropError, setDropError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropZoneRef = useRef<HTMLDivElement>(null);
   // One object URL per mediaId, revoked on unmount
-  const objectUrlsRef = useRef<Map<string, string>>(new Map())
+  const objectUrlsRef = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
-    triggerFileInputRef.current = () => inputRef.current?.click()
+    triggerFileInputRef.current = () => inputRef.current?.click();
     return () => {
-      triggerFileInputRef.current = null
-    }
-  }, [])
+      triggerFileInputRef.current = null;
+    };
+  }, []);
 
   function getObjectUrl(mediaId: string): string | undefined {
-    const existing = objectUrlsRef.current.get(mediaId)
-    if (existing) return existing
-    const file = fileMap.get(mediaId)
-    if (!file) return undefined
-    const url = URL.createObjectURL(file)
-    objectUrlsRef.current.set(mediaId, url)
-    return url
+    const existing = objectUrlsRef.current.get(mediaId);
+    if (existing) return existing;
+    const file = fileMap.get(mediaId);
+    if (!file) return undefined;
+    const url = URL.createObjectURL(file);
+    objectUrlsRef.current.set(mediaId, url);
+    return url;
   }
 
   useEffect(() => {
-    const urls = objectUrlsRef.current
+    const urls = objectUrlsRef.current;
     return () => {
-      urls.forEach(url => URL.revokeObjectURL(url))
-    }
-  }, [])
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   async function handleFiles(files: FileList | null) {
-    if (!files) return
-    const fileArray = Array.from(files)
-    const newPending: PendingMedia[] = fileArray.map(file => ({ tempId: generateId(), fileName: file.name }))
-    setPending(prev => [...prev, ...newPending])
+    if (!files) return;
+    const fileArray = Array.from(files);
+    const newPending: PendingMedia[] = fileArray.map((file) => ({
+      tempId: generateId(),
+      fileName: file.name,
+    }));
+    setPending((prev) => [...prev, ...newPending]);
     await Promise.all(
       fileArray.map(async (file, i) => {
-        const m = await addMedia(file)
-        setPending(prev => prev.filter(p => p.tempId !== newPending[i].tempId))
-        if (m.type === 'video') {
-          setProxyState(m.id, { status: 'pending', objectUrl: null })
+        const m = await addMedia(file);
+        setPending((prev) =>
+          prev.filter((p) => p.tempId !== newPending[i].tempId),
+        );
+        if (m.type === "video") {
+          setProxyState(m.id, { status: "pending", objectUrl: null });
           generateProxy(
             m.id,
             file,
-            (url) => setProxyState(m.id, { status: 'ready', objectUrl: url }),
-            () => setProxyState(m.id, { status: 'error', objectUrl: null }),
-          )
+            (url) => setProxyState(m.id, { status: "ready", objectUrl: url }),
+            () => setProxyState(m.id, { status: "error", objectUrl: null }),
+          );
         }
-      })
-    )
+      }),
+    );
   }
 
   const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    if (!e.dataTransfer.types.includes('Files')) return
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragOver(true)
-    setDropError(null)
-  }, [])
+    if (!e.dataTransfer.types.includes("Files")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+    setDropError(null);
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    if (!e.dataTransfer.types.includes('Files')) return
-    e.preventDefault()
-    e.stopPropagation()
-    e.dataTransfer.dropEffect = 'copy'
-  }, [])
+    if (!e.dataTransfer.types.includes("Files")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "copy";
+  }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    if (!e.dataTransfer.types.includes('Files')) return
-    e.preventDefault()
-    e.stopPropagation()
-    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node | null)) {
-      setIsDragOver(false)
+    if (!e.dataTransfer.types.includes("Files")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (
+      dropZoneRef.current &&
+      !dropZoneRef.current.contains(e.relatedTarget as Node | null)
+    ) {
+      setIsDragOver(false);
     }
-  }, [])
+  }, []);
 
-  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
-    if (!e.dataTransfer.types.includes('Files')) return
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragOver(false)
+  const handleDrop = useCallback(
+    async (e: React.DragEvent<HTMLDivElement>) => {
+      if (!e.dataTransfer.types.includes("Files")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
 
-    const accepted: File[] = []
-    const rejected: string[] = []
+      const accepted: File[] = [];
+      const rejected: string[] = [];
 
-    Array.from(e.dataTransfer.files).forEach(file => {
-      if (file.type.startsWith('video/') || file.type.startsWith('audio/') || file.type.startsWith('image/')) {
-        accepted.push(file)
-      } else {
-        rejected.push(file.name)
+      Array.from(e.dataTransfer.files).forEach((file) => {
+        if (
+          file.type.startsWith("video/") ||
+          file.type.startsWith("audio/") ||
+          file.type.startsWith("image/")
+        ) {
+          accepted.push(file);
+        } else {
+          rejected.push(file.name);
+        }
+      });
+
+      if (rejected.length > 0) {
+        setDropError(
+          `Unsupported: ${rejected.slice(0, 2).join(", ")}${rejected.length > 2 ? ` +${rejected.length - 2} more` : ""}`,
+        );
+        setTimeout(() => setDropError(null), 3500);
       }
-    })
 
-    if (rejected.length > 0) {
-      setDropError(`Unsupported: ${rejected.slice(0, 2).join(', ')}${rejected.length > 2 ? ` +${rejected.length - 2} more` : ''}`)
-      setTimeout(() => setDropError(null), 3500)
-    }
-
-    if (accepted.length > 0) {
-      const dt = new DataTransfer()
-      accepted.forEach(f => dt.items.add(f))
-      await handleFiles(dt.files)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addMedia, setProxyState])
+      if (accepted.length > 0) {
+        const dt = new DataTransfer();
+        accepted.forEach((f) => dt.items.add(f));
+        await handleFiles(dt.files);
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [addMedia, setProxyState],
+  );
 
   function insertMediaAtPlayhead(item: Media) {
-    const trackType = item.type === "audio" ? "audio" : "video"
-    const roundedPlayhead = toSeconds(toMs(playhead))
-    const duration = item.duration ?? 5
-    const timelineStart = roundedPlayhead
-    const timelineEnd = toSeconds(toMs(roundedPlayhead + duration))
+    const trackType = item.type === "audio" ? "audio" : "video";
+    const roundedPlayhead = toSeconds(toMs(playhead));
+    const duration = item.duration ?? 5;
+    const timelineStart = roundedPlayhead;
+    const timelineEnd = toSeconds(toMs(roundedPlayhead + duration));
 
-    let targetTrack: Track | undefined = tracks.find(track =>
-      track.type === trackType
-      && !(track.clips ?? []).some(clip => timelineStart < clip.timelineEnd && timelineEnd > clip.timelineStart),
-    )
+    let targetTrack: Track | undefined = tracks.find(
+      (track) =>
+        track.type === trackType &&
+        !(track.clips ?? []).some(
+          (clip) =>
+            timelineStart < clip.timelineEnd &&
+            timelineEnd > clip.timelineStart,
+        ),
+    );
 
     if (!targetTrack) {
-      targetTrack = addTrack(trackType)
+      targetTrack = addTrack(trackType);
     }
 
-    const newClip: Clip = item.type === "audio"
-      ? {
-        id: generateId(),
-        trackId: targetTrack.id,
-        type: "audio",
-        mediaId: item.id,
-        timelineStart,
-        timelineEnd,
-        mediaStart: 0,
-        mediaEnd: duration,
-        volume: 1,
-        speed: DEFAULT_SPEED,
-        audioConfig: { ...DEFAULT_AUDIO_CONFIG },
-      }
-      : item.type === "image"
+    const newClip: Clip =
+      item.type === "audio"
         ? {
-          id: generateId(),
-          trackId: targetTrack.id,
-          type: "image",
-          mediaId: item.id,
-          timelineStart,
-          timelineEnd,
-          transform: { x: 0, y: 0, width: 1280, height: 720, rotation: 0 },
-          colorAdjustments: { ...DEFAULT_COLOR_ADJUSTMENTS },
-        }
-        : {
-          id: generateId(),
-          trackId: targetTrack.id,
-          type: "video",
-          mediaId: item.id,
-          timelineStart,
-          timelineEnd,
-          mediaStart: 0,
-          mediaEnd: duration,
-          volume: 1,
-          speed: DEFAULT_SPEED,
-          transform: { x: 0, y: 0, width: 1280, height: 720, rotation: 0 },
-          colorAdjustments: { ...DEFAULT_COLOR_ADJUSTMENTS },
-          audioConfig: { ...DEFAULT_AUDIO_CONFIG },
-        }
+            id: generateId(),
+            trackId: targetTrack.id,
+            type: "audio",
+            mediaId: item.id,
+            timelineStart,
+            timelineEnd,
+            mediaStart: 0,
+            mediaEnd: duration,
+            volume: 1,
+            speed: DEFAULT_SPEED,
+            audioConfig: { ...DEFAULT_AUDIO_CONFIG },
+          }
+        : item.type === "image"
+          ? {
+              id: generateId(),
+              trackId: targetTrack.id,
+              type: "image",
+              mediaId: item.id,
+              timelineStart,
+              timelineEnd,
+              transform: { x: 0, y: 0, width: 1280, height: 720, rotation: 0 },
+              colorAdjustments: { ...DEFAULT_COLOR_ADJUSTMENTS },
+            }
+          : {
+              id: generateId(),
+              trackId: targetTrack.id,
+              type: "video",
+              mediaId: item.id,
+              timelineStart,
+              timelineEnd,
+              mediaStart: 0,
+              mediaEnd: duration,
+              volume: 1,
+              speed: DEFAULT_SPEED,
+              transform: { x: 0, y: 0, width: 1280, height: 720, rotation: 0 },
+              colorAdjustments: { ...DEFAULT_COLOR_ADJUSTMENTS },
+              audioConfig: { ...DEFAULT_AUDIO_CONFIG },
+            };
 
-    addClip(newClip)
+    addClip(newClip);
   }
 
-  const hasItems = media.length > 0 || pending.length > 0
+  const hasItems = media.length > 0 || pending.length > 0;
 
   const filteredMedia = searchQuery.trim()
-    ? media.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : media
+    ? media.filter((m) =>
+        m.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : media;
 
   return (
     <div
@@ -224,7 +249,9 @@ export function MediaLibrary() {
       {isDragOver && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 pointer-events-none bg-[rgba(34,34,48,0.85)] border-2 border-accent-red">
           <FilePlus2 size={28} className="text-accent-red" />
-          <span className="text-[11px] font-semibold text-accent-white">Drop files here</span>
+          <span className="text-[11px] font-semibold text-accent-white">
+            Drop files here
+          </span>
         </div>
       )}
 
@@ -264,8 +291,8 @@ export function MediaLibrary() {
             type="text"
             placeholder="Search..."
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent border-0 outline-none text-[11px] text-accent-white font-[inherit]"
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 bg-transparent border-0 outline-none! text-[11px] text-accent-white font-[inherit] placeholder-white/40 focus:outline-none focus:ring-0 border-none! shadow-none! focus:shadow-none!"
           />
         </div>
       )}
@@ -276,7 +303,10 @@ export function MediaLibrary() {
         accept="video/*,audio/*,image/*"
         multiple
         className="hidden"
-        onChange={e => { handleFiles(e.target.files); e.target.value = "" }}
+        onChange={(e) => {
+          handleFiles(e.target.files);
+          e.target.value = "";
+        }}
       />
 
       {/* Empty state */}
@@ -288,7 +318,9 @@ export function MediaLibrary() {
           >
             <FilePlus2 size={24} className="text-muted" />
             <span className="text-[10px] text-muted text-center">
-              Click or drop<br />video, audio or images
+              Click or drop
+              <br />
+              video, audio or images
             </span>
           </div>
         </div>
@@ -297,7 +329,7 @@ export function MediaLibrary() {
       {/* Media grid — 2 cols, gap acts as border */}
       {hasItems && (
         <div className="flex-1 overflow-y-auto my-1 mx-3 grid grid-cols-2 gap-0.5 content-start">
-          {filteredMedia.map(item => (
+          {filteredMedia.map((item) => (
             <div
               key={item.id}
               className="min-w-0 overflow-hidden relative"
@@ -317,7 +349,7 @@ export function MediaLibrary() {
               )}
             </div>
           ))}
-          {pending.map(p => (
+          {pending.map((p) => (
             <div key={p.tempId} className="min-w-0 overflow-hidden">
               <LoadingCard fileName={p.fileName} />
             </div>
@@ -325,5 +357,5 @@ export function MediaLibrary() {
         </div>
       )}
     </div>
-  )
+  );
 }

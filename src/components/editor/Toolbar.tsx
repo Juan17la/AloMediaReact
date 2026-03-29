@@ -3,6 +3,7 @@ import {
   Scissors,
   Copy,
   Clipboard,
+  Trash2,
   Undo2,
   Redo2,
   ZoomIn,
@@ -175,10 +176,21 @@ function GroupDivider() {
 
 export function Toolbar() {
   const selectedClipId = useEditorStore(s => s.selectedClipId)
+  const selectedClip = useEditorStore(s => {
+    if (!s.selectedClipId) return undefined
+    for (const track of s.project.tracks) {
+      const clip = track.clips.find(c => c.id === s.selectedClipId)
+      if (clip) return clip
+    }
+    return undefined
+  })
   const playhead = useEditorStore(s => s.playhead)
   const splitClip = useEditorStore(s => s.splitClip)
   const copyClip = useEditorStore(s => s.copyClip)
   const pasteClip = useEditorStore(s => s.pasteClip)
+  const removeClip = useEditorStore(s => s.removeClip)
+  const extractAudioFromClip = useEditorStore(s => s.extractAudioFromClip)
+  const clipboard = useEditorStore(s => s.clipboard)
   const undo = useEditorStore(s => s.undo)
   const redo = useEditorStore(s => s.redo)
   const addTrack = useEditorStore(s => s.addTrack)
@@ -236,6 +248,10 @@ export function Toolbar() {
 
   // Compute zoom percentage from scale
   const zoomPercent = Math.round((timelineScale / 100) * 100)
+  const canCopyOrCut = !!selectedClipId && selectedClip?.type !== "text"
+  const canPaste = !!clipboard && clipboard.type !== "text"
+  const canDelete = !!selectedClipId
+  const canExtractAudio = selectedClip?.type === "video"
 
   return (
     <>
@@ -253,8 +269,46 @@ export function Toolbar() {
           disabled={!selectedClipId}
           onClick={() => { if (selectedClipId) splitClip(selectedClipId, playhead) }}
         />
-        <ToolbarBtn icon={<Copy size={14} />} label="Copy" onClick={copyClip} />
-        <ToolbarBtn icon={<Clipboard size={14} />} label="Paste" onClick={pasteClip} />
+        <ToolbarBtn
+          icon={<Copy size={14} />}
+          label="Copy"
+          disabled={!canCopyOrCut}
+          onClick={copyClip}
+        />
+        <ToolbarBtn
+          icon={<Scissors size={14} />}
+          label="Cut"
+          disabled={!canCopyOrCut}
+          onClick={() => {
+            if (!selectedClipId || !canCopyOrCut) return
+            copyClip()
+            removeClip(selectedClipId)
+          }}
+        />
+        <ToolbarBtn
+          icon={<Clipboard size={14} />}
+          label="Paste"
+          disabled={!canPaste}
+          onClick={pasteClip}
+        />
+        <ToolbarBtn
+          icon={<Trash2 size={14} />}
+          label="Delete"
+          disabled={!canDelete}
+          onClick={() => {
+            if (!selectedClipId) return
+            removeClip(selectedClipId)
+          }}
+        />
+        <ToolbarBtn
+          icon={<Music size={14} />}
+          label="Extract Audio"
+          disabled={!canExtractAudio}
+          onClick={() => {
+            if (!selectedClipId || !canExtractAudio) return
+            extractAudioFromClip(selectedClipId)
+          }}
+        />
 
         <GroupDivider />
 

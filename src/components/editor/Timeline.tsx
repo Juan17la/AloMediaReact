@@ -11,6 +11,8 @@ import { ZOOM_STEP } from "../../constants/timeline"
 
 const DEFAULT_TRANSFORM: Transform = { x: 0, y: 0, width: 1280, height: 720, rotation: 0 }
 
+// Reusable glass panel constant
+
 export function Timeline() {
   const project = useEditorStore(s => s.project)
   const playhead = useEditorStore(s => s.playhead)
@@ -119,13 +121,7 @@ export function Timeline() {
 
   return (
     <div
-      className="flex flex-1 flex-col overflow-hidden"
-      style={{
-        backdropFilter: "blur(20px) saturate(140%)",
-        WebkitBackdropFilter: "blur(20px) saturate(140%)",
-        borderTop: "1px solid rgba(255,255,255,0.10)",
-        boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.05), 0 -4px 16px rgba(0,0,0,0.25)",
-      }}
+      className="flex flex-1 flex-col overflow-hidden border-t border-t-white/15 shadow-[inset_0_-1px_0_rgba(255,255,255,0.05),0_-4px_16px_rgba(0,0,0,0.25)] backdrop-blur-2xl"
     >
       {/* Scrollable timeline area */}
       <div
@@ -133,41 +129,28 @@ export function Timeline() {
         className="flex-1 overflow-x-auto overflow-y-auto relative"
         onWheel={handleWheel}
       >
-        <div style={{ minWidth: totalWidth, display: "flex", flexDirection: "column" }}>
+        <div className="flex flex-col" style={{ minWidth: totalWidth }}>
           <PlayheadBar totalWidth={totalWidth} duration={rulerDuration} majorInterval={majorInterval} />
 
           {/* Tracks area */}
-          <div style={{ position: "relative", background: "rgba(255,255,255,0.02)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+          <div
+            className="relative bg-white/2 border-t border-t-white/7 backdrop-blur-4xl"
+          >
             {/* Major gridlines */}
-            <div className="absolute left-0 right-0 pointer-events-none" style={{ top: 0, bottom: 0, zIndex: 1 }}>
+            <div className="absolute top-0 bottom-0 left-0 right-0 pointer-events-none z-1">
               {majorTickTimes.map(t => (
                 <div
                   key={t}
-                  style={{
-                    position: "absolute",
-                    left: TRACK_HEADER_WIDTH + timeToPx(t, timelineScale),
-                    top: 0,
-                    bottom: 0,
-                    width: 1,
-                    background: "var(--color-dark-border)",
-                    opacity: 0.3,
-                  }}
+                  className="absolute top-0 bottom-0 w-px bg-dark-border opacity-30"
+                  style={{ left: TRACK_HEADER_WIDTH + timeToPx(t, timelineScale) }}
                 />
               ))}
             </div>
 
             {/* Playhead needle — 1px, full height */}
             <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: TRACK_HEADER_WIDTH + timeToPx(playhead, timelineScale),
-                width: 1,
-                height: "100%",
-                background: "var(--color-accent-red)",
-                pointerEvents: "none",
-                zIndex: 3,
-              }}
+              className="absolute top-0 w-px h-full bg-accent-red pointer-events-none z-3"
+              style={{ left: TRACK_HEADER_WIDTH + timeToPx(playhead, timelineScale) }}
             />
 
             {/* Tracks */}

@@ -53,55 +53,29 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: "rgba(0, 0, 0, 0.65)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
       onPointerDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div
-        className="modal-panel"
-        style={{
-          width: 520,
-        }}
-      >
-        <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
-          <h2
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              letterSpacing: "-0.01em",
-              color: "rgba(255, 255, 255, 0.92)",
-            }}
-          >
+      <div className="modal-panel w-130">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-base font-bold tracking-[-0.01em] text-white/92">
             Keyboard Shortcuts
           </h2>
           <button
             onClick={onClose}
-            style={{ background: "transparent", border: "none", borderRadius: 6, padding: 6, color: "rgba(255, 255, 255, 0.55)", cursor: "pointer", display: "flex", alignItems: "center", transition: "color 120ms ease-out, background 120ms ease-out" }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255, 255, 255, 0.90)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(255, 255, 255, 0.07)" }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255, 255, 255, 0.55)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent" }}
+            className="flex items-center bg-transparent border-0 rounded-md p-1.5 text-white/55 cursor-pointer transition-[color,background] duration-100 hover:text-white/90 hover:bg-white/7"
           >
             <X size={14} />
           </button>
         </div>
-        <div className="grid grid-cols-2" style={{ gap: "0 24px" }}>
+        <div className="grid grid-cols-2 gap-x-6">
           {[left, right].map((col, ci) => (
-            <div key={ci} className="flex flex-col" style={{ gap: 2 }}>
+            <div key={ci} className="flex flex-col gap-0.5">
               {col.map(({ keys, action }) => (
-                <div key={keys} className="flex items-center justify-between" style={{ padding: "2px 0" }}>
-                  <span style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.80)" }}>{action}</span>
-                  <kbd
-                    style={{
-                      fontSize: 10,
-                      fontFamily: "'Courier New', monospace",
-                      background: "rgba(0, 0, 0, 0.30)",
-                      border: "1px solid rgba(255, 255, 255, 0.08)",
-                      borderRadius: 6,
-                      padding: "2px 8px",
-                      color: "rgba(255, 255, 255, 0.60)",
-                      marginLeft: 12,
-                      flexShrink: 0,
-                    }}
-                  >
+                <div key={keys} className="flex items-center justify-between py-0.5">
+                  <span className="text-[13px] text-white/80">{action}</span>
+                  <kbd className="text-[10px] font-mono bg-black/30 border border-white/8 rounded-md px-2 py-0.5 text-white/60 ml-3 shrink-0">
                     {keys}
                   </kbd>
                 </div>
@@ -138,21 +112,14 @@ function ToolbarBtn({
   snapOn?: boolean
   disabled?: boolean
 }) {
-  const [hovered, setHovered] = useState(false)
-
-  const bg = snapOn
-    ? "rgba(192, 57, 43, 0.12)"
-    : active || hovered
-      ? "rgba(255, 255, 255, 0.07)"
-      : "transparent"
-
-  const iconColor = disabled
-    ? "var(--color-dark-border-light)"
-    : snapOn || active
-      ? "var(--color-accent-red)"
-      : hovered
-        ? "rgba(255, 255, 255, 0.90)"
-        : "rgba(255, 255, 255, 0.55)"
+  const btnClass = [
+    "flex items-center justify-center w-7 h-7 shrink-0 rounded-md border-0 transition-[background-color,color] duration-100",
+    disabled
+      ? "opacity-35 cursor-not-allowed text-dark-border-light"
+      : snapOn || active
+        ? "bg-[rgba(192,57,43,0.12)] text-accent-red cursor-pointer"
+        : "bg-transparent text-white/55 hover:bg-white/7 hover:text-white/90 cursor-pointer",
+  ].join(" ")
 
   return (
     <button
@@ -163,27 +130,11 @@ function ToolbarBtn({
       onClick={onClick}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
-      onPointerLeave={() => { setHovered(false); onPointerLeave?.() }}
+      onPointerLeave={() => onPointerLeave?.()}
       onPointerCancel={onPointerCancel}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="toolbar-btn"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 28,
-        height: 28,
-        borderRadius: 6,
-        border: "none",
-        background: bg,
-        color: iconColor,
-        cursor: disabled ? "not-allowed" : "pointer",
-        flexShrink: 0,
-        transition: "background-color 120ms ease-out, color 120ms ease-out",
-      }}
+      className={btnClass}
     >
-      <span style={{ display: "flex", alignItems: "center", width: 14, height: 14 }}>
+      <span className="flex items-center w-3.5 h-3.5">
         {icon}
       </span>
     </button>
@@ -200,35 +151,14 @@ function TrackBtn({
   label: string
   onClick: () => void
 }) {
-  const [hovered, setHovered] = useState(false)
-
   return (
     <button
       type="button"
       title={label}
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 5,
-        height: 28,
-        padding: "0 8px",
-        borderRadius: 6,
-        border: "none",
-        background: hovered ? "rgba(255, 255, 255, 0.07)" : "transparent",
-        color: hovered ? "var(--color-accent-red)" : "var(--color-muted-light)",
-        cursor: "pointer",
-        flexShrink: 0,
-        transition: "background-color 120ms ease-out, color 120ms ease-out",
-        fontFamily: "inherit",
-        fontSize: 10,
-        fontWeight: 600,
-        letterSpacing: "0.04em",
-      }}
+      className="flex items-center gap-1.25 h-7 px-2 shrink-0 rounded-md border-0 text-[10px] font-semibold tracking-[0.04em] text-muted-light hover:bg-white/7 hover:text-accent-red cursor-pointer transition-[background-color,color] duration-100 font-[inherit]"
     >
-      <span style={{ display: "flex", alignItems: "center", width: 14, height: 14 }}>
+      <span className="flex items-center w-3.5 h-3.5">
         {icon}
       </span>
       {label}
@@ -239,15 +169,7 @@ function TrackBtn({
 // Vertical divider between groups
 function GroupDivider() {
   return (
-    <div
-      style={{
-        width: 1,
-        height: 20,
-        margin: "0 6px",
-        background: "var(--color-dark-border)",
-        flexShrink: 0,
-      }}
-    />
+    <div className="w-px h-5 mx-1.5 bg-dark-border shrink-0" />
   )
 }
 
@@ -318,20 +240,10 @@ export function Toolbar() {
   return (
     <>
       <div
-        className="flex items-center shrink-0"
+        className="flex items-center shrink-0 h-9 px-2 sticky top-0 z-10 overflow-hidden border-t border-t-white/9 border-b border-b-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_8px_rgba(0,0,0,0.30)]"
         style={{
-          height: 36,
           backdropFilter: "blur(20px) saturate(140%)",
           WebkitBackdropFilter: "blur(20px) saturate(140%)",
-          borderTop: "1px solid rgba(255,255,255,0.09)",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.30)",
-          padding: "0 8px",
-          gap: 0,
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-          overflow: "hidden",
         }}
       >
         {/* Edit group */}
@@ -362,16 +274,7 @@ export function Toolbar() {
           onPointerCancel={clearZoomOut}
         />
         {/* Zoom percentage display */}
-        <div
-          style={{
-            width: 44,
-            textAlign: "center",
-            fontSize: 10,
-            fontFamily: "'Courier New', monospace",
-            color: "var(--color-muted)",
-            flexShrink: 0,
-          }}
-        >
+        <div className="w-11 text-center text-[10px] font-mono text-muted shrink-0">
           {zoomPercent}%
         </div>
         <ToolbarBtn
@@ -412,7 +315,7 @@ export function Toolbar() {
           onClick={() => addTrack("audio")}
         />
 
-        <div style={{ flex: 1 }} />
+        <div className="flex-1" />
 
         {/* Help */}
         <ToolbarBtn

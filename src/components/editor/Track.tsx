@@ -16,6 +16,26 @@ interface TrackProps {
 
 const TYPE_LABEL: Record<string, string> = { video: "Video", audio: "Audio" }
 
+// Icon button constant
+// const iconBtn =
+//   "p-1.5 rounded-md bg-transparent text-white/55 hover:bg-white/7 hover:text-white/90 active:text-[var(--color-accent-red)] active:scale-95 transition-all duration-100"
+
+// Track action button constant
+const trackControlBtn =
+  "flex items-center justify-center w-5 h-5 shrink-0 rounded-md border-0 bg-transparent p-0 cursor-pointer transition-[opacity,color] duration-[120ms]"
+
+const trackControlBtnActive =
+  "text-accent-red"
+
+const trackControlBtnNormal =
+  "text-white/35 hover:text-white/75"
+
+const trackControlBtnDanger =
+  "text-white/35 hover:text-red-400"
+
+const trackControlBtnHidden =
+  "opacity-0 group-hover:opacity-100"
+
 function TrackControlBtn({
   icon,
   label,
@@ -31,7 +51,15 @@ function TrackControlBtn({
   danger?: boolean
   hidden?: boolean
 }) {
-  const [hovered, setHovered] = useState(false)
+  const btnClass = [
+    trackControlBtn,
+    active
+      ? trackControlBtnActive
+      : danger
+        ? trackControlBtnDanger
+        : trackControlBtnNormal,
+    hidden ? trackControlBtnHidden : "",
+  ].filter(Boolean).join(" ")
 
   return (
     <button
@@ -39,32 +67,9 @@ function TrackControlBtn({
       title={label}
       aria-label={label}
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        width: 20,
-        height: 20,
-        borderRadius: 6,
-        border: "none",
-        background: "transparent",
-        color: danger && hovered
-          ? "#f87171"
-          : active
-            ? "var(--color-accent-red)"
-            : hovered
-              ? "rgba(255,255,255,0.75)"
-              : "rgba(255,255,255,0.35)",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        opacity: hidden ? 0 : 1,
-        transition: "opacity 120ms ease-out, color 120ms ease-out",
-        padding: 0,
-      }}
+      className={btnClass}
     >
-      <span style={{ display: "flex", alignItems: "center", width: 11, height: 11 }}>
+      <span className="flex items-center w-2.75 h-2.75">
         {icon}
       </span>
     </button>
@@ -90,7 +95,6 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
   const [reorderOver, setReorderOver] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
   const [isLocked, setIsLocked] = useState(false)
-  const [headerHovered, setHeaderHovered] = useState(false)
 
   const isOver = dragOverTrackId === track.id
   const rowHeight = track.type === "video" ? 55 : 50
@@ -166,37 +170,17 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className="timeline-track-row"
-      style={{
-        display: "flex",
-        height: rowHeight,
-        background: isOver ? "rgba(255,255,255,0.06)" : undefined,
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
-        borderTop: reorderOver ? "2px solid var(--color-accent-red)" : undefined,
-        minWidth: "100%",
-        boxSizing: "border-box",
-        overflow: "hidden",
-      }}
+      className={[
+        "flex min-w-full box-border overflow-hidden border-b border-b-white/5 timeline-track-row",
+        isOver ? "bg-white/6" : "odd:bg-white/2 even:bg-black/12",
+        reorderOver ? "border-t-2 border-t-accent-red" : "",
+      ].filter(Boolean).join(" ")}
+      style={{ height: rowHeight }}
     >
       {/* Track header — sticky left */}
       <div
-        onMouseEnter={() => setHeaderHovered(true)}
-        onMouseLeave={() => setHeaderHovered(false)}
-        style={{
-          position: "sticky",
-          left: 0,
-          zIndex: 4,
-          width: TRACK_HEADER_WIDTH,
-          flexShrink: 0,
-          height: "100%",
-          borderRight: "1px solid rgba(255,255,255,0.08)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 6px 0 0",
-          boxSizing: "border-box",
-          gap: 4,
-        }}
+        className="group sticky left-0 z-4 h-full shrink-0 flex items-center justify-between pr-1.5 box-border gap-1 border-r border-r-white/8 bg-white/5"
+        style={{ width: TRACK_HEADER_WIDTH }}
       >
         {/* Grip handle — dotted texture on far left */}
         <div
@@ -205,37 +189,22 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
             e.dataTransfer.setData('reorderTrackId', track.id)
             e.dataTransfer.effectAllowed = 'move'
           }}
+          className="w-3.5 h-full shrink-0 cursor-grab select-none"
           style={{
-            width: 14,
-            height: "100%",
-            flexShrink: 0,
-            cursor: "grab",
             background: "repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, var(--color-dark-border-light) 2px, var(--color-dark-border-light) 3px)",
-            userSelect: "none",
           }}
         />
 
         {/* Type icon + label */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0 }}>
-          <TypeIcon size={11} style={{ color: "var(--color-muted)", flexShrink: 0 }} />
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              color: "rgba(255,255,255,0.50)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
+        <div className="flex items-center gap-1 flex-1 min-w-0">
+          <TypeIcon size={11} className="text-muted shrink-0" />
+          <span className="text-[11px] font-semibold tracking-[0.06em] uppercase text-white/50 overflow-hidden text-ellipsis whitespace-nowrap">
             {trackLabel}
           </span>
         </div>
 
         {/* Track action buttons */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, flexShrink: 0 }}>
+        <div className="flex flex-col items-center gap-px shrink-0">
           <TrackControlBtn
             icon={isVisible ? <Eye size={11} /> : <EyeOff size={11} />}
             label={isVisible ? "Hide track" : "Show track"}
@@ -253,7 +222,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
               icon={<Trash2 size={11} />}
               label="Delete track"
               danger
-              hidden={!headerHovered}
+              hidden
               onClick={e => { e.stopPropagation(); removeTrack(track.id) }}
             />
           )}
@@ -261,27 +230,12 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
       </div>
 
       {/* Clips area */}
-      <div
-        style={{
-          position: "relative",
-          flex: 1,
-          overflow: "hidden",
-          height: "100%",
-        }}
-      >
+      <div className="relative flex-1 overflow-hidden h-full">
         {/* Snap indicator */}
         {snapIndicatorX !== null && (
           <div
-            style={{
-              position: "absolute",
-              left: snapIndicatorX,
-              top: 0,
-              width: 2,
-              height: "100%",
-              background: "var(--color-warning)",
-              pointerEvents: "none",
-              zIndex: 5,
-            }}
+            className="absolute top-0 w-0.5 h-full bg-warning pointer-events-none z-5"
+            style={{ left: snapIndicatorX }}
           />
         )}
 

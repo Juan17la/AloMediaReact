@@ -1,5 +1,5 @@
 import { useState, type DragEvent } from "react"
-import { Eye, EyeOff, Lock, Unlock, Trash2, Film, Music } from "lucide-react"
+import { Eye, EyeOff, Trash2, Film, Music } from "lucide-react"
 import type { MediaType, Track, TrackType } from "../../project/projectTypes"
 import { ClipComponent } from "./Clip"
 import { useEditorStore } from "../../store/editorStore"

@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, type DragEvent } from "react"
+import { useState, type DragEvent } from "react"
 import type { Clip } from "../../project/projectTypes"
 import { timeToPx, pxToTime } from "../../utils/time"
 import { useEditorStore } from "../../store/editorStore"
+import { TimelineClipContextMenu } from "./TimelineClipContextMenu"
 
 interface ClipProps {
   clip: Clip
@@ -36,43 +37,26 @@ const clipResizeHandle =
   "clip-resize-handle absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize"
 
 export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, onDragEnd }: ClipProps) {
-  const playhead = useEditorStore(s => s.playhead)
-  const splitClip = useEditorStore(s => s.splitClip)
-  const removeClip = useEditorStore(s => s.removeClip)
-  const extractAudioFromClip = useEditorStore(s => s.extractAudioFromClip)
   const resizeClip = useEditorStore(s => s.resizeClip)
   const pushHistory = useEditorStore(s => s.pushHistory)
   const projectMedia = useEditorStore(s => s.project.media)
-  const contextMenuRef = useRef<HTMLDivElement>(null)
 
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; clip: Clip } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+
+  function isEditableElement(target: EventTarget | null): boolean {
+    if (!target) return false
+    const el = target as HTMLElement
+    if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") return true
+    if (el.isContentEditable) return true
+    return !!el.closest("[contenteditable='true']")
+  }
 
   function getClipLabel(): string {
     if (clip.type === "text") return clip.content || "Text"
     const media = projectMedia.find(m => m.id === clip.mediaId)
     return media?.name ?? clip.type
   }
-
-  useEffect(() => {
-    if (!contextMenu) return
-    function handleMouseDown(event: MouseEvent) {
-      if (!contextMenuRef.current?.contains(event.target as Node)) {
-        setContextMenu(null)
-      }
-    }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setContextMenu(null)
-      }
-    }
-    document.addEventListener("mousedown", handleMouseDown)
-    document.addEventListener("keydown", handleKeyDown)
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown)
-      document.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [contextMenu])
 
   const left = timeToPx(clip.timelineStart, scale)
   const width = timeToPx(clip.timelineEnd - clip.timelineStart, scale)
@@ -102,9 +86,11 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
   }
 
   function handleContextMenu(e: React.MouseEvent) {
+    if (isEditableElement(e.target)) return
     e.preventDefault()
     e.stopPropagation()
-    setContextMenu({ x: e.clientX, y: e.clientY })
+    onSelect(clip.id)
+    setContextMenu({ x: e.clientX, y: e.clientY, clip })
   }
 
   return (
@@ -147,36 +133,12 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
       </div>
 
       {contextMenu && (
-        <div
-          ref={contextMenuRef}
-          className="fixed z-100 min-w-40 rounded-[10px] p-1.5 bg-[rgba(12,13,16,0.95)] border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.45),0_16px_32px_rgba(0,0,0,0.35)] backdrop-blur-2xl"
-          style={{
-            top: contextMenu.y,
-            left: contextMenu.x,
-          }}
-        >
-          <div
-            className="px-3 py-2 cursor-pointer text-[13px] text-white/80 rounded-md transition-[background,color] duration-100 hover:bg-white/8 hover:text-white"
-            onClick={e => { e.stopPropagation(); splitClip(clip.id, playhead); setContextMenu(null) }}
-          >
-            Split at playhead
-          </div>
-          {clip.type === "video" && (
-            <div
-              className="px-3 py-2 cursor-pointer text-[13px] text-white/80 rounded-md transition-[background,color] duration-100 hover:bg-white/8 hover:text-white"
-              onClick={e => { e.stopPropagation(); extractAudioFromClip(clip.id); setContextMenu(null) }}
-            >
-              Extract Audio
-            </div>
-          )}
-          <div className="h-px my-1 bg-linear-to-r from-transparent via-white/8 to-transparent" />
-          <div
-            className="px-3 py-2 cursor-pointer text-[13px] text-[rgba(220,60,60,0.90)] rounded-md transition-[background] duration-100 hover:bg-white/8"
-            onClick={e => { e.stopPropagation(); removeClip(clip.id); setContextMenu(null) }}
-          >
-            Remove clip
-          </div>
-        </div>
+        <TimelineClipContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          clip={contextMenu.clip}
+          onClose={() => setContextMenu(null)}
+        />
       )}
     </>
   )

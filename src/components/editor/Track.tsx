@@ -94,7 +94,6 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
   const [snapIndicatorX, setSnapIndicatorX] = useState<number | null>(null)
   const [reorderOver, setReorderOver] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
-  const [isLocked, setIsLocked] = useState(false)
 
   const isOver = dragOverTrackId === track.id
   const rowHeight = track.type === "video" ? 55 : 50

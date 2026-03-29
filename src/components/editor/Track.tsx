@@ -1,5 +1,5 @@
 import { useState, type DragEvent } from "react"
-import { Eye, EyeOff, Lock, Unlock, Trash2, Film, Music } from "lucide-react"
+import { Eye, EyeOff, Trash2, Film, Music } from "lucide-react"
 import type { MediaType, Track, TrackType } from "../../project/projectTypes"
 import { ClipComponent } from "./Clip"
 import { useEditorStore } from "../../store/editorStore"
@@ -94,7 +94,6 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
   const [snapIndicatorX, setSnapIndicatorX] = useState<number | null>(null)
   const [reorderOver, setReorderOver] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
-  const [isLocked, setIsLocked] = useState(false)
 
   const isOver = dragOverTrackId === track.id
   const rowHeight = track.type === "video" ? 55 : 50
@@ -196,7 +195,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
         />
 
         {/* Type icon + label */}
-        <div className="flex items-center gap-1 flex-1 min-w-0">
+        <div className="flex w-full items-center justify-center gap-1 flex-1 min-w-0">
           <TypeIcon size={11} className="text-muted shrink-0" />
           <span className="text-[11px] font-semibold tracking-[0.06em] uppercase text-white/50 overflow-hidden text-ellipsis whitespace-nowrap">
             {trackLabel}
@@ -204,25 +203,24 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
         </div>
 
         {/* Track action buttons */}
-        <div className="flex flex-col items-center gap-px shrink-0">
+        <div className="flex items-center gap-px shrink-0">
           <TrackControlBtn
             icon={isVisible ? <Eye size={11} /> : <EyeOff size={11} />}
             label={isVisible ? "Hide track" : "Show track"}
             active={!isVisible}
             onClick={() => setIsVisible(v => !v)}
           />
-          <TrackControlBtn
+          {/* <TrackControlBtn
             icon={isLocked ? <Lock size={11} /> : <Unlock size={11} />}
             label={isLocked ? "Unlock track" : "Lock track"}
             active={isLocked}
             onClick={() => setIsLocked(v => !v)}
-          />
+          /> */}
           {canRemove && (
             <TrackControlBtn
               icon={<Trash2 size={11} />}
               label="Delete track"
               danger
-              hidden
               onClick={e => { e.stopPropagation(); removeTrack(track.id) }}
             />
           )}

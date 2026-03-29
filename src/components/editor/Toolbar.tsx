@@ -9,6 +9,7 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
+  SquareSplitHorizontal,
   Magnet,
   Film,
   Music,
@@ -264,7 +265,7 @@ export function Toolbar() {
       >
         {/* Edit group */}
         <ToolbarBtn
-          icon={<Scissors size={14} />}
+          icon={<SquareSplitHorizontal size={18} />}
           label="Cut at playhead"
           disabled={!selectedClipId}
           onClick={() => { if (selectedClipId) splitClip(selectedClipId, playhead) }}

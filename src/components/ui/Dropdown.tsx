@@ -47,9 +47,18 @@ export function Dropdown({ trigger, items, align = "left" }: DropdownProps) {
           className={[
             "absolute bottom-full mb-1",
             alignCls,
-            "flex flex-col bg-dark-card border border-dark-border rounded-lg overflow-hidden",
-            "shadow-xl z-30 min-w-40 dropdown-enter",
+            "flex flex-col overflow-hidden",
+            "z-30 min-w-40 dropdown-enter",
           ].join(" ")}
+          style={{
+            background: "rgba(12, 13, 16, 0.95)",
+            backdropFilter: "blur(24px) saturate(150%)",
+            WebkitBackdropFilter: "blur(24px) saturate(150%)",
+            border: "1px solid rgba(255, 255, 255, 0.10)",
+            borderRadius: 10,
+            padding: 6,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.45), 0 16px 32px rgba(0,0,0,0.35)",
+          }}
         >
           {items.map((item, i) => (
             <button
@@ -60,7 +69,14 @@ export function Dropdown({ trigger, items, align = "left" }: DropdownProps) {
                 item.onClick()
                 setOpen(false)
               }}
-              className="editor-transition flex items-center gap-2 px-3 py-2 text-left text-sm text-muted-light hover:bg-dark-elevated hover:text-accent-white cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed w-full [&>svg]:w-4 [&>svg]:h-4 [&>svg]:shrink-0"
+              className="editor-transition flex items-center gap-2 px-3 py-2 text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed w-full [&>svg]:w-4 [&>svg]:h-4 [&>svg]:shrink-0"
+              style={{
+                borderRadius: 6,
+                fontSize: 13,
+                color: "rgba(255, 255, 255, 0.80)",
+              }}
+              onMouseEnter={e => { (e.currentTarget).style.background = "rgba(255, 255, 255, 0.08)"; (e.currentTarget).style.color = "rgba(255, 255, 255, 1.0)" }}
+              onMouseLeave={e => { (e.currentTarget).style.background = "transparent"; (e.currentTarget).style.color = "rgba(255, 255, 255, 0.80)" }}
             >
               {item.icon}
               {item.label}

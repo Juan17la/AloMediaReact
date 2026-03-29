@@ -66,7 +66,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => navigate("/editor/new")}
-              className="flex items-center gap-2 bg-linear-to-r from-blood-red to-crimson hover:from-blood-red-light hover:to-blood-red-glow text-accent-white font-semibold text-sm py-2 px-4 rounded-xl transition-all duration-300 shadow-md shadow-blood-red/20 hover:shadow-blood-red/35 cursor-pointer"
+              className="flex items-center gap-2 bg-linear-to-r from-blood-red to-crimson hover:brightness-[0.85] active:scale-[0.97] active:brightness-[0.78] text-accent-white font-semibold text-sm py-2 px-4 rounded-xl transition-all duration-120 ease-out shadow-md shadow-blood-red/20 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">New Project</span>

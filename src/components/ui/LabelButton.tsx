@@ -24,10 +24,10 @@ const ICON_SIZE = {
 
 const VARIANT = {
   primary:
-    "bg-linear-to-r from-blood-red to-crimson hover:from-blood-red-light hover:to-blood-red-glow text-accent-white shadow-sm shadow-blood-red/20",
+    "bg-accent-red text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] hover:brightness-86",
   secondary:
-    "border border-dark-border bg-dark-card text-muted-light hover:bg-dark-elevated hover:text-accent-white",
-  ghost: "text-muted hover:bg-dark-elevated hover:text-accent-white",
+    "border border-white/10 bg-white/5 text-white/80 backdrop-blur-sm hover:bg-white/9 hover:border-white/18",
+  ghost: "text-white/55 hover:bg-white/7 hover:text-white/90",
 } as const
 
 export function LabelButton({

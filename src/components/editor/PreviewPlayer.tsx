@@ -39,7 +39,13 @@ function TransportBtn({
   onClick: () => void
   primary?: boolean
 }) {
-  const [hovered, setHovered] = useState(false)
+  const btnClass = primary
+    ? "flex items-center justify-center w-8 h-8 shrink-0 rounded-md border-0 bg-[var(--color-accent-red)] text-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] hover:brightness-[0.86] active:scale-95 transition-all duration-100 cursor-pointer"
+    : "flex items-center justify-center w-7 h-7 shrink-0 rounded-md border-0 bg-transparent text-white/55 hover:bg-white/7 hover:text-white/90 active:text-[var(--color-accent-red)] active:scale-95 transition-all duration-100 cursor-pointer"
+
+  const spanClass = primary
+    ? "flex items-center w-4 h-4"
+    : "flex items-center w-3.5 h-3.5"
 
   return (
     <button
@@ -47,24 +53,9 @@ function TransportBtn({
       title={label}
       aria-label={label}
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: primary ? 32 : 28,
-        height: primary ? 32 : 28,
-        flexShrink: 0,
-        borderRadius: 0,
-        border: "none",
-        background: primary || hovered ? "var(--color-dark-elevated)" : "transparent",
-        color: "var(--color-muted-light)",
-        cursor: "pointer",
-        transition: "background-color 150ms",
-      }}
+      className={btnClass}
     >
-      <span style={{ display: "flex", alignItems: "center", width: primary ? 16 : 14, height: primary ? 16 : 14 }}>
+      <span className={spanClass}>
         {icon}
       </span>
     </button>
@@ -152,7 +143,41 @@ export function PreviewPlayer() {
     )
   }, [activeClips, primaryVideoClip])
 
-  secondaryClipsRef.current = secondaryVideoClips
+  // Keep a ref copy of secondary clips but do the assignment in an effect
+  // to avoid updating refs during render (eslint: react-hooks/refs).
+  useEffect(() => {
+    secondaryClipsRef.current = secondaryVideoClips
+  }, [secondaryVideoClips])
+
+  // Measure preview container size and provide width/height to children
+  const [previewSize, setPreviewSize] = useState({ width: 640, height: 360 })
+  useEffect(() => {
+    const container = canvasContainerRef.current
+    if (!container) return
+
+    function update() {
+      const c = canvasContainerRef.current
+      if (!c) return
+      setPreviewSize({ width: c.clientWidth || 640, height: c.clientHeight || 360 })
+    }
+
+    update()
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", update)
+      return () => window.removeEventListener("resize", update)
+    }
+    const ro = new ResizeObserver(() => update())
+    ro.observe(container)
+    return () => ro.disconnect()
+  }, [])
+
+  // Ensure playbackRate is set from clip data in an effect, not during render
+  useEffect(() => {
+    for (const clip of secondaryVideoClips) {
+      const el = secondaryVideoElemsRef.current.get(clip.id)
+      if (el) el.playbackRate = clip.speed ?? DEFAULT_SPEED
+    }
+  }, [secondaryVideoClips])
 
   function handleCanvasClick(e: React.MouseEvent<HTMLDivElement>) {
     const rect = canvasContainerRef.current!.getBoundingClientRect()
@@ -163,7 +188,7 @@ export function PreviewPlayer() {
       if (clip.type === "audio") return false
       const t = clip.transform
       return canvasX >= t.x && canvasX <= t.x + t.width
-          && canvasY >= t.y && canvasY <= t.y + t.height
+        && canvasY >= t.y && canvasY <= t.y + t.height
     })
     setSelectedClip(hit ? hit.id : undefined)
   }
@@ -171,29 +196,18 @@ export function PreviewPlayer() {
   return (
     <div className="flex flex-col min-h-0 h-full w-full items-center justify-center">
       {/* Canvas area */}
-      <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden">
+      <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden my-2">
         <div
           ref={canvasContainerRef}
           onClick={handleCanvasClick}
-          style={{
-            position: "relative",
-            background: "#000000",
-            overflow: "hidden",
-            cursor: "default",
-            aspectRatio: "16 / 9",
-            height: "100%",
-            maxWidth: "100%",
-            width: "auto",
-            border: "1px solid var(--color-dark-border)",
-          }}
+          className="relative bg-(--color-background-base) overflow-hidden cursor-default aspect-video h-full max-w-full w-auto border-2 border-white/7 border-b-glass"
         >
           <div
             ref={innerCanvasRef}
+            className="absolute origin-top-left bg-black"
             style={{
-              position: "absolute",
               width: 1280,
               height: 720,
-              transformOrigin: "0 0",
               pointerEvents: selectedClipId ? "none" : undefined,
             }}
           >
@@ -212,10 +226,7 @@ export function PreviewPlayer() {
               <video
                 key={clip.id}
                 ref={el => {
-                  if (el) {
-                    el.playbackRate = clip.speed ?? DEFAULT_SPEED
-                    secondaryVideoElemsRef.current.set(clip.id, el)
-                  }
+                  if (el) secondaryVideoElemsRef.current.set(clip.id, el)
                   else secondaryVideoElemsRef.current.delete(clip.id)
                 }}
                 src={getPlaybackUrl(clip.mediaId)}
@@ -253,8 +264,8 @@ export function PreviewPlayer() {
             return (
               <TransformOverlay
                 clip={selectedClip}
-                previewWidth={canvasContainerRef.current?.clientWidth ?? 640}
-                previewHeight={canvasContainerRef.current?.clientHeight ?? 360}
+                previewWidth={previewSize.width}
+                previewHeight={previewSize.height}
                 onUpdate={t => updateClipTransform(selectedClipId, t)}
                 onCommit={() => commitTransform(selectedClipId)}
               />
@@ -265,13 +276,10 @@ export function PreviewPlayer() {
 
       {/* Transport bar */}
       <div
-        className="w-full shrink-0 flex items-center"
+        className="w-full shrink-0 flex items-center h-10 px-2 border-t border-t-white/10 border-b border-b-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_10px_rgba(0,0,0,0.35),0_12px_28px_rgba(0,0,0,0.22)]"
         style={{
-          height: 36,
-          background: "var(--color-dark)",
-          borderTop: "1px solid var(--color-dark-border)",
-          padding: "0 4px",
-          gap: 0,
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px) saturate(150%)",
         }}
       >
         {/* Transport buttons */}
@@ -288,15 +296,7 @@ export function PreviewPlayer() {
 
         {/* Timecode */}
         <div
-          style={{
-            fontFamily: "'Courier New', monospace",
-            fontSize: 12,
-            color: "var(--color-accent-white)",
-            padding: "0 10px",
-            flexShrink: 0,
-            whiteSpace: "nowrap",
-            minWidth: 88,
-          }}
+          className="font-mono text-sm text-white/70 px-2.5 shrink-0 whitespace-nowrap min-w-22"
           aria-live="polite"
           aria-atomic="true"
         >
@@ -304,7 +304,7 @@ export function PreviewPlayer() {
         </div>
 
         {/* Scrubber */}
-        <div className="flex-1 flex items-center" style={{ padding: "0 8px" }}>
+        <div className="flex-1 flex items-center px-2">
           <RangeSlider
             min={0}
             max={duration || 1}
@@ -322,7 +322,7 @@ export function PreviewPlayer() {
           label={isMuted ? "Unmute" : "Mute"}
           onClick={() => setIsMuted(v => !v)}
         />
-        <div style={{ width: 72, padding: "0 4px" }}>
+        <div className="w-18 px-1">
           <RangeSlider
             min={0}
             max={100}

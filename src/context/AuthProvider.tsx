@@ -1,23 +1,8 @@
-import { createContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { me, signout } from "../services/authService";
 import type { MeResponse } from "../types/authTypes";
 import type { User } from "../types/userTypes";
-
-export interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  /** Set the user after a successful login/register (token lives in httpOnly cookie). */
-  login: (user: User) => void;
-  /** Call the backend logout endpoint and clear local state. */
-  logout: () => Promise<void>;
-}
-
-// Context
-
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Provider 
+import { AuthContext } from "./authContext"
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

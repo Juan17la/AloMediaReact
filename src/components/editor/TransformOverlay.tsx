@@ -126,39 +126,18 @@ export function TransformOverlay({ clip, previewWidth, previewHeight, onUpdate, 
     { corner: 'bottomRight', x: sx + sw - 4,   y: sy + sh - 4,   cursor: 'nwse-resize' },
   ]
 
-  const handleStyle: React.CSSProperties = {
-    position: "absolute",
-    width: 8,
-    height: 8,
-    background: "var(--color-accent-white)",
-    border: "1px solid var(--color-accent-red)",
-    borderRadius: 0, // Square handles — DaVinci convention
-    boxSizing: "border-box",
-    pointerEvents: "all",
-  }
-
   return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        pointerEvents: "none",
-      }}
-    >
+    <div className="pointer-events-none absolute inset-0">
       {/* Bounding box + move area */}
       <div
         onMouseDown={handleMoveMouseDown}
         onClick={e => e.stopPropagation()}
+        className="pointer-events-auto absolute box-border border border-accent-red cursor-move"
         style={{
-          position: "absolute",
           left: sx,
           top: sy,
           width: sw,
           height: sh,
-          border: "1px solid var(--color-accent-red)",
-          boxSizing: "border-box",
-          cursor: "move",
-          pointerEvents: "all",
         }}
       />
 
@@ -182,18 +161,11 @@ export function TransformOverlay({ clip, previewWidth, previewHeight, onUpdate, 
       <div
         onMouseDown={handleRotateMouseDown}
         onClick={e => e.stopPropagation()}
+        className="pointer-events-auto absolute box-border h-1.5 w-1.5 cursor-grab border border-accent-red bg-accent-white"
         style={{
-          position: "absolute",
           left: rotHandleX - 3,
           top: rotHandleY - 3,
-          width: 6,
-          height: 6,
-          background: "var(--color-accent-white)",
-          border: "1px solid var(--color-accent-red)",
           transform: "rotate(45deg)",
-          cursor: "grab",
-          boxSizing: "border-box",
-          pointerEvents: "all",
         }}
       />
 
@@ -203,7 +175,8 @@ export function TransformOverlay({ clip, previewWidth, previewHeight, onUpdate, 
           key={corner}
           onMouseDown={handleCornerMouseDown(corner)}
           onClick={e => e.stopPropagation()}
-          style={{ ...handleStyle, left: x, top: y, cursor }}
+          className="pointer-events-auto absolute box-border h-2 w-2 border border-accent-red bg-accent-white"
+          style={{ left: x, top: y, cursor }}
         />
       ))}
     </div>

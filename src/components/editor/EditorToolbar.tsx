@@ -1,4 +1,3 @@
-import type { CSSProperties } from 'react'
 import { FolderOpen, Save, Share2, Film } from 'lucide-react'
 import type { ApiProject } from '../../types/projectApiTypes'
 
@@ -12,29 +11,11 @@ interface EditorToolbarProps {
   onExport: () => void
 }
 
-const baseButtonStyle: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 5,
-  height: 28,
-  padding: '0 10px',
-  fontSize: 11,
-  fontWeight: 600,
-  letterSpacing: '0.04em',
-  borderRadius: 8,
-  border: '1px solid var(--color-dark-border)',
-  background: 'var(--color-dark-elevated)',
-  color: 'var(--color-accent-white)',
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-}
+const ghostBtn =
+  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-white/80 bg-white/5 border border-white/10 hover:bg-white/9 hover:border-white/[0.18] active:scale-95 transition-all duration-100 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
 
-const exportButtonStyle: CSSProperties = {
-  ...baseButtonStyle,
-  border: '1px solid var(--color-blood-red-light)',
-  background: 'var(--color-accent-red)',
-  color: '#ffffff',
-}
+const primaryBtn =
+  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg font-semibold text-[11px] tracking-[0.04em] text-white bg-[var(--color-accent-red)] shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] hover:brightness-[0.86] active:scale-95 active:brightness-[0.78] transition-all duration-100 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
 
 export function EditorToolbar({
   apiProject,
@@ -48,13 +29,8 @@ export function EditorToolbar({
   const shareDisabled = !apiProject
 
   return (
-    <div className="flex items-center" style={{ gap: 4, padding: '0 8px' }}>
-      <button
-        onClick={onLoad}
-        style={baseButtonStyle}
-        onMouseEnter={e => { (e.currentTarget).style.background = 'var(--color-dark-border)' }}
-        onMouseLeave={e => { (e.currentTarget).style.background = 'var(--color-dark-elevated)' }}
-      >
+    <div className="flex items-center gap-1 px-2">
+      <button onClick={onLoad} className={ghostBtn}>
         <FolderOpen size={12} />
         Load
       </button>
@@ -62,9 +38,7 @@ export function EditorToolbar({
       <button
         onClick={onSave}
         disabled={isSaving}
-        style={{ ...baseButtonStyle, opacity: isSaving ? 0.6 : 1, cursor: isSaving ? 'not-allowed' : 'pointer' }}
-        onMouseEnter={e => { if (!isSaving) (e.currentTarget).style.background = 'var(--color-dark-border)' }}
-        onMouseLeave={e => { if (!isSaving) (e.currentTarget).style.background = 'var(--color-dark-elevated)' }}
+        className={ghostBtn}
       >
         <Save size={12} />
         {isSaving ? 'Saving…' : 'Save'}
@@ -74,13 +48,7 @@ export function EditorToolbar({
         onClick={shareDisabled ? undefined : onShare}
         disabled={shareDisabled}
         title={shareDisabled ? 'Save the project before sharing it.' : undefined}
-        style={{
-          ...baseButtonStyle,
-          opacity: shareDisabled ? 0.4 : 1,
-          cursor: shareDisabled ? 'not-allowed' : 'pointer',
-        }}
-        onMouseEnter={e => { if (!shareDisabled) (e.currentTarget).style.background = 'var(--color-dark-border)' }}
-        onMouseLeave={e => { if (!shareDisabled) (e.currentTarget).style.background = 'var(--color-dark-elevated)' }}
+        className={ghostBtn}
       >
         <Share2 size={12} />
         Share
@@ -89,13 +57,7 @@ export function EditorToolbar({
       <button
         onClick={onExport}
         disabled={isExporting}
-        style={{
-          ...exportButtonStyle,
-          opacity: isExporting ? 0.6 : 1,
-          cursor: isExporting ? 'not-allowed' : 'pointer',
-        }}
-        onMouseEnter={e => { if (!isExporting) (e.currentTarget).style.background = 'var(--color-blood-red-light)' }}
-        onMouseLeave={e => { if (!isExporting) (e.currentTarget).style.background = 'var(--color-accent-red)' }}
+        className={primaryBtn}
       >
         <Film size={12} />
         Export

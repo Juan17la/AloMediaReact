@@ -38,21 +38,16 @@
   --font-sans: "Quicksand", system-ui, sans-serif;
 
   /* Animations */
-  --animate-fade-in: fade-in 0.5s ease-out both;
-  --animate-slide-up: slide-up 0.5s ease-out both;
-  --animate-glow-pulse: glow-pulse 3s ease-in-out infinite;
+  --animate-fade-in: fade-in 0.3s ease-out both;
+  --animate-slide-up: slide-up 0.2s ease-out both;
 
   @keyframes fade-in {
     from { opacity: 0; }
     to   { opacity: 1; }
   }
   @keyframes slide-up {
-    from { opacity: 0; transform: translateY(16px); }
+    from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes glow-pulse {
-    0%, 100% { box-shadow: 0 0 20px rgba(122, 26, 26, 0.15); }
-    50%      { box-shadow: 0 0 40px rgba(122, 26, 26, 0.30); }
   }
 }
 
@@ -68,11 +63,12 @@
 
 html {
   scroll-behavior: smooth;
+  background-color: #080a0d;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-dark);
+  background-color: #080a0d;
   color: var(--color-accent-white);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -111,14 +107,71 @@ select:focus {
 
 /* Utility glass card */
 .glass-card {
+  position: relative;
   background: linear-gradient(
     135deg,
-    rgba(24, 24, 31, 0.85) 0%,
-    rgba(18, 18, 24, 0.92) 100%
+    rgba(22, 22, 30, 0.82) 0%,
+    rgba(14, 14, 20, 0.90) 100%
   );
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--color-glass-border);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 8px 16px rgba(0, 0, 0, 0.3),
+    0 24px 48px rgba(0, 0, 0, 0.2),
+    0 48px 80px rgba(0, 0, 0, 0.15);
+}
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Auth glass card — shared glass panel treatment for all auth pages   */
+/* ------------------------------------------------------------------ */
+.auth-glass-card {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-top-color: rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 4px 8px rgba(0, 0, 0, 0.35),
+    0 12px 24px rgba(0, 0, 0, 0.25),
+    0 32px 56px rgba(0, 0, 0, 0.18);
+}
+
+.modal-glass-card{
+  background: rgba(0, 0, 0, 0.352);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-top-color: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 4px 8px rgba(0, 0, 0, 0.35),
+    0 12px 24px rgba(0, 0, 0, 0.25),
+    0 32px 56px rgba(0, 0, 0, 0.18);
 }
 
 /* Gradient text */
@@ -127,17 +180,116 @@ select:focus {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  filter: drop-shadow(0 0 12px rgba(192, 57, 43, 0.3));
 }
 
-/* Subtle noise overlay for depth */
-.bg-noise::before {
+/* Layered shadow for elevated surfaces */
+.shadow-layered {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 8px 16px rgba(0, 0, 0, 0.3),
+    0 24px 48px rgba(0, 0, 0, 0.2);
+}
+
+/* Gradient border that fades top to bottom */
+.border-fade {
+  position: relative;
+}
+.border-fade::before {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  pointer-events: none;
   border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.10) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Auth page styles                                                      */
+/* ------------------------------------------------------------------ */
+
+/* Auth input */
+.auth-input {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.auth-input:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.auth-input:focus {
+  border-color: rgba(192, 57, 43, 0.5);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 0 0 3px rgba(192, 57, 43, 0.12);
+}
+.auth-input.input-error {
+  border-color: #ef4444;
+}
+.auth-input.input-error:focus {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+/* Auth primary button */
+.auth-btn-primary {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 4px 24px rgba(192, 57, 43, 0.25);
+  transition: filter 120ms ease-out, box-shadow 120ms ease-out, transform 120ms ease-out;
+}
+.auth-btn-primary:hover:not(:disabled) {
+  filter: brightness(0.85);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 4px 24px rgba(192, 57, 43, 0.25);
+}
+.auth-btn-primary:active:not(:disabled) {
+  transform: scale(0.97);
+  filter: brightness(0.78);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+    0 2px 12px rgba(192, 57, 43, 0.2);
+}
+.auth-btn-primary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Auth secondary button (OAuth) */
+.auth-btn-secondary {
+  background: rgba(24, 24, 31, 0.6);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  transition: all 120ms ease-out;
+}
+.auth-btn-secondary:hover {
+  background: rgba(34, 34, 48, 0.8);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* Error message animation */
+@keyframes error-slide-down {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-error-slide {
+  animation: error-slide-down 180ms ease-out both;
 }
 
 /* ------------------------------------------------------------------ */
@@ -169,7 +321,7 @@ select:focus {
 
   /* Range input sizing — fixed, no hover height changes */
   --thumb-size: 14px;
-  --track-height: 6px;
+  --track-height: 4px;
 
   /* Animation timing */
   --duration-fast: 100ms;
@@ -216,7 +368,7 @@ input[type='range'].editor-range::-webkit-slider-runnable-track {
   background: linear-gradient(
     to right,
     var(--color-accent) var(--range-fill, 0%),
-    var(--color-dark-elevated) var(--range-fill, 0%)
+    rgba(255, 255, 255, 0.10) var(--range-fill, 0%)
   );
   border-radius: 9999px;
   /* No height transition — prevents layout reflow on hover/focus */
@@ -229,13 +381,19 @@ input[type='range'].editor-range::-webkit-slider-thumb {
   height: var(--thumb-size);
   border-radius: 50%;
   background: var(--color-accent);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.40);
   margin-top: calc((var(--track-height) - var(--thumb-size)) / 2);
-  /* No scale transform — use box-shadow only for state feedback */
-  transition: box-shadow 150ms var(--ease-snap);
+  cursor: pointer;
+  transition: filter 100ms var(--ease-snap), transform 80ms var(--ease-snap);
 }
 
 input[type='range'].editor-range::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 20%, transparent);
+  filter: brightness(1.12);
+}
+
+input[type='range'].editor-range::-webkit-slider-thumb:active {
+  transform: scale(1.15);
 }
 
 input[type='range'].editor-range:focus-visible::-webkit-slider-thumb {
@@ -256,7 +414,7 @@ input[type='range'].editor-range:focus-visible::-webkit-slider-thumb {
 /* Firefox */
 input[type='range'].editor-range::-moz-range-track {
   height: var(--track-height);
-  background: var(--color-dark-elevated);
+  background: rgba(255, 255, 255, 0.10);
   border-radius: 9999px;
   transition: background-color var(--duration-base) var(--ease-snap);
 }
@@ -270,18 +428,239 @@ input[type='range'].editor-range::-moz-range-progress {
 input[type='range'].editor-range::-moz-range-thumb {
   width: var(--thumb-size);
   height: var(--thumb-size);
-  border: none;
+  border: 2px solid rgba(255, 255, 255, 0.25);
   border-radius: 50%;
   background: var(--color-accent);
-  transition: box-shadow 150ms var(--ease-snap);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.40);
+  cursor: pointer;
+  transition: filter 100ms var(--ease-snap), transform 80ms var(--ease-snap);
 }
 
 input[type='range'].editor-range::-moz-range-thumb:hover {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 20%, transparent);
+  filter: brightness(1.12);
 }
 
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none;
 }
- 
+
+/* ------------------------------------------------------------------ */
+/* Modal / overlay surfaces                                             */
+/* ------------------------------------------------------------------ */
+
+/* Glass panel for modal dialogs — liquid glass surface */
+.modal-panel {
+  position: relative;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  padding: 32px 40px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 4px 8px rgba(0, 0, 0, 0.35),
+    0 12px 24px rgba(0, 0, 0, 0.25),
+    0 32px 56px rgba(0, 0, 0, 0.18);
+}
+
+/* ------------------------------------------------------------------ */
+/* Editor / modal inputs                                               */
+/* Same precision treatment as auth-input, reusable across the app.   */
+/* ------------------------------------------------------------------ */
+.editor-input {
+  background: rgba(0, 0, 0, 0.30);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.90);
+  box-sizing: border-box;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.editor-input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+.editor-input:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.editor-input:focus {
+  outline: none;
+  border-color: rgba(192, 57, 43, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(192, 57, 43, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ------------------------------------------------------------------ */
+/* Solid accent button — discrete hover, no glow expansion            */
+/* Use for primary actions in editor modals (Export, Save, Share…).   */
+/* ------------------------------------------------------------------ */
+.btn-accent {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: filter 120ms ease-out, box-shadow 120ms ease-out, transform 120ms ease-out;
+}
+.btn-accent:hover:not(:disabled) {
+  filter: brightness(0.86);
+}
+.btn-accent:active:not(:disabled) {
+  transform: scale(0.97);
+  filter: brightness(0.78);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.3),
+    0 1px 4px rgba(192, 57, 43, 0.12);
+}
+.btn-accent:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ------------------------------------------------------------------ */
+/* Ghost / cancel button — material fill shift, no glow               */
+/* ------------------------------------------------------------------ */
+.btn-ghost {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    background 120ms ease-out,
+    border-color 120ms ease-out,
+    color 120ms ease-out,
+    transform 120ms ease-out;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--color-accent-white);
+}
+.btn-ghost:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn-ghost:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ------------------------------------------------------------------ */
+/* Media library search bar — glass input with focus-within ring       */
+/* ------------------------------------------------------------------ */
+.media-search-bar input:focus {
+  box-shadow: none;
+}
+.media-search-bar:focus-within {
+  border-color: rgba(192, 57, 43, 0.50) !important;
+  box-shadow:
+    0 0 0 3px rgba(192, 57, 43, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.media-search-bar:focus-within svg {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+.media-search-bar svg {
+  transition: color 150ms ease;
+}
+.media-search-bar input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* ------------------------------------------------------------------ */
+/* Timeline clip resize grabber — wider hit area with visual indicator */
+/* ------------------------------------------------------------------ */
+.clip-resize-handle {
+  background: transparent !important;
+}
+.clip-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 0 3px 3px 0;
+  transition: background 120ms ease, box-shadow 120ms ease;
+  pointer-events: none;
+}
+.clip-resize-handle:hover::after {
+  background: rgba(255, 255, 255, 0.55);
+}
+.clip-resize-handle:active::after {
+  background: rgba(210, 40, 40, 0.90);
+  box-shadow: 0 0 8px rgba(180, 20, 20, 0.50);
+}
+
+/* ------------------------------------------------------------------ */
+/* Glass input — compact inspector inputs (no padding override)        */
+/* ------------------------------------------------------------------ */
+.glass-input {
+  background: rgba(0, 0, 0, 0.30);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.glass-input:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.glass-input:focus {
+  outline: none;
+  border-color: rgba(192, 57, 43, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 3px rgba(192, 57, 43, 0.12);
+}
+
+/* ------------------------------------------------------------------ */
+/* Timeline track rows — alternating glass backgrounds                 */
+/* (inline style uses `background: undefined` to let these apply)      */
+/* ------------------------------------------------------------------ */
+.timeline-track-row:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.025);
+}
+.timeline-track-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+/* ------------------------------------------------------------------ */
+/* Transport button active states                                       */
+/* ------------------------------------------------------------------ */
+.transport-btn:active {
+  background: rgba(255, 255, 255, 0.12) !important;
+  transform: scale(0.94);
+}
+.transport-btn-primary:active {
+  filter: brightness(0.82);
+  transform: scale(0.94);
+}
+
+/* ------------------------------------------------------------------ */
+/* Toolbar button active state                                          */
+/* ------------------------------------------------------------------ */
+.toolbar-btn:active {
+  background: rgba(255, 255, 255, 0.10) !important;
+  transform: scale(0.92);
+}
+
+/* ------------------------------------------------------------------ */
+/* Global button focus-visible ring                                     */
+/* ------------------------------------------------------------------ */
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.50);
+}
+
+/* ------------------------------------------------------------------ */
+/* All buttons — shared cursor and box-sizing                           */
+/* ------------------------------------------------------------------ */
+button {
+  box-sizing: border-box;
+}
+button:not(:disabled) {
+  cursor: pointer;
+}

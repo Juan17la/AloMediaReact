@@ -10,6 +10,18 @@ interface MediaContextMenuProps {
   onInsertAtPlayhead: () => void
 }
 
+const menuPanel =
+  "fixed z-9999 context-menu-enter min-w-50 rounded-[10px] border border-white/10 bg-[rgba(12,13,16,0.95)] p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.45),0_16px_32px_rgba(0,0,0,0.35)] backdrop-blur-2xl"
+
+const menuAction =
+  "w-full rounded-md px-3 py-2 text-left text-[13px] transition-[background,color] duration-100"
+
+const menuActionNeutral =
+  "text-white/80 hover:bg-white/8 hover:text-white"
+
+const menuActionDanger =
+  "text-[rgba(220,60,60,0.90)] hover:bg-white/8"
+
 export function MediaContextMenu({ mediaId, x, y, onClose, onInsertAtPlayhead }: MediaContextMenuProps) {
   const removeMedia = useEditorStore(s => s.removeMedia)
   const proxyMap = useEditorStore(s => s.proxyMap)
@@ -76,8 +88,12 @@ export function MediaContextMenu({ mediaId, x, y, onClose, onInsertAtPlayhead }:
     <div
       ref={menuRef}
       role="menu"
-      style={{ left: clampedX, top: clampedY, width: menuWidth, boxShadow: "0 4px 16px rgba(0,0,0,0.5)" }}
-      className="fixed z-9999 border border-dark-border bg-dark-elevated py-1 context-menu-enter"
+      style={{
+        left: clampedX,
+        top: clampedY,
+        width: menuWidth,
+      }}
+      className={menuPanel}
     >
       {!confirmDelete ? (
         <>
@@ -86,34 +102,34 @@ export function MediaContextMenu({ mediaId, x, y, onClose, onInsertAtPlayhead }:
             onClick={handleInsert}
             disabled={isProxyPending}
             title={isProxyPending ? "Proxy not ready yet" : undefined}
-            className="w-full text-left px-3 py-1.5 text-[11px] text-accent-white hover:bg-dark-border disabled:opacity-40 disabled:cursor-not-allowed editor-transition"
+            className={`${menuAction} ${menuActionNeutral} disabled:cursor-not-allowed disabled:opacity-40`}
           >
             Add to Timeline
           </button>
-          <div className="h-px bg-dark-border mx-2 my-1" />
+          <div className="my-1 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
           <button
             role="menuitem"
             onClick={handleDeleteClick}
-            className="w-full text-left px-3 py-1.5 text-[11px] text-red-400 hover:bg-red-950/40 editor-transition"
+            className={`${menuAction} ${menuActionDanger}`}
           >
             Delete Media
           </button>
         </>
       ) : (
-        <div className="px-3 py-2 flex flex-col gap-2">
-          <p className="text-xs text-muted-light leading-snug">
+        <div className="flex flex-col gap-2 px-3 py-2">
+          <p className="m-0 text-xs leading-[1.4] text-white/60">
             This will also remove {clipCount} clip{clipCount !== 1 ? 's' : ''}. Confirm?
           </p>
           <div className="flex gap-2">
             <button
               onClick={handleConfirmDelete}
-              className="flex-1 text-[10px] text-red-400 border border-red-800 px-2 py-1 hover:bg-red-950/40 editor-transition"
+              className="flex-1 rounded-md border border-[rgba(220,60,60,0.30)] bg-transparent px-2 py-1 text-[11px] text-[rgba(220,60,60,0.90)] transition-colors duration-100 hover:bg-white/8"
             >
               Remove
             </button>
             <button
               onClick={() => setConfirmDelete(false)}
-              className="flex-1 text-[10px] text-muted-light border border-dark-border px-2 py-1 hover:bg-dark-border editor-transition"
+              className="flex-1 rounded-md border border-white/10 bg-transparent px-2 py-1 text-[11px] text-white/60 transition-colors duration-100 hover:bg-white/8"
             >
               Cancel
             </button>

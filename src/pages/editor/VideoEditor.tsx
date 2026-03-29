@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect, useCallback } from "react"
-import type { CSSProperties } from "react"
 import { useParams, useNavigate, useBlocker } from "react-router"
 import { MediaLibrary } from "../../components/editor/MediaLibrary"
 import { Timeline } from "../../components/editor/Timeline"
@@ -211,7 +210,7 @@ export default function VideoEditor() {
         <p className="text-sm text-red-400">{loadError}</p>
         <button
           onClick={() => navigate('/dashboard')}
-          style={ghostButtonStyle}
+          className="px-4 py-2 rounded-lg text-[13px] border border-white/10 bg-white/5 backdrop-blur-sm text-white/80"
         >
           Back to dashboard
         </button>
@@ -220,43 +219,33 @@ export default function VideoEditor() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-dark text-accent-white font-sans select-none cursor-default">
+    <div className="flex flex-col h-screen overflow-hidden text-accent-white font-sans select-none cursor-default bg-black relative z-0">
+
+      {/* Atmospheric glow 1 — bottom-left */}
+      <div className="absolute bottom-0 left-0 w-175 h-175 rounded-full bg-[rgba(180,20,20,0.15)] blur-[160px] pointer-events-none hidden" />
+      {/* Atmospheric glow 2 — top-right */}
+      <div className="absolute top-0 right-0 w-125 h-125 rounded-full bg-[rgba(100,0,0,0.10)] blur-[200px] pointer-events-none hidden" />
 
       {/* ── Topbar ── */}
       <header
-        className="flex items-center shrink-0 gap-0"
+        className="flex items-center shrink-0 h-12.5 bg-white/4 border-b border-b-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.40),0_8px_24px_rgba(0,0,0,0.25)]"
         style={{
-          height: 40,
-          background: "var(--color-dark)",
-          borderBottom: "1px solid var(--color-dark-border)",
+          backdropFilter: "blur(28px) saturate(160%)",
+          WebkitBackdropFilter: "blur(28px) saturate(160%)",
         }}
       >
         {/* Logo */}
-        <div
-          className="flex items-center shrink-0"
-          style={{
-            padding: "0 12px",
-            borderRight: "1px solid var(--color-dark-border)",
-            height: "100%",
-          }}
-        >
-          <span
-            style={{
-              fontWeight: 700,
-              fontSize: 13,
-              letterSpacing: "0.15em",
-              color: "var(--color-accent-red)",
-            }}
+        <div className="flex items-center shrink-0 px-3 h-full border-r border-r-dark-border">
+          <a
+            href="/"
+            className="font-bold text-[13px] tracking-[0.15em] text-accent-red"
           >
             ALO
-          </span>
+          </a>
         </div>
 
         {/* Project title */}
-        <div
-          className="flex items-center"
-          style={{ padding: "0 12px", height: "100%", borderRight: "1px solid var(--color-dark-border)" }}
-        >
+        <div className="flex items-center px-3 h-full border-r border-r-dark-border">
           {isEditingTitle ? (
             <input
               autoFocus
@@ -264,35 +253,12 @@ export default function VideoEditor() {
               onChange={e => setTitleDraft(e.target.value)}
               onBlur={commitTitle}
               onKeyDown={e => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur() }}
-              style={{
-                background: "transparent",
-                fontSize: 13,
-                fontWeight: 500,
-                color: "var(--color-accent-white)",
-                border: "none",
-                borderBottom: "1px solid var(--color-accent-red)",
-                outline: "none",
-                width: 192,
-                cursor: "text",
-                fontFamily: "inherit",
-              }}
+              className="bg-transparent text-[13px] font-medium text-accent-white border-0 border-b border-b-accent-red outline-none w-48 cursor-text"
             />
           ) : (
             <button
               onDoubleClick={() => { setTitleDraft(project.name); setIsEditingTitle(true) }}
-              style={{
-                background: "transparent",
-                border: "none",
-                fontSize: 13,
-                fontWeight: 500,
-                color: "var(--color-accent-white)",
-                cursor: "text",
-                maxWidth: 192,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                fontFamily: "inherit",
-              }}
+              className="bg-transparent border-0 text-[13px] font-medium text-accent-white cursor-text max-w-48 overflow-hidden text-ellipsis whitespace-nowrap"
               title="Double-click to rename"
             >
               {project.name}
@@ -315,21 +281,15 @@ export default function VideoEditor() {
 
       {/* ── Middle row: Media panel + Preview + Inspector ── */}
       <EditorErrorBoundary onReset={resetProject}>
-        <div className="flex flex-1 min-h-0 overflow-hidden" style={{ gap: 0 }}>
+        <div className="flex flex-1 min-h-0 overflow-hidden gap-0">
           <aside
-            className="shrink-0 flex flex-col overflow-hidden"
-            style={{
-              width: 240,
-              background: "var(--color-dark-surface)",
-              borderRight: "1px solid var(--color-dark-border)",
-            }}
+            className="shrink-0 flex flex-col overflow-hidden border-r border-white/10 w-70"
           >
             <MediaLibrary />
           </aside>
 
           <div
-            className="flex flex-1 min-h-0 min-w-0 overflow-hidden"
-            style={{ background: "var(--color-dark)", minWidth: 480 }}
+            className="flex flex-1 min-h-0 overflow-hidden min-w-120"
           >
             <PreviewPlayer />
           </div>
@@ -359,11 +319,25 @@ export default function VideoEditor() {
       {/* Toast notification */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-lg text-sm font-medium shadow-xl border ${
-            toast.type === 'success'
-              ? 'bg-dark-card border-dark-border text-accent-white'
-              : 'bg-dark-card border-red-800/50 text-red-400'
-          }`}
+          style={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            zIndex: 50,
+            padding: "12px 18px",
+            background: "rgba(18, 20, 24, 0.95)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.10)",
+            borderLeft: toast.type === 'success'
+              ? "3px solid rgba(60, 200, 100, 0.80)"
+              : "3px solid var(--color-accent-red)",
+            borderRadius: 10,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
+            fontSize: 13,
+            fontWeight: 500,
+            color: "rgba(255, 255, 255, 0.88)",
+          }}
         >
           {toast.message}
         </div>
@@ -421,15 +395,4 @@ export default function VideoEditor() {
       )}
     </div>
   )
-}
-
-const ghostButtonStyle: CSSProperties = {
-  padding: '8px 16px',
-  borderRadius: 8,
-  fontSize: 13,
-  border: '1px solid var(--color-dark-border)',
-  background: 'transparent',
-  color: 'var(--color-muted)',
-  cursor: 'pointer',
-  fontFamily: 'inherit',
 }

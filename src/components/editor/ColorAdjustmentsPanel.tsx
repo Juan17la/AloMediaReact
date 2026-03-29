@@ -3,6 +3,14 @@ import { useEditorStore } from "../../store/editorStore"
 import { DEFAULT_COLOR_ADJUSTMENTS } from "../../constants/colorAdjustments"
 import { InspectorSliderRow } from "../ui/InspectorSliderRow"
 
+// Glass card constant
+const glassCard =
+  "w-full bg-white/[0.03] border border-white/[0.07] rounded-lg p-3 mb-3"
+
+// Section label constant
+const sectionLabel =
+  "text-[11px] font-semibold tracking-[0.06em] uppercase text-white/40"
+
 function getStepDecimals(step: number): number {
   const stepString = step.toString()
   const decimalIndex = stepString.indexOf(".")
@@ -51,29 +59,15 @@ export function ColorAdjustmentsPanel({ clipId }: ColorAdjustmentsPanelProps) {
     ]
 
   return (
-    <div className="w-full" style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid rgba(255, 255, 255, 0.07)", borderRadius: 10, padding: "14px 16px", marginBottom: 12 }}>
+    <div className={glassCard}>
       {/* Section header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          marginBottom: 12,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            color: "rgba(255, 255, 255, 0.40)",
-          }}
-        >
+      <div className="flex items-center mb-3">
+        <span className={sectionLabel}>
           Color Adjustments
         </span>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column" }}>
+      <div className="flex flex-col">
         {sliders.map(s => (
           <InspectorSliderRow
             key={s.key}

@@ -2,13 +2,29 @@ import { useMemo, useState } from "react"
 import type { Clip } from "../../project/projectTypes"
 import { AudioConfigPanel } from "./AudioConfigPanel"
 import { ColorAdjustmentsPanel } from "./ColorAdjustmentsPanel"
-import { SpeedConfigPanel } from "./SpeedConfigPanel" // Import the new panel
+import { SpeedConfigPanel } from "./SpeedConfigPanel"
 
 type InspectorTab = "video" | "audio" | "speed"
 
 interface InspectorPanelProps {
   clip: Clip
 }
+
+// Glass panel constant
+
+// Inspector header label
+const inspectorLabel =
+  "text-[11px] font-semibold tracking-[0.06em] uppercase text-white/40"
+
+// Tab styling
+const tabBase =
+  "h-full px-3.5 text-[11px] font-semibold bg-transparent border-0 border-b-2 rounded-none cursor-pointer transition-[color] duration-120"
+
+const tabActive =
+  "text-accent-white border-b-accent-red"
+
+const tabInactive =
+  "text-muted border-b-transparent"
 
 export function InspectorPanel({ clip }: InspectorPanelProps) {
 
@@ -29,7 +45,7 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
       case "audio":
         return <AudioConfigPanel clipId={clip.id} />
       case "speed":
-        return <SpeedConfigPanel clipId={clip.id} /> // Use the new component
+        return <SpeedConfigPanel clipId={clip.id} />
       default:
         return null
     }
@@ -39,33 +55,17 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
 
   return (
     <aside
-      className="shrink-0 flex flex-col overflow-hidden"
-      style={{
-        width: 280,
-        background: "rgba(255, 255, 255, 0.04)",
-        backdropFilter: "blur(24px) saturate(150%)",
-        WebkitBackdropFilter: "blur(24px) saturate(150%)",
-        borderLeft: "1px solid rgba(255, 255, 255, 0.08)",
-        padding: "0",
-      }}
+      className="shrink-0 flex flex-col overflow-hidden w-70 backdrop-blur-2xl border-l border-l-white/8"
     >
       {/* Panel header */}
-      <div
-        className="flex items-center shrink-0"
-        style={{
-          height: 28,
-          background: "transparent",
-          borderBottom: showTabs ? "none" : "1px solid rgba(255, 255, 255, 0.07)",
-          padding: "0 16px",
-        }}
-      >
-        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "rgba(255, 255, 255, 0.40)" }}>
+      <div className={`flex items-center shrink-0 h-7 px-4 ${showTabs ? "" : "border-b border-b-white/7"}`}>
+        <span className={inspectorLabel}>
           Inspector
         </span>
       </div>
 
       {showTabs && (
-        <div className="flex shrink-0" style={{ height: 32, background: "transparent", borderBottom: "1px solid rgba(255, 255, 255, 0.07)" }}>
+        <div className="flex shrink-0 h-8 border-b border-b-white/7">
           {tabs.map(tab => {
             const active = effectiveTab === tab
             const label = tab === "video" ? "Video" : tab === "audio" ? "Audio" : "Speed"
@@ -73,19 +73,10 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                style={{
-                  height: "100%",
-                  padding: "0 14px",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: "transparent",
-                  color: active ? "var(--color-accent-white)" : "var(--color-muted)",
-                  borderBottom: active ? "2px solid var(--color-accent-red)" : "2px solid transparent",
-                  cursor: "pointer",
-                  border: "none",
-                  borderRadius: 0,
-                  transition: "color 120ms ease-out",
-                }}
+                className={[
+                  tabBase,
+                  active ? tabActive : tabInactive,
+                ].join(" ")}
               >
                 {label}
               </button>
@@ -94,7 +85,7 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
         </div>
       )}
 
-      <div className="overflow-y-auto flex-1" style={{ padding: "12px 12px" }}>
+      <div className="overflow-y-auto flex-1 p-3">
         {renderContent()}
       </div>
     </aside>

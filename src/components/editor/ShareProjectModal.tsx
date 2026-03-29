@@ -38,8 +38,7 @@ export function ShareProjectModal({ projectId, onClose }: ShareProjectModalProps
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center modal-glass-card"
       onClick={onClose}
     >
       <div

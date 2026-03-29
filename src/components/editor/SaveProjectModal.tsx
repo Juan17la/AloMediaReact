@@ -8,7 +8,7 @@ interface SaveProjectModalProps {
 }
 
 const overlayClass =
-  "fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-sm"
+  "fixed inset-0 z-50 flex items-center justify-center modal-glass-card"
 
 const titleClass =
   "text-lg font-bold tracking-[-0.02em] text-white/92"

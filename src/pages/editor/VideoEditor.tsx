@@ -219,12 +219,12 @@ export default function VideoEditor() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden text-accent-white font-sans select-none cursor-default bg-black relative z-0">
+    <div className="flex flex-col h-screen overflow-hidden text-accent-white font-sans select-none cursor-default relative z-0">
 
-      {/* Atmospheric glow 1 — bottom-left */}
-      <div className="absolute bottom-0 left-0 w-175 h-175 rounded-full bg-[rgba(180,20,20,0.15)] blur-[160px] pointer-events-none hidden" />
+      {/* Atmospheric glow 1 — bottom-left
+      <div className="absolute bottom-1/2 left-2/5 w-175 h-175 rounded-full bg-[rgba(180,20,20,0.15)] blur-[160px] pointer-events-none" />
       {/* Atmospheric glow 2 — top-right */}
-      <div className="absolute top-0 right-0 w-125 h-125 rounded-full bg-[rgba(100,0,0,0.10)] blur-[200px] pointer-events-none hidden" />
+      {/* <div className="absolute top-1/2 right-2/7 w-175 h-175 rounded-full bg-[rgba(180,20,20,0.15)] blur-[160px] pointer-events-none" /> */} 
 
       {/* ── Topbar ── */}
       <header
@@ -245,7 +245,7 @@ export default function VideoEditor() {
         </div>
 
         {/* Project title */}
-        <div className="flex items-center px-3 h-full border-r border-r-dark-border">
+        <div className="flex items-center px-3 h-full border-r-dark-border">
           {isEditingTitle ? (
             <input
               autoFocus

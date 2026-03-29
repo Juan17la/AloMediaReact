@@ -56,50 +56,22 @@ export function PlayheadBar({ totalWidth, duration, majorInterval }: PlayheadBar
     <div
       ref={rulerRef}
       onMouseDown={handleMouseDown}
-      style={{
-        position: "relative",
-        height: 24,
-        minWidth: totalWidth,
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-        cursor: "pointer",
-        userSelect: "none",
-        flexShrink: 0,
-        background: "rgba(255,255,255,0.03)",
-      }}
+      className="relative h-6 shrink-0 border-b border-b-white/8 cursor-pointer select-none bg-white/3"
+      style={{ minWidth: totalWidth }}
     >
       {ticks.map(({ t, isMajor }) => (
         <div
           key={t}
-          style={{
-            position: "absolute",
-            left: TRACK_HEADER_WIDTH + timeToPx(t, timelineScale),
-            top: 0,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            pointerEvents: "none",
-          }}
+          className="absolute top-0 flex flex-col items-start pointer-events-none"
+          style={{ left: TRACK_HEADER_WIDTH + timeToPx(t, timelineScale) }}
         >
           {/* Tick mark */}
           <div
-            style={{
-              width: 1,
-              height: isMajor ? 10 : 5,
-              background: "rgba(255,255,255,0.15)",
-              opacity: isMajor ? 1 : 0.5,
-            }}
+            className={`w-px bg-white/15 ${isMajor ? "opacity-100" : "opacity-50"}`}
+            style={{ height: isMajor ? 10 : 5 }}
           />
           {isMajor && (
-            <span
-              style={{
-                fontSize: 10,
-                fontFamily: "'Courier New', monospace",
-                color: "rgba(255,255,255,0.35)",
-                letterSpacing: "0.03em",
-                marginLeft: 2,
-                lineHeight: 1,
-              }}
-            >
+            <span className="text-[10px] font-mono text-white/35 tracking-[0.03em] ml-0.5 leading-none">
               {formatTimecode(t)}
             </span>
           )}
@@ -108,18 +80,8 @@ export function PlayheadBar({ totalWidth, duration, majorInterval }: PlayheadBar
 
       {/* Playhead handle — 8px circle at ruler */}
       <div
-        style={{
-          position: "absolute",
-          left: TRACK_HEADER_WIDTH + playheadLeft - 4,
-          top: 8,
-          width: 8,
-          height: 8,
-          background: "var(--color-accent-red)",
-          borderRadius: "50%",
-          cursor: "ew-resize",
-          zIndex: 20,
-          pointerEvents: "none",
-        }}
+        className="absolute w-2 h-2 bg-accent-red rounded-full cursor-ew-resize z-20 pointer-events-none"
+        style={{ left: TRACK_HEADER_WIDTH + playheadLeft - 4, top: 8 }}
       />
     </div>
   )

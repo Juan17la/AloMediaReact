@@ -361,6 +361,7 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
   },
 
   commitTransform(_clipId) {
+    void _clipId
     const wasPlaying = get().pushHistory("Transform clip")
     renderSingleFrame()
     // Small UX improvement: keep playback running after transform commit.
@@ -481,13 +482,27 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
       audioConfig: { ...(sourceClip.audioConfig ?? DEFAULT_AUDIO_CONFIG) },
     }
 
+    const mutedSourceAudioConfig = {
+      ...(sourceClip.audioConfig ?? DEFAULT_AUDIO_CONFIG),
+      muted: true,
+    }
+
     set(curr => ({
       project: {
         ...curr.project,
         tracks: curr.project.tracks.map(track =>
-          track.id === fallbackTrack.id
-            ? { ...track, clips: [...track.clips, newClip] }
-            : track,
+          track.id === sourceClip.trackId
+            ? {
+              ...track,
+              clips: track.clips.map(clip =>
+                clip.id === sourceClip.id
+                  ? { ...clip, audioConfig: mutedSourceAudioConfig }
+                  : clip,
+              ),
+            }
+            : track.id === fallbackTrack.id
+              ? { ...track, clips: [...track.clips, newClip] }
+              : track,
         ),
       },
     }))
@@ -500,7 +515,8 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     resetPlayer()
     fileMap.delete(mediaId)
     set(state => {
-      const { [mediaId]: _removed, ...restProxy } = state.proxyMap
+      const { [mediaId]: removed, ...restProxy } = state.proxyMap
+      void removed
       return {
         proxyMap: restProxy,
         project: {

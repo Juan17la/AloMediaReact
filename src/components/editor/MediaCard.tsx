@@ -5,16 +5,28 @@ import { MediaContextMenu } from "./MediaContextMenu"
 
 function formatDuration(media: Media): string {
   if (media.type === "image") return "IMG"
+
   const secs = Math.round(media.duration ?? 0)
-  const m = Math.floor(secs / 60)
+
+  const h = Math.floor(secs / 3600)
+  const m = Math.floor((secs % 3600) / 60)
   const s = secs % 60
-  return `${m}:${String(s).padStart(2, "0")}`
+
+  if (h > 0) {
+    return `${h.toString().padStart(2, "0")}:${m
+      .toString()
+      .padStart(2, "0")}:${s.toString().padStart(2, "0")}`
+  }
+
+  return `${m.toString().padStart(2, "0")}:${s
+    .toString()
+    .padStart(2, "0")}`
 }
 
-function getTypeBadgeColor(type: Media["type"]): string {
-  if (type === "video") return "#1a3a5c"
-  if (type === "audio") return "#1a3d1a"
-  return "#3d2a1a"
+function getTypeBadgeClass(type: Media["type"]): string {
+  if (type === "video") return "bg-[#1a3a5c]"
+  if (type === "audio") return "bg-[#1a3d1a]"
+  return "bg-[#3d2a1a]"
 }
 
 function getTypeBadgeLabel(type: Media["type"]): string {
@@ -59,28 +71,25 @@ interface MediaCardProps {
 
 export function MediaCard({ media, objectUrl, proxyStatus, onInsertAtPlayhead }: MediaCardProps) {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
-  const [hovered, setHovered] = useState(false)
 
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault()
     setMenu({ x: e.clientX, y: e.clientY })
   }
 
-  const proxyBarColor = proxyStatus === 'pending'
-    ? "#d4622a"
+  const proxyBarClass = proxyStatus === 'pending'
+    ? "bg-[#d4622a]"
     : proxyStatus === 'ready'
-      ? "#166534"
+      ? "bg-[#166534]"
       : proxyStatus === 'error'
-        ? "#7f1d1d"
-        : "transparent"
+        ? "bg-[#7f1d1d]"
+        : "bg-transparent"
 
   return (
     <>
       <div
         draggable
         onContextMenu={handleContextMenu}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         onDragStart={e => {
           const durationSeconds = media.duration ?? 5
           e.dataTransfer.setData("mediaId", media.id)
@@ -96,119 +105,40 @@ export function MediaCard({ media, objectUrl, proxyStatus, onInsertAtPlayhead }:
         onDragEnd={() => {
           window.dispatchEvent(new CustomEvent("alomedia:drag-end"))
         }}
-        style={{
-          position: "relative",
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-          background: "var(--color-dark-card)",
-          cursor: "pointer",
-          overflow: "hidden",
-          userSelect: "none",
-        }}
+        className="group relative flex flex-col w-full bg-white/5 border border-white/7 rounded-lg p-1.5 shadow-[0_2px_6px_rgba(0,0,0,0.25)] cursor-pointer overflow-hidden select-none transition-[background,border-color] duration-120 ease-out hover:bg-white/9 hover:border-white/[0.14]"
       >
         {/* Thumbnail area — 16:9 */}
-        <div
-          style={{
-            position: "relative",
-            aspectRatio: "16 / 9",
-            background: "var(--color-dark)",
-            overflow: "hidden",
-          }}
-        >
+        <div className="relative aspect-video bg-dark overflow-hidden">
           <MediaThumbnail media={media} objectUrl={objectUrl} />
 
           {/* Type badge — top-left */}
-          <div
-            style={{
-              position: "absolute",
-              top: 4,
-              left: 0,
-              height: 14,
-              padding: "0 5px",
-              background: getTypeBadgeColor(media.type),
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 8,
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                color: "rgba(255,255,255,0.85)",
-              }}
-            >
+          <div className={`absolute top-1 left-0 h-3.5 px-1.25 flex items-center ${getTypeBadgeClass(media.type)}`}>
+            <span className="text-[8px] font-bold tracking-[0.08em] text-white/85">
               {getTypeBadgeLabel(media.type)}
             </span>
           </div>
 
           {/* Hover overlay with Plus icon */}
-          {hovered && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "rgba(192,57,43,0.15)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              onClick={onInsertAtPlayhead}
-            >
-              <Plus size={20} style={{ color: "#ffffff" }} />
-            </div>
-          )}
+          <div
+            className="absolute inset-0 bg-[rgba(192,57,43,0.15)] flex items-center justify-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-120"
+            onClick={onInsertAtPlayhead}
+          >
+            <Plus size={20} className="text-white" />
+          </div>
         </div>
 
         {/* Info strip */}
-        <div
-          style={{
-            height: 28,
-            background: "var(--color-dark-elevated)",
-            padding: "0 6px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 4,
-            position: "relative",
-          }}
-        >
-          <span
-            style={{
-              fontSize: 10,
-              color: "var(--color-accent-white)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              flex: 1,
-            }}
-          >
+        <div className="h-7 px-1.5 flex items-center justify-between gap-1 relative">
+          <span className="text-[10px] text-accent-white overflow-hidden text-ellipsis whitespace-nowrap flex-1">
             {media.name}
           </span>
-          <span
-            style={{
-              fontSize: 10,
-              color: "var(--color-muted)",
-              flexShrink: 0,
-              fontFamily: "'Courier New', monospace",
-            }}
-          >
+          <span className="text-[10px] text-muted shrink-0 font-mono">
             {formatDuration(media)}
           </span>
 
           {/* Proxy status bar — 2px at very bottom */}
           {proxyStatus && (
-            <div
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 2,
-                background: proxyBarColor,
-              }}
-            />
+            <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${proxyBarClass}`} />
           )}
         </div>
       </div>
@@ -228,57 +158,14 @@ export function MediaCard({ media, objectUrl, proxyStatus, onInsertAtPlayhead }:
 
 export function LoadingCard({ fileName }: { fileName: string }) {
   return (
-    <div
-      style={{
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
-        background: "var(--color-dark-card)",
-        overflow: "hidden",
-      }}
-    >
+    <div className="relative flex flex-col w-full bg-white/9 border border-white/[0.14] rounded-lg p-1.5 shadow-[0_2px_6px_rgba(0,0,0,0.25)] cursor-pointer overflow-hidden select-none">
       {/* Thumbnail placeholder — 16:9 */}
-      <div
-        style={{
-          position: "relative",
-          aspectRatio: "16 / 9",
-          background: "var(--color-dark)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            width: 20,
-            height: 20,
-            borderRadius: "50%",
-            border: "2px solid var(--color-dark-elevated)",
-            borderTopColor: "var(--color-accent-white)",
-            animation: "spin 0.8s linear infinite",
-          }}
-        />
+      <div className="relative aspect-video bg-dark flex items-center justify-center rounded-sm">
+        <div className="w-5 h-5 rounded-full border-2 border-dark-elevated border-t-accent-white animate-spin" />
       </div>
       {/* Info strip */}
-      <div
-        style={{
-          height: 28,
-          background: "var(--color-dark-elevated)",
-          padding: "0 6px",
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        <span
-          style={{
-            fontSize: 10,
-            color: "var(--color-muted)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
+      <div className="h-7 px-1.5 flex items-center justify-between gap-1 relative">
+        <span className="text-[10px] text-muted overflow-hidden text-ellipsis whitespace-nowrap">
           {fileName}
         </span>
       </div>

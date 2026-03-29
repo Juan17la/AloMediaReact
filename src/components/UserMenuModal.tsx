@@ -29,7 +29,7 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, children }: U
   return (
     <div
       ref={ref}
-      className="absolute right-0 top-full mt-2 p-1 w-44 rounded-md bg-dark-elevated border border-dark-border shadow-lg shadow-black/30 z-50"
+      className="absolute right-0 top-full mt-2 p-1 w-44 z-50 auth-glass-card"
     >
       <button
         type="button"

@@ -2,13 +2,29 @@ import { useMemo, useState } from "react"
 import type { Clip } from "../../project/projectTypes"
 import { AudioConfigPanel } from "./AudioConfigPanel"
 import { ColorAdjustmentsPanel } from "./ColorAdjustmentsPanel"
-import { SpeedConfigPanel } from "./SpeedConfigPanel" // Import the new panel
+import { SpeedConfigPanel } from "./SpeedConfigPanel"
 
 type InspectorTab = "video" | "audio" | "speed"
 
 interface InspectorPanelProps {
   clip: Clip
 }
+
+// Glass panel constant
+
+// Inspector header label
+const inspectorLabel =
+  "text-[11px] font-semibold tracking-[0.06em] uppercase text-white/40"
+
+// Tab styling
+const tabBase =
+  "h-full px-3.5 text-[11px] font-semibold bg-transparent border-0 border-b-2 rounded-none cursor-pointer transition-[color] duration-120"
+
+const tabActive =
+  "text-accent-white border-b-accent-red"
+
+const tabInactive =
+  "text-muted border-b-transparent"
 
 export function InspectorPanel({ clip }: InspectorPanelProps) {
 
@@ -29,7 +45,7 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
       case "audio":
         return <AudioConfigPanel clipId={clip.id} />
       case "speed":
-        return <SpeedConfigPanel clipId={clip.id} /> // Use the new component
+        return <SpeedConfigPanel clipId={clip.id} />
       default:
         return null
     }
@@ -39,30 +55,17 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
 
   return (
     <aside
-      className="shrink-0 flex flex-col overflow-hidden"
-      style={{
-        width: 280,
-        background: "var(--color-dark-surface)",
-        borderLeft: "1px solid var(--color-dark-border)",
-      }}
+      className="shrink-0 flex flex-col overflow-hidden w-70 backdrop-blur-2xl border-l border-l-white/8"
     >
       {/* Panel header */}
-      <div
-        className="flex items-center shrink-0"
-        style={{
-          height: 28,
-          background: "var(--color-dark)",
-          borderBottom: showTabs ? "none" : "1px solid var(--color-dark-border)",
-          padding: "0 8px",
-        }}
-      >
-        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-muted)" }}>
+      <div className={`flex items-center shrink-0 h-7 px-4 ${showTabs ? "" : "border-b border-b-white/7"}`}>
+        <span className={inspectorLabel}>
           Inspector
         </span>
       </div>
 
       {showTabs && (
-        <div className="flex shrink-0" style={{ height: 32, background: "var(--color-dark)", borderBottom: "1px solid var(--color-dark-border)" }}>
+        <div className="flex shrink-0 h-8 border-b border-b-white/7">
           {tabs.map(tab => {
             const active = effectiveTab === tab
             const label = tab === "video" ? "Video" : tab === "audio" ? "Audio" : "Speed"
@@ -70,17 +73,10 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                style={{
-                  height: "100%",
-                  padding: "0 14px",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: "transparent",
-                  color: active ? "var(--color-accent-white)" : "var(--color-muted)",
-                  borderBottom: active ? "2px solid var(--color-accent-red)" : "2px solid transparent",
-                  cursor: "pointer",
-                  border: "none"
-                }}
+                className={[
+                  tabBase,
+                  active ? tabActive : tabInactive,
+                ].join(" ")}
               >
                 {label}
               </button>
@@ -89,7 +85,7 @@ export function InspectorPanel({ clip }: InspectorPanelProps) {
         </div>
       )}
 
-      <div className="overflow-y-auto flex-1">
+      <div className="overflow-y-auto flex-1 p-3">
         {renderContent()}
       </div>
     </aside>

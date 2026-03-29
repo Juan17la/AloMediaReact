@@ -9,30 +9,34 @@ interface Props {
   onClose: () => void
 }
 
+const overlayClass =
+  "fixed inset-0 z-100 flex items-center justify-center bg-black/65 backdrop-blur-sm"
+
+const dialogClass =
+  "w-110 max-h-[78vh] overflow-hidden rounded-3xl border border-white/10 border-t-white/[0.18] bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_8px_rgba(0,0,0,0.35),0_12px_24px_rgba(0,0,0,0.25),0_32px_56px_rgba(0,0,0,0.18)] backdrop-blur-[32px]"
+
+const sectionLabel =
+  "text-[11px] font-semibold uppercase tracking-[0.06em] text-white/40"
+
+const primaryBtn =
+  "flex-1 rounded-lg bg-[var(--color-accent-red)] px-0 py-2 text-xs font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] transition-all duration-100 hover:brightness-[0.86] disabled:cursor-not-allowed disabled:opacity-35"
+
+const ghostBtn =
+  "rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs transition-all duration-100 hover:border-white/[0.18] hover:bg-white/9"
+
 function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function TypeLabel({ type }: { type: Media["type"] }) {
-  const colors: Record<Media["type"], string> = {
-    video: "#1a3a5c",
-    audio: "#1a3d1a",
-    image: "#3d2a1a",
+  const typeClass: Record<Media["type"], string> = {
+    video: "bg-sky-900/70",
+    audio: "bg-emerald-900/70",
+    image: "bg-amber-900/70",
   }
   return (
-    <span
-      style={{
-        fontSize: 8,
-        fontWeight: 700,
-        letterSpacing: "0.08em",
-        padding: "1px 4px",
-        background: colors[type],
-        color: "rgba(255,255,255,0.85)",
-        textTransform: "uppercase",
-        flexShrink: 0,
-      }}
-    >
+    <span className={`shrink-0 rounded px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-white/85 ${typeClass[type]}`}>
       {type}
     </span>
   )
@@ -113,103 +117,42 @@ export function MediaRelinkDialog({ onClose }: Props) {
   }
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 100,
-        background: "rgba(0,0,0,0.72)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div
-        style={{
-          background: "var(--color-dark-surface)",
-          border: "1px solid var(--color-dark-border)",
-          borderRadius: 8,
-          width: 440,
-          maxHeight: "78vh",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+    <div className={overlayClass}>
+      <div className={`flex flex-col ${dialogClass}`}>
         {/* Header */}
-        <div
-          style={{
-            padding: "12px 16px",
-            borderBottom: "1px solid var(--color-dark-border)",
-            display: "flex",
-            alignItems: "baseline",
-            gap: 8,
-          }}
-        >
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-accent-white)", flex: 1 }}>
+        <div className="flex items-baseline gap-2 border-b border-b-white/7 px-5 pt-4 pb-3">
+          <span className="flex-1 text-base font-bold tracking-[-0.01em] text-white/92">
             Missing Media
           </span>
-          <span style={{ fontSize: 11, color: "var(--color-muted)" }}>
+          <span className={sectionLabel}>
             {remainingCount} of {initialMissingMedia.length} unresolved
           </span>
         </div>
 
         {/* Description */}
-        <p
-          style={{
-            margin: 0,
-            padding: "8px 16px",
-            fontSize: 11,
-            color: "var(--color-muted)",
-            borderBottom: "1px solid var(--color-dark-border)",
-            lineHeight: 1.5,
-          }}
-        >
+        <p className="m-0 border-b border-b-white/7 px-5 py-2 text-xs leading-6 text-white/50">
           These files were not found in the local cache. Select the original files to restore them,
           or skip to open the project with missing clips shown as placeholders.
         </p>
 
         {/* Media list */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div className="flex-1 overflow-y-auto">
           {initialMissingMedia.map(m => {
             const isMatched = matchedInSession.has(m.id)
             return (
               <div
                 key={m.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "7px 16px",
-                  gap: 10,
-                  borderBottom: "1px solid var(--color-dark-border)",
-                  opacity: isMatched ? 0.6 : 1,
-                }}
+                className={`flex items-center gap-2.5 border-b border-b-white/5 px-5 py-1.75 ${isMatched ? "opacity-60" : "opacity-100"}`}
               >
                 {/* Status dot */}
-                <div
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    flexShrink: 0,
-                    background: isMatched ? "#4ade80" : "#f87171",
-                  }}
-                />
+                <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${isMatched ? "bg-emerald-400" : "bg-rose-400"}`} />
 
                 {/* File info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "var(--color-accent-white)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+                <div className="min-w-0 flex-1">
+                  <div className="overflow-hidden text-ellipsis whitespace-nowrap text-xs text-accent-white">
                     {m.name}
                   </div>
-                  <div style={{ fontSize: 10, color: "var(--color-muted)", marginTop: 1 }}>
+                  <div className="mt-px text-[10px] text-muted">
                     {formatSize(m.size)}
                   </div>
                 </div>
@@ -217,7 +160,7 @@ export function MediaRelinkDialog({ onClose }: Props) {
                 <TypeLabel type={m.type} />
 
                 {isMatched && (
-                  <span style={{ fontSize: 10, color: "#4ade80", flexShrink: 0 }}>Matched</span>
+                  <span className="shrink-0 text-[10px] text-emerald-400">Matched</span>
                 )}
               </div>
             )
@@ -226,65 +169,24 @@ export function MediaRelinkDialog({ onClose }: Props) {
 
         {/* Unrecognized file warning */}
         {unrecognized.length > 0 && (
-          <div
-            style={{
-              margin: "8px 16px 0",
-              padding: "6px 10px",
-              background: "rgba(127,29,29,0.3)",
-              border: "1px solid #7f1d1d",
-              borderRadius: 4,
-              fontSize: 11,
-              color: "#f87171",
-            }}
-          >
+          <div className="mx-5 mt-2 rounded-lg border border-[rgba(220,60,60,0.30)] bg-[rgba(127,29,29,0.30)] px-3 py-2 text-[11px] text-rose-400">
             Not part of this project: {unrecognized.slice(0, 3).join(", ")}
             {unrecognized.length > 3 && ` +${unrecognized.length - 3} more`}
           </div>
         )}
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "12px 16px",
-            borderTop: "1px solid var(--color-dark-border)",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginTop: unrecognized.length > 0 ? 8 : 0,
-          }}
-        >
+        <div className={`flex items-center gap-2 border-t border-t-white/7 px-5 py-3 ${unrecognized.length > 0 ? "mt-2" : "mt-0"}`}>
           <button
             onClick={() => inputRef.current?.click()}
             disabled={isProcessing || allResolved}
-            style={{
-              flex: 1,
-              padding: "7px 0",
-              background: "var(--color-accent-red)",
-              border: "none",
-              borderRadius: 4,
-              fontSize: 12,
-              fontWeight: 600,
-              color: "#fff",
-              cursor: isProcessing || allResolved ? "not-allowed" : "pointer",
-              opacity: isProcessing || allResolved ? 0.5 : 1,
-              fontFamily: "inherit",
-            }}
+            className={primaryBtn}
           >
             {isProcessing ? "Matching…" : "Select Files"}
           </button>
           <button
             onClick={onClose}
-            style={{
-              padding: "7px 16px",
-              background: "transparent",
-              border: "1px solid var(--color-dark-border)",
-              borderRadius: 4,
-              fontSize: 12,
-              fontWeight: allResolved ? 600 : 400,
-              color: allResolved ? "var(--color-accent-white)" : "var(--color-muted)",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
+            className={`${ghostBtn} ${allResolved ? "font-semibold text-accent-white" : "font-normal text-muted"}`}
           >
             {allResolved ? "Continue" : "Skip"}
           </button>

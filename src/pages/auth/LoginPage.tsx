@@ -1,6 +1,6 @@
 import { useState, type SyntheticEvent } from "react";
 import { Link, useNavigate } from "react-router";
-import { Mail, Lock, Eye, EyeOff, Chrome, Github } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Chrome, Github, AlertCircle } from "lucide-react";
 import { signIn } from "../../services/authService";
 import { ApiError } from "../../api/errors";
 import { useAuth } from "../../hooks/useAuth";
@@ -37,135 +37,150 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="glass-card rounded-3xl p-8 sm:p-10 shadow-2xl shadow-black/40 animate-slide-up">
-      {/* Logo area */}
-      <h1 className="text-3xl font-bold text-center mb-1 tracking-wide text-gradient-red">
+    <div className="auth-glass-card py-7 px-12 max-w-180 mx-auto w-full animate-slide-up">
+      {/* Header */}
+      <h1 className="text-3xl font-extrabold text-center mb-1 tracking-[-0.02em] text-gradient-red">
         Welcome Back
       </h1>
-      <p className="text-muted text-sm text-center mb-8">
+      <p className="text-[13px] text-white/40 text-center mb-8 tracking-wide">
         Sign in to continue to AloMedia
       </p>
 
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Column 1: Credentials */}
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-5 order-1">
-          <div className="flex flex-col gap-1">
+      <div className="flex flex-col sm:flex-row sm:items-stretch gap-8">
+
+        {/* Left: Form */}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-5">
+          {/* Email */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="email" className="text-[13px] text-white/50 tracking-wide pl-1">
+              Email address
+            </label>
             <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted group-focus-within:text-accent-red transition-colors" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
               <input
+                id="email"
                 type="email"
                 name="email"
-                placeholder="Email address"
+                placeholder="you@example.com"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className={`w-full bg-input-bg border rounded-xl py-3.5 pl-12 pr-4 text-accent-white placeholder-muted text-sm font-medium hover:border-dark-border-light focus:border-accent-red transition-all duration-200 ${
-                  apiError?.fieldMessage("email") ? "border-red-500" : "border-input-border"
+                className={`auth-input w-full rounded-lg py-3 pl-12 pr-4 text-accent-white placeholder-white/25 text-sm font-medium ${
+                  apiError?.fieldMessage("email") ? "input-error" : ""
                 }`}
               />
             </div>
             {apiError?.fieldMessage("email") && (
-              <p className="text-xs text-red-400 pl-1">{apiError.fieldMessage("email")}</p>
+              <div className="flex items-center gap-1.5 pl-1 animate-error-slide">
+                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                <p className="text-xs text-red-400">{apiError.fieldMessage("email")}</p>
+              </div>
             )}
           </div>
 
-          <div className="flex flex-col gap-1">
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted transition-colors pointer-events-none" />
+          {/* Password */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="password" className="text-[13px] text-white/50 tracking-wide pl-1">
+              Password
+            </label>
+            <div className="relative group">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150 pointer-events-none" />
               <input
+                id="password"
                 type={showPassword ? "text" : "password"}
                 name="password"
-                placeholder="Password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={`w-full bg-input-bg border rounded-xl py-3.5 pl-12 pr-12 text-accent-white placeholder-muted text-sm font-medium hover:border-dark-border-light focus:border-accent-red transition-all duration-200 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden ${
-                  apiError?.fieldMessage("password") ? "border-red-500" : "border-input-border"
+                className={`auth-input w-full rounded-lg py-3 pl-12 pr-12 text-accent-white text-sm font-medium [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden ${
+                  apiError?.fieldMessage("password") ? "input-error" : ""
                 }`}
               />
-              {/*
-                onMouseDown + e.preventDefault()
-                it never disappears after the first click.
-              */}
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setShowPassword((v) => !v)}
                 tabIndex={-1}
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-light hover:text-accent-white transition-colors cursor-pointer"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors duration-150 cursor-pointer"
               >
                 {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
               </button>
             </div>
             {apiError?.fieldMessage("password") && (
-              <p className="text-xs text-red-400 pl-1">{apiError.fieldMessage("password")}</p>
+              <div className="flex items-center gap-1.5 pl-1 animate-error-slide">
+                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                <p className="text-xs text-red-400">{apiError.fieldMessage("password")}</p>
+              </div>
             )}
           </div>
 
           {/* General (non-field) error */}
           {error && (!apiError || apiError.fields.length === 0) && (
-            <p className="text-xs text-red-400 text-center -mt-1">{error.message}</p>
+            <div className="flex items-center justify-center gap-1.5 -mt-1 animate-error-slide">
+              <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+              <p className="text-xs text-red-400">{error.message}</p>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={isPending}
-            className="w-full bg-linear-to-r from-blood-red to-crimson hover:from-blood-red-light hover:to-blood-red-glow text-accent-white font-semibold py-3.5 rounded-xl transition-all duration-300 text-sm tracking-wide shadow-lg shadow-blood-red/25 hover:shadow-blood-red/40 hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100"
+            className="auth-btn-primary w-full bg-linear-to-r from-blood-red to-crimson text-accent-white font-semibold py-3.5 rounded-lg text-sm tracking-wide cursor-pointer"
           >
-            {isPending ? "Signing in…" : "Sign In"}
+            {isPending ? "Signing in\u2026" : "Sign In"}
           </button>
 
           <div className="flex items-center justify-between text-xs px-1">
             <Link
               to="/auth/recover/request"
-              className="text-muted hover:text-rose-muted text-bold transition-colors duration-200 underline underline-offset-2 "
+              className="text-white/40 hover:text-white/60 font-bold transition-colors duration-150 underline underline-offset-2"
             >
               Forgot Password?
             </Link>
             <a
               href="#"
-              className="text-muted hover:text-rose-muted text-bold transition-colors duration-200 underline underline-offset-2 "
+              className="text-white/40 hover:text-white/60 font-bold transition-colors duration-150 underline underline-offset-2"
             >
-              Terms & Conditions
+              Terms &amp; Conditions
             </a>
           </div>
         </form>
 
-        {/* Divider */}
-        <div className="hidden md:flex flex-col items-center gap-3 px-2 order-2">
-          <div className="flex-1 w-px bg-linear-to-b from-transparent via-dark-border to-transparent" />
-          <span className="text-muted text-xs font-semibold uppercase tracking-widest">or</span>
-          <div className="flex-1 w-px bg-linear-to-b from-transparent via-dark-border to-transparent" />
-        </div>
+        {/* Vertical divider (sm+) */}
+        <div className="hidden sm:block w-px self-stretch bg-linear-to-b from-transparent via-white/8 to-transparent" />
+        {/* Horizontal divider (mobile) */}
+        <div className="sm:hidden h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
 
-        {/* This could be a conmponent to reuse in register and login */}
-        {/* Column 2: OAuth */}
-        <div className="flex-1 flex flex-col gap-4 justify-center order-3">
+        {/* Right: OAuth */}
+        <div className="flex flex-col gap-2.5 sm:flex-1 sm:justify-center">
+          <span className="text-white/35 text-[11px] font-semibold uppercase tracking-[0.08em] text-center mb-1">
+            or continue with
+          </span>
           <button
             type="button"
-            className="flex items-center justify-center gap-3 w-full bg-dark-card/60 hover:bg-dark-elevated/80 border border-dark-border hover:border-dark-border-light text-accent-white font-semibold py-3.5 rounded-xl transition-all duration-200 text-sm group cursor-pointer"
+            className="auth-btn-secondary flex items-center justify-center gap-3 w-full border border-dark-border text-accent-white font-semibold py-3.5 rounded-lg text-sm group cursor-pointer"
             onClick={handleOAuthLoginGoogle}
           >
-            <Chrome className="w-5 h-5 text-muted group-hover:text-accent-white transition-colors" />
+            <Chrome className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-150" />
             Sign in with Google
           </button>
-
           <button
             type="button"
-            className="flex items-center justify-center gap-3 w-full bg-dark-card/60 hover:bg-dark-elevated/80 border border-dark-border hover:border-dark-border-light text-accent-white font-semibold py-3.5 rounded-xl transition-all duration-200 text-sm group cursor-pointer"
+            className="auth-btn-secondary flex items-center justify-center gap-3 w-full border border-dark-border text-accent-white font-semibold py-3.5 rounded-lg text-sm group cursor-pointer"
           >
-            <Github className="w-5 h-5 text-muted group-hover:text-accent-white transition-colors" />
+            <Github className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-150" />
             Sign in with GitHub
           </button>
         </div>
+
       </div>
 
-      <p className="text-center text-muted text-sm mt-8">
+      <p className="text-center text-white/45 text-sm mt-8">
         Don't have an account?{" "}
         <Link
           to="/auth/register"
-          className="text-accent-red hover:text-rose-muted font-bold transition-colors duration-200"
+          className="text-accent-red hover:text-rose-muted font-bold transition-colors duration-150"
         >
           Sign Up
         </Link>

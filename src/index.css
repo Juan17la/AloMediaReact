@@ -63,12 +63,12 @@
 
 html {
   scroll-behavior: smooth;
-  background-color: #000000;
+  background-color: #080a0d;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: #000000;
+  background-color: #080a0d;
   color: var(--color-accent-white);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;

@@ -22,9 +22,9 @@ export default function DashboardPage() {
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(122,26,26,0.12)_0%,transparent_60%)]" />
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(45,10,20,0.15)_0%,transparent_50%)]" />
       {/* Atmospheric accent glow — upper-right edge */}
-      <div className="fixed -top-[10%] -right-[5%] w-[520px] h-[520px] rounded-full bg-blood-red/[0.08] blur-[120px] pointer-events-none" />
+      <div className="fixed -top-[10%] -right-[5%] w-130 h-130 rounded-full bg-blood-red/8 blur-[120px] pointer-events-none" />
       {/* Secondary glow — lower-left edge */}
-      <div className="fixed -bottom-[8%] -left-[5%] w-[420px] h-[420px] rounded-full bg-burgundy/[0.10] blur-[100px] pointer-events-none" />
+      <div className="fixed -bottom-[8%] -left-[5%] w-105 h-105 rounded-full bg-burgundy/10 blur-[100px] pointer-events-none" />
 
       <Navbar />
 
@@ -78,7 +78,7 @@ export default function DashboardPage() {
           </section>
 
           {/* My Projects */}
-          <section className="animate-slide-up" style={{ animationDelay: "0.1s" }}>
+          <section className="animate-slide-up [animation-delay:0.1s]">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <Clock className="w-5 h-5 text-accent-red" />
@@ -98,7 +98,7 @@ export default function DashboardPage() {
           </section>
 
           {/* Shared With Me */}
-          <section className="animate-slide-up" style={{ animationDelay: "0.15s" }}>
+          <section className="animate-slide-up [animation-delay:0.15s]">
             <div className="flex items-center gap-3 mb-6">
               <Users className="w-5 h-5 text-accent-red" />
               <h2 className="text-xl font-bold text-accent-white tracking-wide">
@@ -109,7 +109,7 @@ export default function DashboardPage() {
           </section>
 
           {/* Quick Actions */}
-          <section className="animate-slide-up pb-8" style={{ animationDelay: "0.2s" }}>
+          <section className="animate-slide-up pb-8 [animation-delay:0.2s]">
             <h2 className="text-xl font-bold text-accent-white tracking-wide mb-6">
               Quick Actions
             </h2>

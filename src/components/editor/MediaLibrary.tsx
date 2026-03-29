@@ -18,6 +18,9 @@ interface PendingMedia {
 // Module-level ref so keyboard shortcut hook can trigger the file input
 export const triggerFileInputRef = { current: null as (() => void) | null }
 
+const ghostBtn =
+  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-white/80 bg-white/5 border border-white/10 hover:bg-white/9 hover:border-white/[0.18] active:scale-95 transition-all duration-100 cursor-pointer"
+
 export function MediaLibrary() {
   const addMedia = useEditorStore(s => s.addMedia)
   const setProxyState = useEditorStore(s => s.setProxyState)
@@ -205,13 +208,10 @@ export function MediaLibrary() {
   return (
     <div
       ref={dropZoneRef}
-      className="flex flex-col h-full overflow-hidden relative margin-4"
+      className="flex flex-col h-full w-70 overflow-hidden relative border-l border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.35),0_16px_32px_rgba(0,0,0,0.20)]"
       style={{
-        width: 280,
         backdropFilter: "blur(24px) saturate(150%)",
         WebkitBackdropFilter: "blur(24px) saturate(150%)",
-        borderLeft: "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 12px rgba(0,0,0,0.35), 0 16px 32px rgba(0,0,0,0.20)",
       }}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
@@ -220,82 +220,30 @@ export function MediaLibrary() {
     >
       {/* Drop overlay */}
       {isDragOver && (
-        <div
-          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 pointer-events-none"
-          style={{
-            background: "rgba(34,34,48,0.85)",
-            border: "2px solid var(--color-accent-red)",
-          }}
-        >
-          <FilePlus2 size={28} style={{ color: "var(--color-accent-red)" }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: "var(--color-accent-white)" }}>Drop files here</span>
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 pointer-events-none bg-[rgba(34,34,48,0.85)] border-2 border-accent-red">
+          <FilePlus2 size={28} className="text-accent-red" />
+          <span className="text-[11px] font-semibold text-accent-white">Drop files here</span>
         </div>
       )}
 
       {/* Drop error */}
       {dropError && (
-        <div
-          className="absolute bottom-2 left-2 right-2 z-20 pointer-events-none"
-          style={{
-            background: "var(--color-dark-elevated)",
-            border: "1px solid #7f1d1d",
-            padding: "4px 8px",
-            fontSize: 10,
-            color: "#f87171",
-          }}
-        >
+        <div className="absolute bottom-2 left-2 right-2 z-20 pointer-events-none rounded bg-dark-elevated border border-[#7f1d1d] px-2 py-1 text-[10px] text-red-400">
           {dropError}
         </div>
       )}
 
       {/* Panel header */}
-      <div
-        className="flex items-center shrink-0 my-1 mx-3 py-2"
-        style={{
-          height: 40,
-          borderBottom: "1px solid var(--color-dark-border)",
-          padding: "0 8px",
-        }}
-      >
-        <span
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "var(--color-muted)",
-            flex: 1,
-          }}
-        >
+      <div className="flex items-center shrink-0 h-10 my-1 mx-3 px-2 border-b border-b-dark-border">
+        <span className="flex-1 text-[10px] font-semibold tracking-[0.12em] uppercase text-muted">
           Media
         </span>
         <button
-          className="bg-linear-to-r from-blood-red to-crimson text-accent-white"
           onClick={() => inputRef.current?.click()}
           title="Add media"
-          style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              height: 28,
-              padding: '0 10px',
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: '0.04em',
-              borderRadius: 8,
-              border: '1px solid rgba(255, 255, 255, 0.10)',
-              background: 'rgba(255, 255, 255, 0.05)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              color: 'rgba(255, 255, 255, 0.80)',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              transition: 'background 120ms ease-out, border-color 120ms ease-out',
-          }}
-          onMouseEnter={e => { (e.currentTarget).style.background = 'rgba(255, 255, 255, 0.09)'; (e.currentTarget).style.borderColor = 'rgba(255, 255, 255, 0.18)' }}
-          onMouseLeave={e => { (e.currentTarget).style.background = 'rgba(255, 255, 255, 0.05)'; (e.currentTarget).style.borderColor = 'rgba(255, 255, 255, 0.10)' }}
+          className={ghostBtn}
         >
-          <Plus size={14} /> 
+          <Plus size={14} />
           Add Files
         </button>
       </div>
@@ -303,34 +251,19 @@ export function MediaLibrary() {
       {/* Search bar */}
       {hasItems && (
         <div
-          className="flex items-center shrink-0 media-search-bar my-1 mx-3"
+          className="flex items-center shrink-0 gap-1.5 my-1 mx-3 px-3 py-2 bg-black/30 border border-white/8 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,box-shadow] duration-150 focus-within:border-accent-red/55 focus-within:ring-2 focus-within:ring-accent-red/12"
           style={{
-            background: "rgba(0,0,0,0.30)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 8,
-            padding: "8px 12px",
             backdropFilter: "blur(16px) saturate(140%)",
             WebkitBackdropFilter: "blur(16px) saturate(140%)",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
-            gap: 6,
-            transition: "border-color 150ms ease, box-shadow 150ms ease",
           }}
         >
-          <Search size={11} style={{ color: "rgba(255,255,255,0.30)", flexShrink: 0 }} />
+          <Search size={11} className="text-white/30 shrink-0" />
           <input
             type="text"
             placeholder="Search..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            style={{
-              flex: 1,
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              fontSize: 11,
-              color: "var(--color-accent-white)",
-              fontFamily: "inherit",
-            }}
+            className="flex-1 bg-transparent border-0 outline-none text-[11px] text-accent-white font-[inherit]"
           />
         </div>
       )}
@@ -346,47 +279,26 @@ export function MediaLibrary() {
 
       {/* Empty state */}
       {!hasItems && (
-        <div
-          className="flex flex-col items-center justify-center flex-1 gap-3"
-          style={{ padding: 16 }}
-        >
+        <div className="flex flex-col items-center justify-center flex-1 gap-3 p-4">
           <div
-            style={{
-              border: "2px dashed var(--color-dark-border)",
-              width: "100%",
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              cursor: "pointer",
-            }}
+            className="border-2 border-dashed border-dark-border w-full flex-1 flex flex-col items-center justify-center gap-2 cursor-pointer"
             onClick={() => inputRef.current?.click()}
           >
-            <FilePlus2 size={24} style={{ color: "var(--color-muted)" }} />
-            <span style={{ fontSize: 10, color: "var(--color-muted)", textAlign: "center" }}>
+            <FilePlus2 size={24} className="text-muted" />
+            <span className="text-[10px] text-muted text-center">
               Click or drop<br />video, audio or images
             </span>
           </div>
         </div>
       )}
 
-      {/* Media grid — 2 cols, 1px gap acts as border */}
+      {/* Media grid — 2 cols, gap acts as border */}
       {hasItems && (
-        <div
-          className="flex-1 overflow-y-auto my-1 mx-3"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gridGap: 2,
-            alignContent: "start",
-          }}
-        >
+        <div className="flex-1 overflow-y-auto my-1 mx-3 grid grid-cols-2 gap-0.5 content-start">
           {filteredMedia.map(item => (
             <div
               key={item.id}
-              style={{ minWidth: 0, overflow: "hidden", position: "relative" }}
+              className="min-w-0 overflow-hidden relative"
               onDoubleClick={() => insertMediaAtPlayhead(item)}
             >
               <MediaCard
@@ -398,22 +310,13 @@ export function MediaLibrary() {
               {idbResolvedMediaIds.has(item.id) && (
                 <div
                   title="Loaded from local cache"
-                  style={{
-                    position: "absolute",
-                    top: 4,
-                    right: 4,
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: "#4ade80",
-                    pointerEvents: "none",
-                  }}
+                  className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-green-400 pointer-events-none"
                 />
               )}
             </div>
           ))}
           {pending.map(p => (
-            <div key={p.tempId} style={{ minWidth: 0, overflow: "hidden" }}>
+            <div key={p.tempId} className="min-w-0 overflow-hidden">
               <LoadingCard fileName={p.fileName} />
             </div>
           ))}

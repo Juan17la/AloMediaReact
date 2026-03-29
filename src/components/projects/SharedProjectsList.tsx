@@ -64,7 +64,7 @@ export function SharedProjectsList() {
           <button
             disabled={page === 0}
             onClick={() => setPage(p => p - 1)}
-            className="p-1.5 rounded border border-dark-border text-muted hover:text-accent-white disabled:opacity-30 transition-colors"
+            className="p-1.5 rounded border border-dark-border text-muted hover:text-accent-white disabled:opacity-35 transition-colors"
           >
             <ChevronLeft size={14} />
           </button>
@@ -74,7 +74,7 @@ export function SharedProjectsList() {
           <button
             disabled={page >= data.totalPages - 1}
             onClick={() => setPage(p => p + 1)}
-            className="p-1.5 rounded border border-dark-border text-muted hover:text-accent-white disabled:opacity-30 transition-colors"
+            className="p-1.5 rounded border border-dark-border text-muted hover:text-accent-white disabled:opacity-35 transition-colors"
           >
             <ChevronRight size={14} />
           </button>

@@ -37,12 +37,13 @@ function buildVideoSegmentFilters(
 ): string[] {
   const speed = seg.speed ?? DEFAULT_SPEED
   const isAnimatedGif = seg.type === 'image' && isGifFileName(inputFilePath)
+  const clipDuration = Math.max(0, seg.timelineEnd - seg.timelineStart)
 
   const filters: string[] = []
 
   if (seg.type === 'image' && !isAnimatedGif) {
     // Static image: loop a single frame, set fps, trim to clip duration, shift to timeline
-    const duration = (seg.timelineEnd - seg.timelineStart).toFixed(3)
+    const duration = clipDuration.toFixed(3)
     filters.push(`loop=-1:size=1:start=0`)
     filters.push(`fps=${fps}`)
     filters.push(`trim=end=${duration}`)
@@ -78,6 +79,18 @@ function buildVideoSegmentFilters(
     filters.push(`rotate=${radians.toFixed(6)}:fillcolor=black@0`)
   }
 
+  // Fade-in from black (transitionIn without preceding clip → fade_from_black)
+  if (seg.resolvedTransitionIn?.kind === 'fade_from_black') {
+    const fadeStart = (seg.resolvedTransitionIn.overlapStartS - seg.timelineStart).toFixed(3)
+    filters.push(`fade=t=in:st=${fadeStart}:d=${seg.resolvedTransitionIn.duration.toFixed(3)}`)
+  }
+
+  // Fade-out to black (transitionOut without following clip → fade_to_black)
+  if (seg.resolvedTransitionOut?.kind === 'fade_to_black') {
+    const fadeStart = (seg.resolvedTransitionOut.overlapStartS - seg.timelineStart).toFixed(3)
+    filters.push(`fade=t=out:st=${fadeStart}:d=${seg.resolvedTransitionOut.duration.toFixed(3)}`)
+  }
+
   return filters
 }
 
@@ -97,6 +110,18 @@ function buildAudioSegmentFilters(seg: RenderSegment): string[] {
   if (seg.audioConfig) {
     const chain = buildFullAudioFilterChain(seg.audioConfig, clipDuration)
     if (chain) filters.push(chain)
+  }
+
+  // Audio fade-in from black
+  if (seg.resolvedTransitionIn?.kind === 'fade_from_black') {
+    const fadeStart = (seg.resolvedTransitionIn.overlapStartS - seg.timelineStart).toFixed(3)
+    filters.push(`afade=t=in:st=${fadeStart}:d=${seg.resolvedTransitionIn.duration.toFixed(3)}`)
+  }
+
+  // Audio fade-out to black
+  if (seg.resolvedTransitionOut?.kind === 'fade_to_black') {
+    const fadeStart = (seg.resolvedTransitionOut.overlapStartS - seg.timelineStart).toFixed(3)
+    filters.push(`afade=t=out:st=${fadeStart}:d=${seg.resolvedTransitionOut.duration.toFixed(3)}`)
   }
 
   filters.push(`adelay=${delayMs}|${delayMs}`)

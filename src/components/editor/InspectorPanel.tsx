@@ -5,7 +5,7 @@ import { SpeedConfigPanel } from "./SpeedConfigPanel"
 import { useEditorStore } from "../../store/editorStore"
 import { TransitionInspector } from "./TransitionInspector"
 
-type InspectorTab = "video" | "audio" | "speed"
+type InspectorTab = "video" | "audio" | "speed" | "transitions"
 
 // Glass panel constant
 
@@ -38,7 +38,7 @@ export function InspectorPanel() {
     if (!clip) return []
     if (clip.type === "image") return ["video"]
     if (clip.type === "audio") return ["audio", "speed"]
-    if (clip.type === "video") return ["video", "audio", "speed"]
+    if (clip.type === "video") return ["video", "audio", "speed", "transitions"]
     return []
   }, [clip])
 
@@ -72,6 +72,8 @@ export function InspectorPanel() {
         return <AudioConfigPanel clipId={inspectorClip.id} />
       case "speed":
         return <SpeedConfigPanel clipId={inspectorClip.id} />
+      case "transitions":
+        return <TransitionInspector />
       default:
         return null
     }
@@ -94,7 +96,7 @@ export function InspectorPanel() {
         <div className="flex shrink-0 h-8 border-b border-b-white/7">
           {tabs.map(tab => {
             const active = effectiveTab === tab
-            const label = tab === "video" ? "Video" : tab === "audio" ? "Audio" : "Speed"
+            const label = tab === "video" ? "Video" : tab === "audio" ? "Audio" : tab === "speed" ? "Speed" : "Trans."
             return (
               <button
                 key={tab}

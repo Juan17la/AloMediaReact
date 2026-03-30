@@ -42,7 +42,7 @@ export function TimelineClipContextMenu({ x, y, clip, onClose }: TimelineClipCon
   const splitClip = useEditorStore(s => s.splitClip)
   const removeClip = useEditorStore(s => s.removeClip)
   const extractAudioFromClip = useEditorStore(s => s.extractAudioFromClip)
-  const setOutTransition = useEditorStore(s => s.setOutTransition)
+  const setClipTransitionOut = useEditorStore(s => s.setClipTransitionOut)
   const playhead = useEditorStore(s => s.playhead)
   const clipboard = useEditorStore(s => s.clipboard)
 
@@ -173,8 +173,8 @@ export function TimelineClipContextMenu({ x, y, clip, onClose }: TimelineClipCon
         onClick={() => {
           if (!canAddTransitionOut) return
           runAction(() => {
-            const current = clip.type === "video" ? clip.outTransition : undefined
-            setOutTransition(clip.id, current ?? { type: "fade", duration: 0.4 })
+            const current = clip.type === "video" ? clip.transitionOut : undefined
+            setClipTransitionOut(clip.id, current ?? { type: "fade", duration: 0.4 })
             setSelectedTransitionClip(clip.id)
           })
         }}

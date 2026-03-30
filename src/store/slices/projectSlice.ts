@@ -43,9 +43,8 @@ export interface ProjectSlice {
   commitTransform: (clipId: string) => void
   updateClipColorAdjustments: (clipId: string, adjustments: ColorAdjustments) => void
   updateClipAudioConfig: (clipId: string, config: Partial<AudioConfig>) => void
-  setOutTransition: (clipId: string, transition: ClipTransition) => void
-  removeOutTransition: (clipId: string) => void
-  setClipOutTransition: (clipId: string, transition?: ClipTransition) => void
+  setClipTransitionIn: (clipId: string, transition: ClipTransition | undefined) => void
+  setClipTransitionOut: (clipId: string, transition: ClipTransition | undefined) => void
   setClipSpeed: (clipId: string, speed: number) => void
   extractAudioFromClip: (clipId: string) => void
   removeMedia: (mediaId: string) => void
@@ -415,8 +414,8 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     if (wasPlaying) resumePlayer()
   },
 
-  setOutTransition(clipId, transition) {
-    get().pushHistory("Set transition out")
+  setClipTransitionIn(clipId, transition) {
+    get().pushHistory(transition ? "Set transition in" : "Remove transition in")
     resetPlayer()
     set(state => ({
       project: {
@@ -426,18 +425,23 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
           clips: track.clips.map(clip => {
             if (clip.id !== clipId) return clip
             if (clip.type !== "video") return clip
-            return { ...clip, outTransition: { ...transition } }
+            if (transition) {
+              return { ...clip, transitionIn: { ...transition } }
+            }
+            const { transitionIn: _removed, ...rest } = clip
+            void _removed
+            return rest
           }),
         })),
       },
     }))
   },
 
-  removeOutTransition(clipId) {
-    get().pushHistory("Remove transition out")
+  setClipTransitionOut(clipId, transition) {
+    get().pushHistory(transition ? "Set transition out" : "Remove transition out")
     resetPlayer()
     set(state => ({
-      selectedTransitionClipId: state.selectedTransitionClipId === clipId
+      selectedTransitionClipId: !transition && state.selectedTransitionClipId === clipId
         ? undefined
         : state.selectedTransitionClipId,
       project: {
@@ -447,22 +451,16 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
           clips: track.clips.map(clip => {
             if (clip.id !== clipId) return clip
             if (clip.type !== "video") return clip
-
-            const { outTransition: _removed, ...rest } = clip
+            if (transition) {
+              return { ...clip, transitionOut: { ...transition } }
+            }
+            const { transitionOut: _removed, ...rest } = clip
             void _removed
             return rest
           }),
         })),
       },
     }))
-  },
-
-  setClipOutTransition(clipId, transition) {
-    if (!transition) {
-      get().removeOutTransition(clipId)
-      return
-    }
-    get().setOutTransition(clipId, transition)
   },
 
   setClipSpeed(clipId, speed) {

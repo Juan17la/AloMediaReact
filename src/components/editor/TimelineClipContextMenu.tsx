@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from "react"
 import { createPortal } from "react-dom"
 import type { Clip } from "../../project/projectTypes"
 import { useEditorStore } from "../../store/editorStore"
+import { findNextAdjacentOnSameTrack } from "../../utils/transitions"
 
 interface TimelineClipContextMenuProps {
   x: number
@@ -33,17 +34,24 @@ const shortcutHint = "text-[11px] font-mono text-white/45"
 
 export function TimelineClipContextMenu({ x, y, clip, onClose }: TimelineClipContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
+  const tracks = useEditorStore(s => s.project.tracks)
   const setSelectedClip = useEditorStore(s => s.setSelectedClip)
   const copyClip = useEditorStore(s => s.copyClip)
   const pasteClip = useEditorStore(s => s.pasteClip)
   const splitClip = useEditorStore(s => s.splitClip)
   const removeClip = useEditorStore(s => s.removeClip)
   const extractAudioFromClip = useEditorStore(s => s.extractAudioFromClip)
+  const setClipOutTransition = useEditorStore(s => s.setClipOutTransition)
   const playhead = useEditorStore(s => s.playhead)
   const clipboard = useEditorStore(s => s.clipboard)
 
   const canPaste = !!clipboard
   const canExtractAudio = clip.type === "video"
+  const track = tracks.find(t => t.id === clip.trackId)
+  const nextSameTrackClip = track
+    ? findNextAdjacentOnSameTrack(clip, track.clips)
+    : undefined
+  const canAddTransitionOut = clip.type === "video" && nextSameTrackClip?.type === "video"
 
   useLayoutEffect(() => {
     const menu = menuRef.current
@@ -154,6 +162,19 @@ export function TimelineClipContextMenu({ x, y, clip, onClose }: TimelineClipCon
         }}
       >
         <span>Extract Audio</span>
+        <span className={shortcutHint} />
+      </button>
+
+      <button
+        type="button"
+        role="menuitem"
+        className={`${menuItem} ${canAddTransitionOut ? "" : menuItemDisabled}`}
+        onClick={() => {
+          if (!canAddTransitionOut) return
+          runAction(() => setClipOutTransition(clip.id, { type: "fade", duration: 0.4 }))
+        }}
+      >
+        <span>Add Transition Out</span>
         <span className={shortcutHint} />
       </button>
 

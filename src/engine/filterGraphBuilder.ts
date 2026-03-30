@@ -4,6 +4,8 @@ import { buildFullAudioFilterChain } from "../utils/audioFilters"
 import { buildAudioSpeedFilter } from "../utils/speedFilters"
 import { DEFAULT_SPEED } from "../constants/speed"
 import { isGifFileName } from "./ffmpegUtils"
+import { buildXfadeChains } from "./xfadeChainBuilder"
+import { normalizeTransitionType } from "../utils/transitions"
 
 // The preview canvas coordinate space. All Transform values are in these units.
 const CANVAS_WIDTH = 1280
@@ -101,10 +103,64 @@ function buildAudioSegmentFilters(seg: RenderSegment): string[] {
   return filters
 }
 
+function buildVideoSegmentFiltersForXfadeChain(
+  seg: RenderSegment,
+  scaledW: number,
+  scaledH: number,
+  scaledX: number,
+  scaledY: number,
+  fps: number,
+  inputFilePath: string,
+  canvasWidth: number,
+  canvasHeight: number,
+): string[] {
+  const speed = seg.speed ?? DEFAULT_SPEED
+  const isAnimatedGif = seg.type === 'image' && isGifFileName(inputFilePath)
+  const clipDuration = Math.max(0, seg.timelineEnd - seg.timelineStart)
+
+  const filters: string[] = []
+
+  if (seg.type === 'image' && !isAnimatedGif) {
+    filters.push(`loop=-1:size=1:start=0`)
+    filters.push(`fps=${fps}`)
+    filters.push(`trim=end=${clipDuration.toFixed(3)}`)
+    filters.push(`setpts=PTS-STARTPTS`)
+  } else {
+    if (Math.abs(speed - DEFAULT_SPEED) < 0.001) {
+      filters.push(`trim=start=${seg.mediaStart}:end=${seg.mediaEnd}`)
+      filters.push(`setpts=PTS-STARTPTS`)
+    } else {
+      const invSpeed = (1 / speed).toFixed(6)
+      filters.push(`trim=start=${seg.mediaStart}:end=${seg.mediaEnd}`)
+      filters.push(`setpts=(PTS-STARTPTS)*${invSpeed}`)
+    }
+  }
+
+  filters.push(`scale=${scaledW}:${scaledH}`)
+  if (seg.colorAdjustments) {
+    const eq = buildEqFilter(seg.colorAdjustments)
+    const shadow = buildShadowFilter(seg.colorAdjustments)
+    const def = buildDefinitionFilter(seg.colorAdjustments)
+    if (eq) filters.push(eq)
+    if (shadow) filters.push(shadow)
+    if (def) filters.push(def)
+  }
+
+  const rotation = seg.transform?.rotation ?? 0
+  if (Math.abs(rotation) > 0.001) {
+    const radians = (rotation * Math.PI) / 180
+    filters.push(`rotate=${radians.toFixed(6)}:fillcolor=black@0`)
+  }
+
+  filters.push(`format=rgba`)
+  filters.push(`pad=${canvasWidth}:${canvasHeight}:${scaledX}:${scaledY}:color=black@0`)
+  return filters
+}
+
 export function buildFilterGraph(
   job: RenderJob,
   fileNames: Map<string, string>,
-  options: { skipVideoAudio?: boolean } = {},
+  options: { skipVideoAudio?: boolean; disableTransitions?: boolean } = {},
 ): FilterGraphResult {
   const { width: W, height: H } = job.resolution
   const fps = job.fps
@@ -152,9 +208,76 @@ export function buildFilterGraph(
       })
     }
 
+    type OverlaySource = {
+      label: string
+      timelineStart: number
+      timelineEnd: number
+      trackOrder: number
+      x: number
+      y: number
+    }
+
+    const chainedIndexes = new Set<number>()
+    const overlaySources: OverlaySource[] = []
+    const xfadeChains = options.disableTransitions ? [] : buildXfadeChains(visualSegments)
+
+    for (let chainIdx = 0; chainIdx < xfadeChains.length; chainIdx++) {
+      const chain = xfadeChains[chainIdx]
+
+      for (const idx of chain.segmentIndexes) {
+        const seg = visualSegments[idx]
+        const inputIdx = idx + 1
+        const t = seg.transform
+        const scaledW = Math.round((t?.width ?? CANVAS_WIDTH) * scaleX / 2) * 2
+        const scaledH = Math.round((t?.height ?? CANVAS_HEIGHT) * scaleY / 2) * 2
+        const scaledX = Math.round((t?.x ?? 0) * scaleX)
+        const scaledY = Math.round((t?.y ?? 0) * scaleY)
+        const inputFilePath = fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}`
+
+        const prepLabel = `xprep_${idx}`
+        const prepFilters = buildVideoSegmentFiltersForXfadeChain(
+          seg,
+          scaledW,
+          scaledH,
+          scaledX,
+          scaledY,
+          fps,
+          inputFilePath,
+          W,
+          H,
+        )
+        filterParts.push(`[${inputIdx}:v]${prepFilters.join(',')}[${prepLabel}]`)
+        chainedIndexes.add(idx)
+      }
+
+      let currentLabel = `xprep_${chain.segmentIndexes[0]}`
+      for (let b = 0; b < chain.boundaries.length; b++) {
+        const boundary = chain.boundaries[b]
+        const nextLabel = `xprep_${boundary.toSegmentIndex}`
+        const outLabel = b === chain.boundaries.length - 1 ? `xchain_${chainIdx}` : `xchain_${chainIdx}_${b}`
+        const transition = normalizeTransitionType(boundary.transition.type)
+
+        filterParts.push(
+          `[${currentLabel}][${nextLabel}]xfade=transition=${transition}:duration=${boundary.duration}:offset=${boundary.offset}[${outLabel}]`,
+        )
+        currentLabel = outLabel
+      }
+
+      overlaySources.push({
+        label: `[${currentLabel}]`,
+        timelineStart: chain.timelineStart,
+        timelineEnd: chain.timelineEnd,
+        trackOrder: chain.trackOrder,
+        x: 0,
+        y: 0,
+      })
+    }
+
     let lastVideoLabel = '0:v'
 
     for (let i = 0; i < visualSegments.length; i++) {
+      if (chainedIndexes.has(i)) continue
+
       const seg = visualSegments[i]
       const inputIdx = i + 1 // +1 because input 0 is base canvas
 
@@ -170,9 +293,27 @@ export function buildFilterGraph(
       const vLabel = `v${i}`
       filterParts.push(`[${inputIdx}:v]${segFilters.join(',')}[${vLabel}]`)
 
-      const outLabel = i === visualSegments.length - 1 ? 'vout' : `comp${i}`
+      overlaySources.push({
+        label: `[${vLabel}]`,
+        timelineStart: seg.timelineStart,
+        timelineEnd: seg.timelineEnd,
+        trackOrder: seg.trackOrder,
+        x: scaledX,
+        y: scaledY,
+      })
+    }
+
+    overlaySources.sort((a, b) => {
+      const orderDiff = b.trackOrder - a.trackOrder
+      return orderDiff !== 0 ? orderDiff : a.timelineStart - b.timelineStart
+    })
+
+    for (let i = 0; i < overlaySources.length; i++) {
+      const source = overlaySources[i]
+
+      const outLabel = i === overlaySources.length - 1 ? 'vout' : `comp${i}`
       filterParts.push(
-        `[${lastVideoLabel}][${vLabel}]overlay=x=${scaledX}:y=${scaledY}:eof_action=pass:enable='between(t,${seg.timelineStart},${seg.timelineEnd})'[${outLabel}]`,
+        `[${lastVideoLabel}]${source.label}overlay=x=${source.x}:y=${source.y}:eof_action=pass:enable='between(t,${source.timelineStart},${source.timelineEnd})'[${outLabel}]`,
       )
       lastVideoLabel = outLabel
     }

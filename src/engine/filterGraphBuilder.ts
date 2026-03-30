@@ -118,8 +118,19 @@ function buildAudioSegmentFilters(seg: RenderSegment): string[] {
     filters.push(`afade=t=in:st=${fadeStart}:d=${seg.resolvedTransitionIn.duration.toFixed(3)}`)
   }
 
+  // Audio fade-in during crossfade (incoming clip)
+  if (seg.resolvedTransitionIn?.kind === 'crossfade') {
+    filters.push(`afade=t=in:st=0:d=${seg.resolvedTransitionIn.duration.toFixed(3)}`)
+  }
+
   // Audio fade-out to black
   if (seg.resolvedTransitionOut?.kind === 'fade_to_black') {
+    const fadeStart = (seg.resolvedTransitionOut.overlapStartS - seg.timelineStart).toFixed(3)
+    filters.push(`afade=t=out:st=${fadeStart}:d=${seg.resolvedTransitionOut.duration.toFixed(3)}`)
+  }
+
+  // Audio fade-out during crossfade (outgoing clip)
+  if (seg.resolvedTransitionOut?.kind === 'crossfade') {
     const fadeStart = (seg.resolvedTransitionOut.overlapStartS - seg.timelineStart).toFixed(3)
     filters.push(`afade=t=out:st=${fadeStart}:d=${seg.resolvedTransitionOut.duration.toFixed(3)}`)
   }

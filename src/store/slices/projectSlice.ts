@@ -43,6 +43,8 @@ export interface ProjectSlice {
   commitTransform: (clipId: string) => void
   updateClipColorAdjustments: (clipId: string, adjustments: ColorAdjustments) => void
   updateClipAudioConfig: (clipId: string, config: Partial<AudioConfig>) => void
+  setOutTransition: (clipId: string, transition: ClipTransition) => void
+  removeOutTransition: (clipId: string) => void
   setClipOutTransition: (clipId: string, transition?: ClipTransition) => void
   setClipSpeed: (clipId: string, speed: number) => void
   extractAudioFromClip: (clipId: string) => void
@@ -121,6 +123,8 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
       historyIndex: -1,
       playhead: 0,
       isPlaying: false,
+      selectedClipId: undefined,
+      selectedTransitionClipId: undefined,
       missingMediaIds: new Set(),
       idbResolvedMediaIds: new Set(),
     })
@@ -411,8 +415,9 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     if (wasPlaying) resumePlayer()
   },
 
-  setClipOutTransition(clipId, transition) {
-    const wasPlaying = get().pushHistory("Set transition out")
+  setOutTransition(clipId, transition) {
+    get().pushHistory("Set transition out")
+    resetPlayer()
     set(state => ({
       project: {
         ...state.project,
@@ -421,20 +426,43 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
           clips: track.clips.map(clip => {
             if (clip.id !== clipId) return clip
             if (clip.type !== "video") return clip
-
-            if (!transition) {
-              const { outTransition: _removed, ...rest } = clip
-              void _removed
-              return rest
-            }
-
             return { ...clip, outTransition: { ...transition } }
           }),
         })),
       },
     }))
+  },
 
-    if (wasPlaying) resumePlayer()
+  removeOutTransition(clipId) {
+    get().pushHistory("Remove transition out")
+    resetPlayer()
+    set(state => ({
+      selectedTransitionClipId: state.selectedTransitionClipId === clipId
+        ? undefined
+        : state.selectedTransitionClipId,
+      project: {
+        ...state.project,
+        tracks: state.project.tracks.map(track => ({
+          ...track,
+          clips: track.clips.map(clip => {
+            if (clip.id !== clipId) return clip
+            if (clip.type !== "video") return clip
+
+            const { outTransition: _removed, ...rest } = clip
+            void _removed
+            return rest
+          }),
+        })),
+      },
+    }))
+  },
+
+  setClipOutTransition(clipId, transition) {
+    if (!transition) {
+      get().removeOutTransition(clipId)
+      return
+    }
+    get().setOutTransition(clipId, transition)
   },
 
   setClipSpeed(clipId, speed) {
@@ -618,6 +646,7 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
       missingMediaIds: new Set(),
       idbResolvedMediaIds: new Set(),
       selectedClipId: undefined,
+      selectedTransitionClipId: undefined,
       selectedTrackId: undefined,
     })
     resetPlayer()

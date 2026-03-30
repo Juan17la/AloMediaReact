@@ -124,6 +124,7 @@ export interface HistoryEntry {
 export interface EditorState {
   project: Project
   selectedClipId?: string
+  selectedTransitionClipId?: string
   selectedTrackId?: string
   playhead: number
   timelineScale: number // px per second, default 50

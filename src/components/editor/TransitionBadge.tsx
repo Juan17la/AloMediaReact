@@ -4,6 +4,7 @@ interface TransitionBadgeProps {
     clipId: string
     transition: ClipTransition
     left: number
+    position: "in" | "out"
     isSelected: boolean
     onSelect: (clipId: string) => void
 }
@@ -21,8 +22,9 @@ const badgeSelected =
 const badgeUnselected =
     "bg-black/45 border-white/16 text-white/78 hover:bg-white/12 hover:border-white/26 hover:text-white"
 
-export function TransitionBadge({ clipId, transition, left, isSelected, onSelect }: TransitionBadgeProps) {
-    const hoverLabel = `${transition.type} • ${transition.duration.toFixed(2)}s`
+export function TransitionBadge({ clipId, transition, left, position, isSelected, onSelect }: TransitionBadgeProps) {
+    const posLabel = position === "in" ? "in" : "out"
+    const hoverLabel = `${posLabel} • ${transition.type} • ${transition.duration.toFixed(2)}s`
 
     return (
         <button

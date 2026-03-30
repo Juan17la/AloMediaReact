@@ -39,6 +39,7 @@ function clipToSegment(
       volume: clip.audioConfig?.volume ?? clip.volume,
       colorAdjustments: clip.colorAdjustments,
       audioConfig: clip.audioConfig,
+      outTransition: clip.outTransition,
     }
   }
 

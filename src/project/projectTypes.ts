@@ -37,6 +37,21 @@ export interface AudioConfig {
   balance: number          // -1.0 (full left) to 1.0 (full right), default 0 (center)
 }
 
+export type XfadeTransitionType =
+  | "fade"
+  | "wipeleft"
+  | "wiperight"
+  | "slideleft"
+  | "slideright"
+  | "circlecrop"
+  | "distance"
+  | (string & {})
+
+export interface ClipTransition {
+  type: XfadeTransitionType
+  duration: number // seconds
+}
+
 export interface BaseClip {
   id: string
   trackId: string
@@ -56,6 +71,7 @@ export interface VideoClip extends BaseClip {
   transform: Transform
   colorAdjustments?: ColorAdjustments
   audioConfig?: AudioConfig
+  outTransition?: ClipTransition
 }
 
 export interface ImageClip extends BaseClip {
@@ -138,6 +154,7 @@ export interface RenderSegment {
   volume?: number
   colorAdjustments?: ColorAdjustments
   audioConfig?: AudioConfig
+  outTransition?: ClipTransition
 }
 
 export type ExportOutputFormat = "mp4" | "mov" | "mkv" | "avi"

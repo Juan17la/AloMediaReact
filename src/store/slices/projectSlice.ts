@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand"
 import { generateId } from "../../utils/id"
-import { toMs, toSeconds } from "../../utils/time"
+import { getMediaBackedClipMaxTimelineEnd, toMs, toSeconds } from "../../utils/time"
 import { getInsertionIndex } from "../../utils/tracks"
 import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig"
 import { DEFAULT_SPEED, MAX_SPEED, MIN_SPEED } from "../../constants/speed"
@@ -334,8 +334,11 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
           ...track,
           clips: track.clips.map(clip => {
             if (clip.id !== clipId) return clip
-            if (newEnd <= clip.timelineStart + 0.5) return clip
-            return { ...clip, timelineEnd: newEnd }
+            const minEnd = clip.timelineStart + 0.5
+            const maxEnd = getMediaBackedClipMaxTimelineEnd(clip) ?? Number.POSITIVE_INFINITY
+            const clampedEnd = Math.max(minEnd, Math.min(newEnd, maxEnd))
+            if (clampedEnd === clip.timelineEnd) return clip
+            return { ...clip, timelineEnd: toSeconds(toMs(clampedEnd)) }
           }),
         })),
       },

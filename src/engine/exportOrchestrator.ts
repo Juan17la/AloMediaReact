@@ -90,7 +90,7 @@ export async function runExport(
   const execArgs = buildExecArgs(graph, job, outputFile)
   console.debug('[export] ffmpeg exec args:', execArgs.join(' '))
 
-  const ffmpegLogs: string[] = []
+  let ffmpegLogs: string[] = []
   const logListener = ({ message }: { type: string; message: string }) => {
     ffmpegLogs.push(message)
   }
@@ -114,67 +114,95 @@ export async function runExport(
   if (exitCode !== 0) {
     if (signal.aborted) throw new DOMException('Export cancelled', 'AbortError')
 
-    // If the filter complex referenced [inputIdx:a] but the video has no audio stream,
-    // FFmpeg exits 1 with a "matches no streams" or similar message. Retry once without
-    // trying to extract audio from video inputs — the output will be video-only (or use
-    // audio-only clips if any exist).
-    const looksLikeAudioStreamError = ffmpegLogs.some(l =>
-      /matches no streams|no audio|does not contain any stream|unconnected output|filtergraph/i.test(l),
-    )
+    const runRetry = async (nextGraph: ReturnType<typeof buildFilterGraph>, tag: string) => {
+      const nextArgs = buildExecArgs(nextGraph, job, outputFile)
+      console.debug(`[export] ${tag} ffmpeg exec args:`, nextArgs.join(' '))
 
-    if (looksLikeAudioStreamError || exitCode === 1) {
-      console.warn('[export] First attempt failed (exit code', exitCode, '), retrying without video audio')
-      console.error('[export] First attempt logs:', ffmpegLogs)
-
-      if (signal.aborted) throw new DOMException('Export cancelled', 'AbortError')
-
-      const graphFallback = buildFilterGraph(job, fileNames, { skipVideoAudio: true })
-      const execArgsFallback = buildExecArgs(graphFallback, job, outputFile)
-      console.debug('[export] Fallback ffmpeg exec args:', execArgsFallback.join(' '))
-
-      const ffmpegLogsFallback: string[] = []
-      const logListenerFallback = ({ message }: { type: string; message: string }) => {
-        ffmpegLogsFallback.push(message)
+      const retryLogs: string[] = []
+      const retryLogListener = ({ message }: { type: string; message: string }) => {
+        retryLogs.push(message)
       }
-      ffmpeg.on('log', logListenerFallback)
+      ffmpeg.on('log', retryLogListener)
 
       let retryCode = -1
       try {
-        retryCode = await ffmpeg.exec(execArgsFallback)
+        retryCode = await ffmpeg.exec(nextArgs)
       } catch (err) {
         if (isFfmpegTerminateError(err) || signal.aborted) throw new DOMException('Export cancelled', 'AbortError')
         await cleanup(ffmpeg, written, job.outputFormat)
         throw err
       } finally {
-        ffmpeg.off('log', logListenerFallback)
+        ffmpeg.off('log', retryLogListener)
       }
 
-      if (retryCode !== 0) {
+      return { retryCode, retryLogs }
+    }
+
+    const looksLikeXfadeError =
+      graph.filterComplex.includes('xfade=') &&
+      ffmpegLogs.some(l => /xfade|transition|no such filter|error initializing complex filters|invalid argument/i.test(l))
+
+    if (looksLikeXfadeError) {
+      console.warn('[export] xfade attempt failed (exit code', exitCode, '), retrying once without transitions')
+      console.error('[export] xfade attempt logs:', ffmpegLogs)
+
+      const noTransitionGraph = buildFilterGraph(job, fileNames, { disableTransitions: true })
+      const noTransitionRetry = await runRetry(noTransitionGraph, 'No-transition retry')
+      if (noTransitionRetry.retryCode === 0) {
+        // Retry succeeded — continue to readFile
+      } else {
+        exitCode = noTransitionRetry.retryCode
+        ffmpegLogs = noTransitionRetry.retryLogs
+      }
+    }
+
+    if (exitCode !== 0) {
+      if (signal.aborted) throw new DOMException('Export cancelled', 'AbortError')
+
+      // If the filter complex referenced [inputIdx:a] but the video has no audio stream,
+      // FFmpeg exits 1 with a "matches no streams" or similar message. Retry once without
+      // trying to extract audio from video inputs — the output will be video-only (or use
+      // audio-only clips if any exist).
+      const looksLikeAudioStreamError = ffmpegLogs.some(l =>
+        /matches no streams|no audio|does not contain any stream|unconnected output|filtergraph/i.test(l),
+      )
+
+      if (looksLikeAudioStreamError || exitCode === 1) {
+        console.warn('[export] First attempt failed (exit code', exitCode, '), retrying without video audio')
+        console.error('[export] First attempt logs:', ffmpegLogs)
+
+        if (signal.aborted) throw new DOMException('Export cancelled', 'AbortError')
+
+        const graphFallback = buildFilterGraph(job, fileNames, { skipVideoAudio: true, disableTransitions: true })
+        const audioRetry = await runRetry(graphFallback, 'Audio-fallback retry')
+
+        if (audioRetry.retryCode !== 0) {
+          await cleanup(ffmpeg, written, job.outputFormat)
+          console.error('[export] Fallback logs:', audioRetry.retryLogs)
+          const errorLine = audioRetry.retryLogs
+            .filter(l => /error|invalid|no such|could not|unknown|failed/i.test(l))
+            .slice(-3)
+            .join(' | ')
+          throw new Error(
+            errorLine
+              ? `FFmpeg encoding failed: ${errorLine}`
+              : `FFmpeg encoding failed (exit code ${audioRetry.retryCode})`,
+          )
+        }
+        // Fallback succeeded — continue to readFile
+      } else {
         await cleanup(ffmpeg, written, job.outputFormat)
-        console.error('[export] Fallback logs:', ffmpegLogsFallback)
-        const errorLine = ffmpegLogsFallback
+        console.error('[export] FFmpeg logs:', ffmpegLogs)
+        const errorLine = ffmpegLogs
           .filter(l => /error|invalid|no such|could not|unknown|failed/i.test(l))
           .slice(-3)
           .join(' | ')
         throw new Error(
           errorLine
             ? `FFmpeg encoding failed: ${errorLine}`
-            : `FFmpeg encoding failed (exit code ${retryCode})`,
+            : `FFmpeg encoding failed (exit code ${exitCode})`,
         )
       }
-      // Fallback succeeded — continue to readFile
-    } else {
-      await cleanup(ffmpeg, written, job.outputFormat)
-      console.error('[export] FFmpeg logs:', ffmpegLogs)
-      const errorLine = ffmpegLogs
-        .filter(l => /error|invalid|no such|could not|unknown|failed/i.test(l))
-        .slice(-3)
-        .join(' | ')
-      throw new Error(
-        errorLine
-          ? `FFmpeg encoding failed: ${errorLine}`
-          : `FFmpeg encoding failed (exit code ${exitCode})`,
-      )
     }
   }
 

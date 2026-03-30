@@ -178,7 +178,7 @@ export function TransitionInspector() {
         return null
     }
 
-    const { clip, hasAdjacentNext, prevBlocksTransitionIn } = clipContext
+    const { clip, hasAdjacentNext, hasAdjacentPrev, prevBlocksTransitionIn } = clipContext
 
     return (
         <div className="space-y-4">
@@ -188,7 +188,7 @@ export function TransitionInspector() {
                 transition={clip.transitionIn}
                 disabled={prevBlocksTransitionIn}
                 disabledMessage="Controlled by previous clip's out-transition"
-                hasAdjacentClip={false}
+                hasAdjacentClip={hasAdjacentPrev}
                 onChange={(t) => setClipTransitionIn(clip.id, t)}
             />
 

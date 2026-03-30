@@ -4,7 +4,7 @@ import type { MediaType, Track, TrackType } from "../../project/projectTypes"
 import { ClipComponent } from "./Clip"
 import { useEditorStore } from "../../store/editorStore"
 import { pxToTime, timeToPx, TRACK_HEADER_WIDTH } from "../../utils/time"
-import { findNextAdjacentOnSameTrack, supportsOutgoingTransition } from "../../utils/transitions"
+import { supportsOutgoingTransition } from "../../utils/transitions"
 import { TransitionBadge } from "./TransitionBadge"
 
 interface TrackProps {
@@ -108,16 +108,37 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
       .sort((a, b) => a.timelineStart - b.timelineStart)
       .flatMap(clip => {
         if (!supportsOutgoingTransition(clip)) return []
-        if (!clip.outTransition || clip.outTransition.duration <= 0) return []
+        const badges: Array<{
+          key: string
+          clipId: string
+          transition: NonNullable<typeof clip.transitionOut>
+          left: number
+          position: "in" | "out"
+        }> = []
 
-        const nextClip = findNextAdjacentOnSameTrack(clip, track.clips)
-        if (!nextClip || nextClip.type !== "video") return []
+        // Transition Out badge — at clip's right edge
+        if (clip.transitionOut && clip.transitionOut.duration > 0) {
+          badges.push({
+            key: `out-${clip.id}`,
+            clipId: clip.id,
+            transition: clip.transitionOut,
+            left: timeToPx(clip.timelineEnd, scale),
+            position: "out",
+          })
+        }
 
-        return [{
-          clipId: clip.id,
-          transition: clip.outTransition,
-          left: timeToPx(clip.timelineEnd, scale),
-        }]
+        // Transition In badge — at clip's left edge
+        if (clip.transitionIn && clip.transitionIn.duration > 0) {
+          badges.push({
+            key: `in-${clip.id}`,
+            clipId: clip.id,
+            transition: clip.transitionIn,
+            left: timeToPx(clip.timelineStart, scale),
+            position: "in",
+          })
+        }
+
+        return badges
       })
   }, [track.clips, scale])
 
@@ -127,13 +148,13 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
     const selected = track.clips.find(c => c.id === selectedTransitionClipId)
     if (!selected) return
 
-    if (!supportsOutgoingTransition(selected) || !selected.outTransition || selected.outTransition.duration <= 0) {
+    if (!supportsOutgoingTransition(selected)) {
       setSelectedTransitionClip(undefined)
       return
     }
-
-    const nextClip = findNextAdjacentOnSameTrack(selected, track.clips)
-    if (!nextClip || nextClip.type !== "video") {
+    const hasOut = selected.transitionOut && selected.transitionOut.duration > 0
+    const hasIn = selected.transitionIn && selected.transitionIn.duration > 0
+    if (!hasOut && !hasIn) {
       setSelectedTransitionClip(undefined)
     }
   }, [selectedTransitionClipId, setSelectedTransitionClip, track.clips])
@@ -271,10 +292,11 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
       <div className="relative flex-1 overflow-hidden h-full">
         {transitionBadges.map(badge => (
           <TransitionBadge
-            key={`transition-${badge.clipId}`}
+            key={badge.key}
             clipId={badge.clipId}
             transition={badge.transition}
             left={badge.left}
+            position={badge.position}
             isSelected={selectedTransitionClipId === badge.clipId}
             onSelect={setSelectedTransitionClip}
           />

@@ -11,6 +11,7 @@ import { generateProxy } from "../../engine/proxyEngine"
 import type {
   AudioConfig,
   Clip,
+  ClipTransition,
   ColorAdjustments,
   Media,
   MediaType,
@@ -42,6 +43,7 @@ export interface ProjectSlice {
   commitTransform: (clipId: string) => void
   updateClipColorAdjustments: (clipId: string, adjustments: ColorAdjustments) => void
   updateClipAudioConfig: (clipId: string, config: Partial<AudioConfig>) => void
+  setClipOutTransition: (clipId: string, transition?: ClipTransition) => void
   setClipSpeed: (clipId: string, speed: number) => void
   extractAudioFromClip: (clipId: string) => void
   removeMedia: (mediaId: string) => void
@@ -406,6 +408,32 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
       },
     }))
     // Resume playback so audio setting changes feel live.
+    if (wasPlaying) resumePlayer()
+  },
+
+  setClipOutTransition(clipId, transition) {
+    const wasPlaying = get().pushHistory("Set transition out")
+    set(state => ({
+      project: {
+        ...state.project,
+        tracks: state.project.tracks.map(track => ({
+          ...track,
+          clips: track.clips.map(clip => {
+            if (clip.id !== clipId) return clip
+            if (clip.type !== "video") return clip
+
+            if (!transition) {
+              const { outTransition: _removed, ...rest } = clip
+              void _removed
+              return rest
+            }
+
+            return { ...clip, outTransition: { ...transition } }
+          }),
+        })),
+      },
+    }))
+
     if (wasPlaying) resumePlayer()
   },
 

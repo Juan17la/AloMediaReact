@@ -106,13 +106,20 @@ export function useMediaSync({
   useEffect(() => {
     const impl = (ph: number) => {
       const p = useEditorStore.getState().project
+      const activeVideoClip = getActiveVideoClip(p.tracks, ph)
       // Use raw file URL (not proxy) for the primary buffer so audio is preserved.
       // Proxies are generated with -an (no audio). Secondary elements are muted and
       // can keep using the proxy URL for smooth scrubbing.
       const getUrl = (id: string) => registryRef.current.getObjectUrl(id)
       const getIsPlaying = () => isPlayingRef.current
 
-      managerRef.current?.syncVideo(ph, p.tracks, getUrl, getIsPlaying)
+      managerRef.current?.syncVideo(
+        ph,
+        p.tracks,
+        getUrl,
+        getIsPlaying,
+        activeVideoClip?.outTransition,
+      )
 
       syncSecondaryVideoTracks({
         clips: secondaryClipsRef.current,
@@ -156,7 +163,7 @@ export function useMediaSync({
 
     for (const [, el] of secondaryVideoElemsRef.current) {
       if (isPlaying) {
-        el.play().catch(() => {})
+        el.play().catch(() => { })
       } else {
         el.pause()
       }

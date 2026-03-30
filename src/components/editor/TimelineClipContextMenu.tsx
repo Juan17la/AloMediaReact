@@ -36,12 +36,13 @@ export function TimelineClipContextMenu({ x, y, clip, onClose }: TimelineClipCon
   const menuRef = useRef<HTMLDivElement>(null)
   const tracks = useEditorStore(s => s.project.tracks)
   const setSelectedClip = useEditorStore(s => s.setSelectedClip)
+  const setSelectedTransitionClip = useEditorStore(s => s.setSelectedTransitionClip)
   const copyClip = useEditorStore(s => s.copyClip)
   const pasteClip = useEditorStore(s => s.pasteClip)
   const splitClip = useEditorStore(s => s.splitClip)
   const removeClip = useEditorStore(s => s.removeClip)
   const extractAudioFromClip = useEditorStore(s => s.extractAudioFromClip)
-  const setClipOutTransition = useEditorStore(s => s.setClipOutTransition)
+  const setOutTransition = useEditorStore(s => s.setOutTransition)
   const playhead = useEditorStore(s => s.playhead)
   const clipboard = useEditorStore(s => s.clipboard)
 
@@ -171,7 +172,11 @@ export function TimelineClipContextMenu({ x, y, clip, onClose }: TimelineClipCon
         className={`${menuItem} ${canAddTransitionOut ? "" : menuItemDisabled}`}
         onClick={() => {
           if (!canAddTransitionOut) return
-          runAction(() => setClipOutTransition(clip.id, { type: "fade", duration: 0.4 }))
+          runAction(() => {
+            const current = clip.type === "video" ? clip.outTransition : undefined
+            setOutTransition(clip.id, current ?? { type: "fade", duration: 0.4 })
+            setSelectedTransitionClip(clip.id)
+          })
         }}
       >
         <span>Add Transition Out</span>

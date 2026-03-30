@@ -1,9 +1,11 @@
-import { useState, type DragEvent } from "react"
+import { useEffect, useMemo, useState, type DragEvent } from "react"
 import { Eye, EyeOff, Trash2, Film, Music } from "lucide-react"
 import type { MediaType, Track, TrackType } from "../../project/projectTypes"
 import { ClipComponent } from "./Clip"
 import { useEditorStore } from "../../store/editorStore"
 import { pxToTime, timeToPx, TRACK_HEADER_WIDTH } from "../../utils/time"
+import { findNextAdjacentOnSameTrack, supportsOutgoingTransition } from "../../utils/transitions"
+import { TransitionBadge } from "./TransitionBadge"
 
 interface TrackProps {
   track: Track
@@ -78,7 +80,9 @@ function TrackControlBtn({
 
 export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDrop, onClipDrop, resolveDropPosition }: TrackProps) {
   const selectedClipId = useEditorStore(s => s.selectedClipId)
+  const selectedTransitionClipId = useEditorStore(s => s.selectedTransitionClipId)
   const setSelectedClip = useEditorStore(s => s.setSelectedClip)
+  const setSelectedTransitionClip = useEditorStore(s => s.setSelectedTransitionClip)
   const scale = useEditorStore(s => s.timelineScale)
   const removeTrack = useEditorStore(s => s.removeTrack)
   const reorderTrack = useEditorStore(s => s.reorderTrack)
@@ -97,6 +101,42 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
 
   const isOver = dragOverTrackId === track.id
   const rowHeight = track.type === "video" ? 55 : 50
+
+  const transitionBadges = useMemo(() => {
+    return track.clips
+      .slice()
+      .sort((a, b) => a.timelineStart - b.timelineStart)
+      .flatMap(clip => {
+        if (!supportsOutgoingTransition(clip)) return []
+        if (!clip.outTransition || clip.outTransition.duration <= 0) return []
+
+        const nextClip = findNextAdjacentOnSameTrack(clip, track.clips)
+        if (!nextClip || nextClip.type !== "video") return []
+
+        return [{
+          clipId: clip.id,
+          transition: clip.outTransition,
+          left: timeToPx(clip.timelineEnd, scale),
+        }]
+      })
+  }, [track.clips, scale])
+
+  useEffect(() => {
+    if (!selectedTransitionClipId) return
+
+    const selected = track.clips.find(c => c.id === selectedTransitionClipId)
+    if (!selected) return
+
+    if (!supportsOutgoingTransition(selected) || !selected.outTransition || selected.outTransition.duration <= 0) {
+      setSelectedTransitionClip(undefined)
+      return
+    }
+
+    const nextClip = findNextAdjacentOnSameTrack(selected, track.clips)
+    if (!nextClip || nextClip.type !== "video") {
+      setSelectedTransitionClip(undefined)
+    }
+  }, [selectedTransitionClipId, setSelectedTransitionClip, track.clips])
 
   function isCompatibleDrop(mediaType: MediaType, trackType: TrackType): boolean {
     if (mediaType === "audio") return trackType === "audio"
@@ -229,6 +269,17 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
 
       {/* Clips area */}
       <div className="relative flex-1 overflow-hidden h-full">
+        {transitionBadges.map(badge => (
+          <TransitionBadge
+            key={`transition-${badge.clipId}`}
+            clipId={badge.clipId}
+            transition={badge.transition}
+            left={badge.left}
+            isSelected={selectedTransitionClipId === badge.clipId}
+            onSelect={setSelectedTransitionClip}
+          />
+        ))}
+
         {/* Snap indicator */}
         {snapIndicatorX !== null && (
           <div

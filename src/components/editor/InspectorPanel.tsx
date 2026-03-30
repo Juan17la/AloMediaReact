@@ -1,14 +1,11 @@
 import { useMemo, useState } from "react"
-import type { Clip } from "../../project/projectTypes"
 import { AudioConfigPanel } from "./AudioConfigPanel"
 import { ColorAdjustmentsPanel } from "./ColorAdjustmentsPanel"
 import { SpeedConfigPanel } from "./SpeedConfigPanel"
+import { useEditorStore } from "../../store/editorStore"
+import { TransitionInspector } from "./TransitionInspector"
 
 type InspectorTab = "video" | "audio" | "speed"
-
-interface InspectorPanelProps {
-  clip: Clip
-}
 
 // Glass panel constant
 
@@ -26,26 +23,55 @@ const tabActive =
 const tabInactive =
   "text-muted border-b-transparent"
 
-export function InspectorPanel({ clip }: InspectorPanelProps) {
+export function InspectorPanel() {
+  const selectedTransitionClipId = useEditorStore(s => s.selectedTransitionClipId)
+  const clip = useEditorStore(s => {
+    if (!s.selectedClipId) return null
+    for (const track of s.project.tracks) {
+      const candidate = track.clips.find(c => c.id === s.selectedClipId)
+      if (candidate) return candidate
+    }
+    return null
+  })
 
   const tabs = useMemo<InspectorTab[]>(() => {
+    if (!clip) return []
     if (clip.type === "image") return ["video"]
     if (clip.type === "audio") return ["audio", "speed"]
     if (clip.type === "video") return ["video", "audio", "speed"]
     return []
-  }, [clip.type])
+  }, [clip])
 
-  const [activeTab, setActiveTab] = useState<InspectorTab>(tabs[0] ?? "video")
+  const [activeTab, setActiveTab] = useState<InspectorTab>("video")
   const effectiveTab = tabs.includes(activeTab) ? activeTab : (tabs[0] ?? "video")
+
+  if (selectedTransitionClipId) {
+    return (
+      <aside
+        className="shrink-0 flex flex-col overflow-hidden w-70 backdrop-blur-2xl border-l border-l-white/8"
+      >
+        <div className="flex items-center shrink-0 h-7 px-4 border-b border-b-white/7">
+          <span className={inspectorLabel}>Transition</span>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-3">
+          <TransitionInspector />
+        </div>
+      </aside>
+    )
+  }
+
+  if (!clip) return null
+  const inspectorClip = clip
 
   function renderContent(): React.ReactNode {
     switch (effectiveTab) {
       case "video":
-        return <ColorAdjustmentsPanel clipId={clip.id} />
+        return <ColorAdjustmentsPanel clipId={inspectorClip.id} />
       case "audio":
-        return <AudioConfigPanel clipId={clip.id} />
+        return <AudioConfigPanel clipId={inspectorClip.id} />
       case "speed":
-        return <SpeedConfigPanel clipId={clip.id} />
+        return <SpeedConfigPanel clipId={inspectorClip.id} />
       default:
         return null
     }

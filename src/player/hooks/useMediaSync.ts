@@ -118,7 +118,8 @@ export function useMediaSync({
         p.tracks,
         getUrl,
         getIsPlaying,
-        activeVideoClip?.outTransition,
+        activeVideoClip?.transitionOut,
+        activeVideoClip?.transitionIn,
       )
 
       syncSecondaryVideoTracks({

@@ -71,7 +71,8 @@ export interface VideoClip extends BaseClip {
   transform: Transform
   colorAdjustments?: ColorAdjustments
   audioConfig?: AudioConfig
-  outTransition?: ClipTransition
+  transitionIn?: ClipTransition   // transition at the START of this clip
+  transitionOut?: ClipTransition  // transition at the END of this clip
 }
 
 export interface ImageClip extends BaseClip {
@@ -140,6 +141,13 @@ export interface SavedProject {
   updatedAt: number
 }
 
+export interface ResolvedTransition {
+  type: XfadeTransitionType
+  duration: number          // seconds
+  overlapStartS: number     // seconds, absolute timeline position
+  kind: 'crossfade' | 'fade_to_black' | 'fade_from_black'
+}
+
 export interface RenderSegment {
   mediaId: string
   mediaStart: number
@@ -155,7 +163,10 @@ export interface RenderSegment {
   volume?: number
   colorAdjustments?: ColorAdjustments
   audioConfig?: AudioConfig
-  outTransition?: ClipTransition
+  transitionIn?: ClipTransition
+  transitionOut?: ClipTransition
+  resolvedTransitionIn?: ResolvedTransition
+  resolvedTransitionOut?: ResolvedTransition
 }
 
 export type ExportOutputFormat = "mp4" | "mov" | "mkv" | "avi"

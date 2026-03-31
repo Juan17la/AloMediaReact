@@ -13,6 +13,8 @@ const CANVAS_HEIGHT = 720
 
 export interface FFmpegInputArg {
   filePath: string
+  /** Optional ffmpeg args to place before this input's -i. */
+  args?: string[]
 }
 
 export interface FilterGraphResult {
@@ -241,6 +243,15 @@ export function buildFilterGraph(
     : []
 
   const inputs: FFmpegInputArg[] = []
+
+  const buildInputArg = (seg: RenderSegment): FFmpegInputArg => {
+    const filePath = fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}`
+    // Animated GIFs should keep providing frames for the full clip duration.
+    if (seg.type === 'image' && isGifFileName(filePath)) {
+      return { filePath, args: ['-stream_loop', '-1'] }
+    }
+    return { filePath }
+  }
   const filterParts: string[] = []
   // Tracks audio labels actually generated; used to set audioOutputLabel correctly.
   const audioLabels: string[] = []
@@ -262,9 +273,7 @@ export function buildFilterGraph(
     // Inputs 1..P = visual segments, in compositing order (bg first)
     for (let i = 0; i < visualSegments.length; i++) {
       const seg = visualSegments[i]
-      inputs.push({
-        filePath: fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}`,
-      })
+      inputs.push(buildInputArg(seg))
     }
 
     type OverlaySource = {
@@ -321,7 +330,7 @@ export function buildFilterGraph(
         const transition = normalizeTransitionType(boundary.transition.type)
 
         filterParts.push(
-          `[${currentLabel}][${nextLabel}]xfade=transition=${transition}:duration=${boundary.duration}:offset=${boundary.offset}[${outLabel}]`,
+          `[${currentLabel}][${nextLabel}]xfade=transition=${transition}:duration=${boundary.duration}:offset=${boundary.offset},format=rgba[${outLabel}]`,
         )
         currentLabel = outLabel
       }
@@ -417,7 +426,7 @@ export function buildFilterGraph(
     for (let i = 0; i < audioOnlySegments.length; i++) {
       const seg = audioOnlySegments[i]
       const inputIdx = audioOnlyOffset + i
-      inputs.push({ filePath: fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}` })
+      inputs.push(buildInputArg(seg))
 
       const aLabel = `ao${i}`
       const aFilters = buildAudioSegmentFilters(seg)

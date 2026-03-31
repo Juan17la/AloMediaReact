@@ -20,7 +20,10 @@ export interface XfadeChain {
     boundaries: XfadeChainBoundary[]
     trackId: string
     trackOrder: number
+    // Output timeline position where the chain starts.
     timelineStart: number
+    // Output timeline position where the chain ends. In fixed-duration mode
+    // this follows authored timeline boundaries (not overlap-compressed length).
     timelineEnd: number
 }
 
@@ -69,8 +72,6 @@ export function buildXfadeChains(visualSegments: RenderSegment[]): XfadeChain[] 
             const segmentIndexes: number[] = [first.index, nextEntry.index]
             const boundaries: XfadeChainBoundary[] = []
 
-            let chainDuration = getSegmentDuration(first.segment)
-
             const initialDuration = clampTransitionDuration(
                 maybeTransition.duration,
                 getSegmentDuration(first.segment),
@@ -84,10 +85,8 @@ export function buildXfadeChains(visualSegments: RenderSegment[]): XfadeChain[] 
                 toSegmentIndex: nextEntry.index,
                 transition: maybeTransition,
                 duration: initialDuration,
-                offset: Math.max(0, chainDuration - initialDuration),
+                offset: Math.max(0, nextEntry.segment.timelineStart - first.segment.timelineStart),
             })
-
-            chainDuration = chainDuration + getSegmentDuration(nextEntry.segment) - initialDuration
 
             let cursor = nextEntry
             while (supportsOutgoingTransition(cursor.segment)) {
@@ -113,11 +112,10 @@ export function buildXfadeChains(visualSegments: RenderSegment[]): XfadeChain[] 
                     toSegmentIndex: candidateNextEntry.index,
                     transition: outgoing,
                     duration: transitionDuration,
-                    offset: Math.max(0, chainDuration - transitionDuration),
+                    offset: Math.max(0, candidateNextEntry.segment.timelineStart - first.segment.timelineStart),
                 })
 
                 segmentIndexes.push(candidateNextEntry.index)
-                chainDuration = chainDuration + getSegmentDuration(candidateNextEntry.segment) - transitionDuration
                 cursor = candidateNextEntry
             }
 

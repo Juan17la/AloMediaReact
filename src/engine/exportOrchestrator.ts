@@ -237,6 +237,9 @@ function buildExecArgs(
 
   // Media file inputs
   for (const inp of graph.inputs) {
+    if (inp.args?.length) {
+      args.push(...inp.args)
+    }
     args.push('-i', inp.filePath)
   }
 

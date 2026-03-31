@@ -189,6 +189,8 @@ function buildVideoSegmentFiltersForXfadeChain(
   }
 
   filters.push(`format=rgba`)
+  filters.push(`fps=${fps}`) 
+  filters.push(`settb=1/90000`)
   filters.push(`pad=${canvasWidth}:${canvasHeight}:${scaledX}:${scaledY}:color=black@0`)
   return filters
 }

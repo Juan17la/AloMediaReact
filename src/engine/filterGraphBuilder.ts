@@ -94,10 +94,12 @@ function buildVideoSegmentFilters(
   return filters
 }
 
-function buildAudioSegmentFilters(seg: RenderSegment): string[] {
+function buildAudioSegmentFilters(seg: RenderSegment, overrideTimelineStart?: number): string[] {
   const speed = seg.speed ?? DEFAULT_SPEED
   const clipDuration = seg.timelineEnd - seg.timelineStart
-  const delayMs = Math.floor(seg.timelineStart * 1000)
+  // Use compressed chain timing for xfade segments when provided.
+  const effectiveStart = overrideTimelineStart ?? seg.timelineStart
+  const delayMs = Math.floor(effectiveStart * 1000)
 
   const filters: string[] = [
     `atrim=start=${seg.mediaStart}:end=${seg.mediaEnd}`,
@@ -189,7 +191,7 @@ function buildVideoSegmentFiltersForXfadeChain(
   }
 
   filters.push(`format=rgba`)
-  filters.push(`fps=${fps}`) 
+  filters.push(`fps=${fps}`)
   filters.push(`settb=1/90000`)
   filters.push(`pad=${canvasWidth}:${canvasHeight}:${scaledX}:${scaledY}:color=black@0`)
   return filters
@@ -234,6 +236,16 @@ export function buildFilterGraph(
   const filterParts: string[] = []
   // Tracks audio labels actually generated; used to set audioOutputLabel correctly.
   const audioLabels: string[] = []
+  const xfadeChains = options.disableTransitions || !hasVideo ? [] : buildXfadeChains(visualSegments)
+  // xfade overlaps clips so each incoming segment effectively starts earlier in output.
+  const effectiveAudioStartMap = new Map<number, number>()
+  for (const chain of xfadeChains) {
+    const chainStartTime = visualSegments[chain.segmentIndexes[0]].timelineStart
+    effectiveAudioStartMap.set(chain.segmentIndexes[0], chainStartTime)
+    for (const boundary of chain.boundaries) {
+      effectiveAudioStartMap.set(boundary.toSegmentIndex, chainStartTime + boundary.offset)
+    }
+  }
 
   // Video filter chains
   if (hasVideo) {
@@ -257,8 +269,6 @@ export function buildFilterGraph(
 
     const chainedIndexes = new Set<number>()
     const overlaySources: OverlaySource[] = []
-    const xfadeChains = options.disableTransitions ? [] : buildXfadeChains(visualSegments)
-
     for (let chainIdx = 0; chainIdx < xfadeChains.length; chainIdx++) {
       const chain = xfadeChains[chainIdx]
 
@@ -381,7 +391,8 @@ export function buildFilterGraph(
 
         const inputIdx = hasVideo ? i + 1 : i
         const aLabel = `av${i}`
-        const aFilters = buildAudioSegmentFilters(seg)
+        const effectiveStart = effectiveAudioStartMap.get(i) ?? seg.timelineStart
+        const aFilters = buildAudioSegmentFilters(seg, effectiveStart)
         filterParts.push(`[${inputIdx}:a]${aFilters.join(',')}[${aLabel}]`)
         audioLabels.push(`[${aLabel}]`)
       }

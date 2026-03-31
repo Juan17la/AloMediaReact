@@ -39,6 +39,8 @@ type PreviewTransitionType =
   | "slideright"
   | "slideup"
   | "slidedown"
+  | "circlecrop"
+  | "distance"
 
 const activeManagers = new Set<VideoBufferManager>()
 
@@ -73,6 +75,8 @@ function normalizePreviewTransitionType(type: string | undefined): PreviewTransi
     case "slideright":
     case "slideup":
     case "slidedown":
+    case "circlecrop":
+    case "distance":
       return type
     default:
       return "fade"
@@ -179,8 +183,12 @@ export class VideoBufferManager {
     incomingEl.style.clipPath = ""
     outgoingEl.style.removeProperty("translate")
     incomingEl.style.removeProperty("translate")
+    outgoingEl.style.removeProperty("scale")
+    incomingEl.style.removeProperty("scale")
     outgoingEl.style.filter = ""
     incomingEl.style.filter = ""
+    outgoingEl.style.zIndex = ""
+    incomingEl.style.zIndex = ""
   }
 
   private runTransitionApproximation(
@@ -203,19 +211,25 @@ export class VideoBufferManager {
     }
 
     const duration = Math.max(0.08, transition.duration)
-    const transitionCss = `${duration}s linear`
+    // Use an easing curve instead of linear for a more cinematic feel
+    const easing = "cubic-bezier(0.25, 1, 0.5, 1)"
+    const transitionCss = `${duration}s ${easing}`
     const t = normalizePreviewTransitionType(transition.type)
 
     outgoingEl.style.transition = "none"
     incomingEl.style.transition = "none"
-    outgoingEl.style.willChange = "opacity, clip-path, translate, filter"
-    incomingEl.style.willChange = "opacity, clip-path, translate, filter"
+    outgoingEl.style.willChange = "opacity, clip-path, translate, scale, filter"
+    incomingEl.style.willChange = "opacity, clip-path, translate, scale, filter"
     outgoingEl.style.clipPath = ""
     incomingEl.style.clipPath = ""
     outgoingEl.style.removeProperty("translate")
     incomingEl.style.removeProperty("translate")
+    outgoingEl.style.removeProperty("scale")
+    incomingEl.style.removeProperty("scale")
     outgoingEl.style.filter = ""
     incomingEl.style.filter = ""
+    outgoingEl.style.zIndex = "1"
+    incomingEl.style.zIndex = "2"
     outgoingEl.style.opacity = "1"
     incomingEl.style.opacity = "0"
 
@@ -233,45 +247,64 @@ export class VideoBufferManager {
       case "wipeleft": {
         incomingEl.style.opacity = "1"
         incomingEl.style.clipPath = "inset(0 100% 0 0)"
+        outgoingEl.style.scale = "1"
         break
       }
       case "wiperight": {
         incomingEl.style.opacity = "1"
         incomingEl.style.clipPath = "inset(0 0 0 100%)"
+        outgoingEl.style.scale = "1"
         break
       }
       case "wipeup": {
         incomingEl.style.opacity = "1"
         incomingEl.style.clipPath = "inset(100% 0 0 0)"
+        outgoingEl.style.scale = "1"
         break
       }
       case "wipedown": {
         incomingEl.style.opacity = "1"
         incomingEl.style.clipPath = "inset(0 0 100% 0)"
+        outgoingEl.style.scale = "1"
         break
       }
       case "slideleft": {
         incomingEl.style.opacity = "1"
         incomingEl.style.setProperty("translate", "100% 0")
         outgoingEl.style.setProperty("translate", "0 0")
+        outgoingEl.style.scale = "1"
         break
       }
       case "slideright": {
         incomingEl.style.opacity = "1"
         incomingEl.style.setProperty("translate", "-100% 0")
         outgoingEl.style.setProperty("translate", "0 0")
+        outgoingEl.style.scale = "1"
         break
       }
       case "slideup": {
         incomingEl.style.opacity = "1"
         incomingEl.style.setProperty("translate", "0 100%")
         outgoingEl.style.setProperty("translate", "0 0")
+        outgoingEl.style.scale = "1"
         break
       }
       case "slidedown": {
         incomingEl.style.opacity = "1"
         incomingEl.style.setProperty("translate", "0 -100%")
         outgoingEl.style.setProperty("translate", "0 0")
+        outgoingEl.style.scale = "1"
+        break
+      }
+      case "circlecrop": {
+        incomingEl.style.opacity = "1"
+        incomingEl.style.clipPath = "circle(0% at 50% 50%)"
+        break
+      }
+      case "distance": {
+        incomingEl.style.opacity = "0"
+        incomingEl.style.scale = "0.5"
+        outgoingEl.style.scale = "1"
         break
       }
       case "dissolve":
@@ -281,8 +314,8 @@ export class VideoBufferManager {
     }
 
     requestAnimationFrame(() => {
-      outgoingEl.style.transition = `opacity ${transitionCss}, clip-path ${transitionCss}, translate ${transitionCss}, filter ${transitionCss}`
-      incomingEl.style.transition = `opacity ${transitionCss}, clip-path ${transitionCss}, translate ${transitionCss}, filter ${transitionCss}`
+      outgoingEl.style.transition = `opacity ${transitionCss}, clip-path ${transitionCss}, translate ${transitionCss}, scale ${transitionCss}, filter ${transitionCss}`
+      incomingEl.style.transition = `opacity ${transitionCss}, clip-path ${transitionCss}, translate ${transitionCss}, scale ${transitionCss}, filter ${transitionCss}`
 
       switch (t) {
         case "fadeblack": {
@@ -304,6 +337,7 @@ export class VideoBufferManager {
         case "wipeup":
         case "wipedown": {
           outgoingEl.style.opacity = "0"
+          outgoingEl.style.scale = "1.05"
           incomingEl.style.clipPath = "inset(0 0 0 0)"
           incomingEl.style.opacity = "1"
           break
@@ -311,6 +345,7 @@ export class VideoBufferManager {
         case "slideleft": {
           outgoingEl.style.setProperty("translate", "-100% 0")
           outgoingEl.style.opacity = "0"
+          outgoingEl.style.scale = "0.95"
           incomingEl.style.setProperty("translate", "0 0")
           incomingEl.style.opacity = "1"
           break
@@ -318,6 +353,7 @@ export class VideoBufferManager {
         case "slideright": {
           outgoingEl.style.setProperty("translate", "100% 0")
           outgoingEl.style.opacity = "0"
+          outgoingEl.style.scale = "0.95"
           incomingEl.style.setProperty("translate", "0 0")
           incomingEl.style.opacity = "1"
           break
@@ -325,6 +361,7 @@ export class VideoBufferManager {
         case "slideup": {
           outgoingEl.style.setProperty("translate", "0 -100%")
           outgoingEl.style.opacity = "0"
+          outgoingEl.style.scale = "0.95"
           incomingEl.style.setProperty("translate", "0 0")
           incomingEl.style.opacity = "1"
           break
@@ -332,8 +369,21 @@ export class VideoBufferManager {
         case "slidedown": {
           outgoingEl.style.setProperty("translate", "0 100%")
           outgoingEl.style.opacity = "0"
+          outgoingEl.style.scale = "0.95"
           incomingEl.style.setProperty("translate", "0 0")
           incomingEl.style.opacity = "1"
+          break
+        }
+        case "circlecrop": {
+          outgoingEl.style.opacity = "0"
+          incomingEl.style.clipPath = "circle(100% at 50% 50%)"
+          break
+        }
+        case "distance": {
+          outgoingEl.style.opacity = "0"
+          outgoingEl.style.scale = "2"
+          incomingEl.style.opacity = "1"
+          incomingEl.style.scale = "1"
           break
         }
         case "dissolve":
@@ -352,7 +402,7 @@ export class VideoBufferManager {
       incomingEl.style.opacity = "1"
       applyColorAdjustmentsToEl(incomingEl, nextClip.colorAdjustments)
       this.transitionCleanupTimeout = null
-    }, Math.ceil(duration * 1000) + 34)
+    }, Math.ceil(duration * 1000) + 50)
   }
 
   private swapBuffers(

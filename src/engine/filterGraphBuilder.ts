@@ -151,17 +151,19 @@ function buildVideoSegmentFiltersForXfadeChain(
   inputFilePath: string,
   canvasWidth: number,
   canvasHeight: number,
+  outgoingHandleDuration: number,
 ): string[] {
   const speed = seg.speed ?? DEFAULT_SPEED
   const isAnimatedGif = seg.type === 'image' && isGifFileName(inputFilePath)
   const clipDuration = Math.max(0, seg.timelineEnd - seg.timelineStart)
+  const handleDuration = Math.max(0, outgoingHandleDuration)
 
   const filters: string[] = []
 
   if (seg.type === 'image' && !isAnimatedGif) {
     filters.push(`loop=-1:size=1:start=0`)
     filters.push(`fps=${fps}`)
-    filters.push(`trim=end=${clipDuration.toFixed(3)}`)
+    filters.push(`trim=end=${(clipDuration + handleDuration).toFixed(3)}`)
     filters.push(`setpts=PTS-STARTPTS`)
   } else {
     if (Math.abs(speed - DEFAULT_SPEED) < 0.001) {
@@ -171,6 +173,12 @@ function buildVideoSegmentFiltersForXfadeChain(
       const invSpeed = (1 / speed).toFixed(6)
       filters.push(`trim=start=${seg.mediaStart}:end=${seg.mediaEnd}`)
       filters.push(`setpts=(PTS-STARTPTS)*${invSpeed}`)
+    }
+
+    if (handleDuration > 0.0001) {
+      // Keep authored timeline duration by synthesizing the missing outgoing
+      // transition handle as a cloned final frame when source media is short.
+      filters.push(`tpad=stop_mode=clone:stop_duration=${handleDuration.toFixed(3)}`)
     }
   }
 
@@ -237,7 +245,8 @@ export function buildFilterGraph(
   // Tracks audio labels actually generated; used to set audioOutputLabel correctly.
   const audioLabels: string[] = []
   const xfadeChains = options.disableTransitions || !hasVideo ? [] : buildXfadeChains(visualSegments)
-  // xfade overlaps clips so each incoming segment effectively starts earlier in output.
+  // In fixed-duration transition mode, each chain boundary is anchored to authored
+  // timeline positions so incoming clip audio starts at the same boundary.
   const effectiveAudioStartMap = new Map<number, number>()
   for (const chain of xfadeChains) {
     const chainStartTime = visualSegments[chain.segmentIndexes[0]].timelineStart
@@ -271,6 +280,11 @@ export function buildFilterGraph(
     const overlaySources: OverlaySource[] = []
     for (let chainIdx = 0; chainIdx < xfadeChains.length; chainIdx++) {
       const chain = xfadeChains[chainIdx]
+      const outgoingHandleByIndex = new Map<number, number>()
+      for (const boundary of chain.boundaries) {
+        const prev = outgoingHandleByIndex.get(boundary.fromSegmentIndex) ?? 0
+        outgoingHandleByIndex.set(boundary.fromSegmentIndex, Math.max(prev, boundary.duration))
+      }
 
       for (const idx of chain.segmentIndexes) {
         const seg = visualSegments[idx]
@@ -293,6 +307,7 @@ export function buildFilterGraph(
           inputFilePath,
           W,
           H,
+          outgoingHandleByIndex.get(idx) ?? 0,
         )
         filterParts.push(`[${inputIdx}:v]${prepFilters.join(',')}[${prepLabel}]`)
         chainedIndexes.add(idx)

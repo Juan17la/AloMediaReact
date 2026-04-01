@@ -2,6 +2,15 @@ import type { ClipTransition, Project, TransitionEdge, VideoClip } from "./proje
 import { resolveCanonicalTransitionType } from "../engine/transitionRegistry"
 import { CLIP_EPSILON, toMs, toSeconds } from "../utils/time"
 
+export type TransitionEdgeEditorSide = "in" | "out"
+
+export interface ClipTransitionViewState {
+    transitionIn?: ClipTransition
+    transitionOut?: ClipTransition
+    transitionInOverrideMessage?: string
+    transitionOutOverrideMessage?: string
+}
+
 export interface TransitionMigrationReport {
     generatedEdges: number
     warnings: string[]
@@ -72,24 +81,85 @@ function buildEdge(
     }
 }
 
+function sortEdges(edges: TransitionEdge[]): TransitionEdge[] {
+    return edges.slice().sort((a, b) => {
+        const trackDiff = a.trackId.localeCompare(b.trackId)
+        if (trackDiff !== 0) return trackDiff
+        const boundaryDiff = a.boundaryTimeS - b.boundaryTimeS
+        if (Math.abs(boundaryDiff) > CLIP_EPSILON) return boundaryDiff
+        return a.edgeId.localeCompare(b.edgeId)
+    })
+}
+
+function getCanonicalVideoTracks(project: Project): Array<{ id: string; clips: VideoClip[] }> {
+    return project.tracks
+        .filter(track => track.type === "video")
+        .slice()
+        .sort((a, b) => a.order - b.order)
+        .map(track => ({
+            id: track.id,
+            clips: track.clips
+                .filter((clip): clip is VideoClip => clip.type === "video")
+                .slice()
+                .sort((a, b) => {
+                    const startDiff = a.timelineStart - b.timelineStart
+                    if (Math.abs(startDiff) > CLIP_EPSILON) return startDiff
+                    return a.id.localeCompare(b.id)
+                }),
+        }))
+}
+
+function findAdjacentContext(project: Project, clipId: string): {
+    trackId: string
+    clip: VideoClip
+    prevAdjacent: VideoClip | null
+    nextAdjacent: VideoClip | null
+} | null {
+    for (const track of getCanonicalVideoTracks(project)) {
+        const idx = track.clips.findIndex(clip => clip.id === clipId)
+        if (idx < 0) continue
+
+        const clip = track.clips[idx]
+        const prev = idx > 0 ? track.clips[idx - 1] : null
+        const next = idx < track.clips.length - 1 ? track.clips[idx + 1] : null
+
+        const prevAdjacent = prev && Math.abs(clip.timelineStart - prev.timelineEnd) <= CLIP_EPSILON
+            ? prev
+            : null
+        const nextAdjacent = next && Math.abs(next.timelineStart - clip.timelineEnd) <= CLIP_EPSILON
+            ? next
+            : null
+
+        return {
+            trackId: track.id,
+            clip,
+            prevAdjacent,
+            nextAdjacent,
+        }
+    }
+
+    return null
+}
+
+function matchesTargetEdge(
+    edge: TransitionEdge,
+    trackId: string,
+    clipAId: string | undefined,
+    clipBId: string | undefined,
+): boolean {
+    return edge.trackId === trackId
+        && edge.clipAId === clipAId
+        && edge.clipBId === clipBId
+}
+
 export function compileTransitionEdges(project: Project): { edges: TransitionEdge[]; report: TransitionMigrationReport } {
     const warnings: string[] = []
     const edges: TransitionEdge[] = []
 
-    const videoTracks = project.tracks
-        .filter(track => track.type === "video")
-        .slice()
-        .sort((a, b) => a.order - b.order)
+    const videoTracks = getCanonicalVideoTracks(project)
 
     for (const track of videoTracks) {
         const clips = track.clips
-            .filter((clip): clip is VideoClip => clip.type === "video")
-            .slice()
-            .sort((a, b) => {
-                const startDiff = a.timelineStart - b.timelineStart
-                if (Math.abs(startDiff) > CLIP_EPSILON) return startDiff
-                return a.id.localeCompare(b.id)
-            })
 
         for (let i = 0; i < clips.length; i++) {
             const current = clips[i]
@@ -171,18 +241,12 @@ export function compileTransitionEdges(project: Project): { edges: TransitionEdg
         }
     }
 
-    edges.sort((a, b) => {
-        const trackDiff = a.trackId.localeCompare(b.trackId)
-        if (trackDiff !== 0) return trackDiff
-        const boundaryDiff = a.boundaryTimeS - b.boundaryTimeS
-        if (Math.abs(boundaryDiff) > CLIP_EPSILON) return boundaryDiff
-        return a.edgeId.localeCompare(b.edgeId)
-    })
+    const sortedEdges = sortEdges(edges)
 
     return {
-        edges,
+        edges: sortedEdges,
         report: {
-            generatedEdges: edges.length,
+            generatedEdges: sortedEdges.length,
             warnings,
         },
     }
@@ -196,5 +260,84 @@ export function ensureCanonicalTransitionEdges(project: Project): { project: Pro
             transitionEdges: edges,
         },
         report,
+    }
+}
+
+export function getCanonicalTransitionEdges(project: Project): TransitionEdge[] {
+    return sortEdges(project.transitionEdges ?? compileTransitionEdges(project).edges)
+}
+
+export function buildClipTransitionView(project: Project): Map<string, ClipTransitionViewState> {
+    const byClipId = new Map<string, ClipTransitionViewState>()
+    const edges = getCanonicalTransitionEdges(project)
+
+    const getState = (clipId: string): ClipTransitionViewState => {
+        const existing = byClipId.get(clipId)
+        if (existing) return existing
+        const created: ClipTransitionViewState = {}
+        byClipId.set(clipId, created)
+        return created
+    }
+
+    for (const edge of edges) {
+        const transition: ClipTransition = {
+            type: edge.transitionTypeCanonical,
+            duration: edge.durationS,
+        }
+
+        if (edge.clipAId) {
+            const state = getState(edge.clipAId)
+            state.transitionOut = transition
+        }
+
+        if (edge.clipBId) {
+            const state = getState(edge.clipBId)
+            state.transitionIn = transition
+            if (edge.sourceReason === "conflictResolved") {
+                state.transitionInOverrideMessage = "Overridden by previous clip out-transition on this edge"
+            }
+        }
+    }
+
+    return byClipId
+}
+
+export function applyCanonicalTransitionEdit(
+    project: Project,
+    clipId: string,
+    side: TransitionEdgeEditorSide,
+    transition: ClipTransition | undefined,
+): Project {
+    const context = findAdjacentContext(project, clipId)
+    if (!context) return project
+
+    const clipA = side === "out"
+        ? context.clip
+        : context.prevAdjacent
+    const clipB = side === "in"
+        ? context.clip
+        : context.nextAdjacent
+    const boundaryTimeS = side === "in" ? context.clip.timelineStart : context.clip.timelineEnd
+
+    const clipAId = clipA?.id
+    const clipBId = clipB?.id
+    const baseEdges = getCanonicalTransitionEdges(project)
+    const retained = baseEdges.filter(edge => !matchesTargetEdge(edge, context.trackId, clipAId, clipBId))
+
+    if (!transition) {
+        return {
+            ...project,
+            transitionEdges: retained,
+        }
+    }
+
+    const sourceReason: TransitionEdge["sourceReason"] = side === "out"
+        ? "legacyOut"
+        : "legacyIn"
+    const edge = buildEdge(context.trackId, boundaryTimeS, clipA ?? null, clipB ?? null, transition, sourceReason)
+
+    return {
+        ...project,
+        transitionEdges: sortEdges(edge ? [...retained, edge] : retained),
     }
 }

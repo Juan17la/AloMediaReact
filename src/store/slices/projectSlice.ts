@@ -229,6 +229,9 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
           ...track,
           clips: track.clips.filter(c => c.id !== clipId),
         })),
+        transitionEdges: (state.project.transitionEdges ?? []).filter(
+          edge => edge.clipAId !== clipId && edge.clipBId !== clipId,
+        ),
       },
     }))
   },
@@ -309,6 +312,9 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
       project: {
         ...state.project,
         tracks: state.project.tracks.filter(t => t.id !== trackId),
+        transitionEdges: (state.project.transitionEdges ?? []).filter(
+          edge => edge.trackId !== trackId,
+        ),
       },
     }))
   },
@@ -581,6 +587,13 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     set(state => {
       const { [mediaId]: removed, ...restProxy } = state.proxyMap
       void removed
+      const removedClipIds = new Set(
+        state.project.tracks.flatMap(track =>
+          track.clips
+            .filter(c => "mediaId" in c && c.mediaId === mediaId)
+            .map(c => c.id),
+        ),
+      )
       return {
         proxyMap: restProxy,
         project: {
@@ -590,6 +603,11 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
             ...track,
             clips: track.clips.filter(c => !("mediaId" in c) || c.mediaId !== mediaId),
           })),
+          transitionEdges: (state.project.transitionEdges ?? []).filter(
+            edge =>
+              (edge.clipAId === undefined || !removedClipIds.has(edge.clipAId)) &&
+              (edge.clipBId === undefined || !removedClipIds.has(edge.clipBId)),
+          ),
         },
       }
     })

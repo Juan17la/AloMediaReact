@@ -103,6 +103,9 @@ export interface CompiledTransition {
     sourceReason: TransitionSourceReason
     requestedDurationS: number
     clampedDurationS: number
+    requestedType: string
+    normalizedType: boolean
+    fallbackReason: string
   }
 }
 

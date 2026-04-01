@@ -6,6 +6,7 @@ import { useEditorStore } from "../../store/editorStore"
 import { pxToTime, timeToPx, TRACK_HEADER_WIDTH } from "../../utils/time"
 import { supportsOutgoingTransition } from "../../utils/transitions"
 import { TransitionBadge } from "./TransitionBadge"
+import { buildClipTransitionView, getCanonicalTransitionEdges } from "../../project/transitionEdges"
 
 interface TrackProps {
   track: Track
@@ -88,6 +89,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
   const reorderTrack = useEditorStore(s => s.reorderTrack)
   const allTracks = useEditorStore(s => s.project.tracks)
   const projectMedia = useEditorStore(s => s.project.media)
+  const project = useEditorStore(s => s.project)
 
   const sameTypeTracks = allTracks.filter(t => t.type === track.type)
   const trackIndex = sameTypeTracks.findIndex(t => t.id === track.id)
@@ -103,44 +105,41 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
   const rowHeight = track.type === "video" ? 55 : 50
 
   const transitionBadges = useMemo(() => {
-    return track.clips
-      .slice()
-      .sort((a, b) => a.timelineStart - b.timelineStart)
-      .flatMap(clip => {
-        if (!supportsOutgoingTransition(clip)) return []
-        const badges: Array<{
-          key: string
-          clipId: string
-          transition: NonNullable<typeof clip.transitionOut>
-          left: number
-          position: "in" | "out"
-        }> = []
+    const edges = getCanonicalTransitionEdges(project)
+      .filter(edge => edge.trackId === track.id)
 
-        // Transition Out badge — at clip's right edge
-        if (clip.transitionOut && clip.transitionOut.duration > 0) {
-          badges.push({
-            key: `out-${clip.id}`,
-            clipId: clip.id,
-            transition: clip.transitionOut,
-            left: timeToPx(clip.timelineEnd, scale),
-            position: "out",
-          })
-        }
+    return edges.flatMap(edge => {
+      const badges: Array<{
+        key: string
+        clipId: string
+        transition: { type: string; duration: number }
+        left: number
+        position: "in" | "out"
+      }> = []
 
-        // Transition In badge — at clip's left edge
-        if (clip.transitionIn && clip.transitionIn.duration > 0) {
-          badges.push({
-            key: `in-${clip.id}`,
-            clipId: clip.id,
-            transition: clip.transitionIn,
-            left: timeToPx(clip.timelineStart, scale),
-            position: "in",
-          })
-        }
+      if (edge.clipAId) {
+        badges.push({
+          key: `out-${edge.edgeId}`,
+          clipId: edge.clipAId,
+          transition: { type: edge.transitionTypeCanonical, duration: edge.durationS },
+          left: timeToPx(edge.boundaryTimeS, scale),
+          position: "out",
+        })
+      }
 
-        return badges
-      })
-  }, [track.clips, scale])
+      if (edge.clipBId) {
+        badges.push({
+          key: `in-${edge.edgeId}`,
+          clipId: edge.clipBId,
+          transition: { type: edge.transitionTypeCanonical, duration: edge.durationS },
+          left: timeToPx(edge.boundaryTimeS, scale),
+          position: "in",
+        })
+      }
+
+      return badges
+    })
+  }, [project, scale, track.id])
 
   useEffect(() => {
     if (!selectedTransitionClipId) return
@@ -152,12 +151,13 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
       setSelectedTransitionClip(undefined)
       return
     }
-    const hasOut = selected.transitionOut && selected.transitionOut.duration > 0
-    const hasIn = selected.transitionIn && selected.transitionIn.duration > 0
+    const transitionView = buildClipTransitionView(project).get(selected.id)
+    const hasOut = !!(transitionView?.transitionOut && transitionView.transitionOut.duration > 0)
+    const hasIn = !!(transitionView?.transitionIn && transitionView.transitionIn.duration > 0)
     if (!hasOut && !hasIn) {
       setSelectedTransitionClip(undefined)
     }
-  }, [selectedTransitionClipId, setSelectedTransitionClip, track.clips])
+  }, [project, selectedTransitionClipId, setSelectedTransitionClip, track.clips])
 
   function isCompatibleDrop(mediaType: MediaType, trackType: TrackType): boolean {
     if (mediaType === "audio") return trackType === "audio"

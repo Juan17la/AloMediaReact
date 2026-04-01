@@ -195,7 +195,7 @@ export class VideoBufferManager {
       this.bufferReady = false
       this.swapPending = false
 
-      if (transition && ph + CLIP_EPSILON < nextClip.timelineStart) {
+      if (transition) {
         this.transitionCarry = {
           outgoingClipId: outgoingClipId ?? nextClip.id,
           incomingClipId: nextClip.id,
@@ -259,7 +259,10 @@ export class VideoBufferManager {
     const playing = getIsPlaying()
     const timelineActiveClip = getActiveVideoClip(tracks, ph)
 
-    if (this.transitionCarry && ph >= this.transitionCarry.boundaryTime - CLIP_EPSILON) {
+    if (
+      this.transitionCarry &&
+      ph >= this.transitionCarry.boundaryTime + CLIP_EPSILON
+    ) {
       this.transitionCarry = null
     }
 
@@ -296,7 +299,18 @@ export class VideoBufferManager {
         }
       }
 
-      if (timelineActiveClip.id !== this.state.activeClipId && !this.swapPending && !carryApplies) {
+      const isTransitioning =
+        activeOutgoingTransition &&
+        activeOutgoingTransition.duration > CLIP_EPSILON &&
+        ph >= (timelineActiveClip.timelineEnd - activeOutgoingTransition.duration - CLIP_EPSILON)
+
+
+      if (
+        timelineActiveClip.id !== this.state.activeClipId &&
+        !this.swapPending &&
+        !carryApplies &&
+        !isTransitioning // <-- prevent overwrite
+      ) {
         this.swapBuffers(timelineActiveClip, ph, getUrl, getIsPlaying, undefined)
         this.clipSeekDone = timelineActiveClip.id
       } else if (playing) {

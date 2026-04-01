@@ -217,6 +217,11 @@ export function compileTransitionEdges(project: Project): { edges: TransitionEdg
                 const boundary = next.timelineStart
                 if (out) {
                     const reason: TransitionEdge["sourceReason"] = incoming ? "conflictResolved" : "legacyOut"
+                    if (incoming) {
+                        warnings.push(
+                            `[transitionMigration] Conflict on edge ${current.id}->${next.id}; selected transitionOut from ${current.id} over transitionIn on ${next.id}.`,
+                        )
+                    }
                     const edge = buildEdge(track.id, boundary, current, next, out, reason)
                     if (edge) edges.push(edge)
                     else warnings.push(`[transitionMigration] Dropped oversized/invalid transitionOut edge ${current.id}->${next.id}`)

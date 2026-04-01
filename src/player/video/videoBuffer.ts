@@ -64,6 +64,7 @@ export class VideoBufferManager {
   private swapGen = 0
   private transitionCarry: TransitionCarryState | null = null
   private transitionCleanupTimeout: ReturnType<typeof setTimeout> | null = null
+  private clipPlayStartPh = new Map<string, number>()
   clipSeekDone: string | null = null
 
   constructor(elA: HTMLVideoElement, elB: HTMLVideoElement) {
@@ -153,11 +154,17 @@ export class VideoBufferManager {
       incomingEl.src = targetSrc
       this.state.bufferedMediaId = nextClip.mediaId
     }
-    incomingEl.playbackRate = nextClip.speed ?? DEFAULT_SPEED
+    const clipSpeed = nextClip.speed ?? DEFAULT_SPEED
+    incomingEl.playbackRate = clipSpeed
 
-    // Skip seek when prebuffered — the decoder is already positioned
-    if (!wasPrebuffered) {
-      const mediaTime = nextClip.mediaStart + (ph - nextClip.timelineStart)
+    const inTransitionWindow = !!transition && transition.duration > CLIP_EPSILON && ph + CLIP_EPSILON < nextClip.timelineStart
+
+    // For transition carry, force exact clip start to avoid showing preroll frame.
+    if (inTransitionWindow) {
+      seekEl(incomingEl, nextClip.mediaStart)
+    } else if (!wasPrebuffered) {
+      // Skip seek when prebuffered outside transitions — decoder is already positioned.
+      const mediaTime = nextClip.mediaStart + (ph - nextClip.timelineStart) * clipSpeed
       seekEl(incomingEl, Math.max(nextClip.mediaStart, mediaTime))
     }
 
@@ -179,6 +186,8 @@ export class VideoBufferManager {
         incomingEl.play().catch(() => { })
       }
       this.activeBuffer = this.activeBuffer === "A" ? "B" : "A"
+      this.clipPlayStartPh.set(nextClip.id, ph)
+      if (outgoingClipId) this.clipPlayStartPh.delete(outgoingClipId)
       this.state.activeClipId = nextClip.id
       this.state.activeMediaId = nextClip.mediaId
       this.state.bufferedClipId = null
@@ -295,6 +304,7 @@ export class VideoBufferManager {
         const clipSpeed = playbackClip.speed ?? DEFAULT_SPEED
         const activeEl = this.getActiveEl()
         activeEl.playbackRate = clipSpeed
+        const clipStartPh = this.clipPlayStartPh.get(playbackClip.id) ?? playbackClip.timelineStart
 
         // Apply fade-in/out opacity for non-crossfade transitions
         const fadeIn = this.getFadeInOpacity(ph, playbackClip, tracks)
@@ -308,10 +318,13 @@ export class VideoBufferManager {
 
         if (this.clipSeekDone !== playbackClip.id) {
           this.clipSeekDone = playbackClip.id
-          const mediaTime = playbackClip.mediaStart + (ph - playbackClip.timelineStart) * clipSpeed
-          seekEl(activeEl, mediaTime)
+          const mediaTime = playbackClip.mediaStart + (ph - clipStartPh) * clipSpeed
+          seekEl(activeEl, Math.max(playbackClip.mediaStart, mediaTime))
         } else {
-          const expected = playbackClip.mediaStart + (ph - playbackClip.timelineStart) * clipSpeed
+          const expected = Math.max(
+            playbackClip.mediaStart,
+            playbackClip.mediaStart + (ph - clipStartPh) * clipSpeed,
+          )
           if (Math.abs(activeEl.currentTime - expected) > DRIFT_CORRECTION_THRESHOLD_S) {
             seekEl(activeEl, expected)
           }
@@ -349,6 +362,7 @@ export class VideoBufferManager {
     this.clipSeekDone = null
     this.swapPending = false
     this.transitionCarry = null
+    this.clipPlayStartPh.clear()
   }
 
   setVolume(_muted: boolean, _vol: number): void {
@@ -388,6 +402,7 @@ export class VideoBufferManager {
     this.clipSeekDone = null
     this.swapPending = false
     this.transitionCarry = null
+    this.clipPlayStartPh.clear()
   }
 }
 

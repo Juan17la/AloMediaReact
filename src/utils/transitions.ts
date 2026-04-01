@@ -1,15 +1,6 @@
 import type { Clip, ClipTransition, RenderSegment, XfadeTransitionType } from "../project/projectTypes"
 import { CLIP_EPSILON } from "./time"
-
-const KNOWN_XFADE_TRANSITIONS = new Set<string>([
-    "fade",
-    "wipeleft",
-    "wiperight",
-    "slideleft",
-    "slideright",
-    "circlecrop",
-    "distance",
-])
+import { resolveCanonicalTransitionType } from "../engine/transitionRegistry"
 
 interface TimelineItem {
     trackId: string
@@ -85,6 +76,5 @@ export function clampTransitionDuration(
 }
 
 export function normalizeTransitionType(type: XfadeTransitionType | string | undefined): string {
-    if (!type) return "fade"
-    return KNOWN_XFADE_TRANSITIONS.has(type) ? type : "fade"
+    return resolveCanonicalTransitionType(type).canonicalId
 }

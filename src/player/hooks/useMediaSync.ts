@@ -13,8 +13,6 @@ import { syncSecondaryVideoTracks } from "../video/secondaryVideoSync"
 import { DEFAULT_SPEED } from "../../constants/speed"
 import { compileUnifiedTransitions } from "../../engine/transitionCompiler"
 import type { ResolvedTransition } from "../../project/projectTypes"
-import { isTransitionCompilerCutoverEnabled } from "../../engine/transitionCutoverFlag"
-import { CLIP_EPSILON } from "../../utils/time"
 
 interface UseMediaSyncParams {
   onFrameRef: { current: ((ph: number) => void) | null }
@@ -115,69 +113,15 @@ export function useMediaSync({
     return byId
   }, [project])
 
-  const useCompilerTransitions = isTransitionCompilerCutoverEnabled()
-
   const resolvedTransitions = useMemo(() => {
     const transitionInByClipId = new Map<string, ResolvedTransition>()
     const transitionOutByClipId = new Map<string, ResolvedTransition>()
 
-    if (!useCompilerTransitions) {
-      const videoTracks = project.tracks.filter(track => track.type === "video")
-      for (const track of videoTracks) {
-        const clips = track.clips
-          .filter((clip): clip is VideoClip => clip.type === "video")
-          .slice()
-          .sort((a, b) => a.timelineStart - b.timelineStart)
-
-        for (let i = 0; i < clips.length; i++) {
-          const current = clips[i]
-          const prev = i > 0 ? clips[i - 1] : null
-          const next = i < clips.length - 1 ? clips[i + 1] : null
-
-          const hasAdjacentPrev = !!prev && Math.abs(current.timelineStart - prev.timelineEnd) <= CLIP_EPSILON
-          const hasAdjacentNext = !!next && Math.abs(next.timelineStart - current.timelineEnd) <= CLIP_EPSILON
-
-          if (current.transitionOut && current.transitionOut.duration > CLIP_EPSILON) {
-            const maxDuration = Math.min(
-              Math.max(0, current.timelineEnd - current.timelineStart),
-              hasAdjacentNext && next ? Math.max(0, next.timelineEnd - next.timelineStart) : Infinity,
-            ) / 2
-            const duration = Math.max(0, Math.min(current.transitionOut.duration, maxDuration))
-            if (duration > CLIP_EPSILON) {
-              transitionOutByClipId.set(current.id, {
-                type: current.transitionOut.type,
-                duration,
-                overlapStartS: current.timelineEnd - duration,
-                kind: hasAdjacentNext ? "crossfade" : "fade_to_black",
-              })
-            }
-          }
-
-          if (current.transitionIn && current.transitionIn.duration > CLIP_EPSILON) {
-            const prevHasOut = !!(hasAdjacentPrev && prev?.transitionOut && prev.transitionOut.duration > CLIP_EPSILON)
-            if (!prevHasOut) {
-              const maxDuration = Math.min(
-                hasAdjacentPrev && prev ? Math.max(0, prev.timelineEnd - prev.timelineStart) : Infinity,
-                Math.max(0, current.timelineEnd - current.timelineStart),
-              ) / 2
-              const duration = Math.max(0, Math.min(current.transitionIn.duration, maxDuration))
-              if (duration > CLIP_EPSILON) {
-                transitionInByClipId.set(current.id, {
-                  type: current.transitionIn.type,
-                  duration,
-                  overlapStartS: current.timelineStart,
-                  kind: hasAdjacentPrev ? "crossfade" : "fade_from_black",
-                })
-              }
-            }
-          }
-        }
-      }
-
-      return { transitionInByClipId, transitionOutByClipId }
-    }
-
     const compiled = compileUnifiedTransitions(project)
+
+    for (const warning of compiled.warnings) {
+      console.warn(warning)
+    }
 
     for (const transition of compiled.transitions) {
       const hasClipA = !!transition.clipARef.clipId
@@ -220,7 +164,7 @@ export function useMediaSync({
     }
 
     return { transitionInByClipId, transitionOutByClipId }
-  }, [project, useCompilerTransitions])
+  }, [project])
 
   useEffect(() => { syncAudioPool(audioElementsRef.current, allTrackIds) }, [allTrackIds])
   useEffect(() => () => { destroyAudioPool(audioElementsRef.current) }, [])

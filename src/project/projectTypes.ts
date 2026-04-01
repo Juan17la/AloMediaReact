@@ -52,6 +52,33 @@ export interface ClipTransition {
   duration: number // seconds
 }
 
+export type TransitionSourceReason =
+  | "legacyOut"
+  | "legacyIn"
+  | "synthesizedStart"
+  | "synthesizedEnd"
+  | "conflictResolved"
+
+export interface SyntheticTransitionEndpoint {
+  kind: "black_silence"
+}
+
+export interface TransitionEdge {
+  edgeId: string
+  trackId: string
+  clipAId?: string
+  clipBId?: string
+  syntheticA?: SyntheticTransitionEndpoint
+  syntheticB?: SyntheticTransitionEndpoint
+  boundaryTimeS: number
+  startTimeS: number
+  endTimeS: number
+  durationS: number
+  transitionTypeCanonical: string
+  params: Record<string, unknown>
+  sourceReason: TransitionSourceReason
+}
+
 export interface BaseClip {
   id: string
   trackId: string
@@ -112,6 +139,7 @@ export interface Project {
   name: string
   media: Media[]
   tracks: Track[]
+  transitionEdges?: TransitionEdge[]
 }
 
 // Project.duration is always derived — never stored.
@@ -149,6 +177,7 @@ export interface ResolvedTransition {
 }
 
 export interface RenderSegment {
+  clipId: string
   mediaId: string
   mediaStart: number
   mediaEnd: number

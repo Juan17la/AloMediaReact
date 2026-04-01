@@ -1,5 +1,5 @@
 import type { ClipTransition, Project, TransitionEdge, VideoClip } from "./projectTypes"
-import { normalizeTransitionType } from "../utils/transitions"
+import { resolveCanonicalTransitionType } from "../engine/transitionRegistry"
 import { CLIP_EPSILON, toMs, toSeconds } from "../utils/time"
 
 export interface TransitionMigrationReport {
@@ -48,6 +48,8 @@ function buildEdge(
     const normalizedBoundaryS = toSeconds(toMs(boundaryTimeS))
     const startTimeS = toSeconds(toMs(normalizedBoundaryS - normalizedDurationS))
 
+    const normalization = resolveCanonicalTransitionType(transition.type)
+
     return {
         edgeId: buildEdgeId(trackId, normalizedBoundaryS, clipA?.id, clipB?.id),
         trackId,
@@ -59,8 +61,13 @@ function buildEdge(
         startTimeS,
         endTimeS: normalizedBoundaryS,
         durationS: normalizedDurationS,
-        transitionTypeCanonical: normalizeTransitionType(transition.type),
-        params: {},
+        transitionTypeCanonical: normalization.canonicalId,
+        params: {
+            requestedType: normalization.requestedId,
+            normalized: normalization.normalized,
+            fallbackId: normalization.entry.fallbackPolicy.fallbackId,
+            fallbackReason: normalization.entry.fallbackPolicy.reason,
+        },
         sourceReason,
     }
 }

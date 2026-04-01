@@ -5,7 +5,7 @@ import { buildAudioSpeedFilter } from "../utils/speedFilters"
 import { DEFAULT_SPEED } from "../constants/speed"
 import { isGifFileName } from "./ffmpegUtils"
 import { buildXfadeChains } from "./xfadeChainBuilder"
-import { normalizeTransitionType } from "../utils/transitions"
+import { resolveCanonicalTransitionType } from "./transitionRegistry"
 
 // The preview canvas coordinate space. All Transform values are in these units.
 const CANVAS_WIDTH = 1280
@@ -331,7 +331,7 @@ export function buildFilterGraph(
         const boundary = chain.boundaries[b]
         const nextLabel = `xprep_${boundary.toSegmentIndex}`
         const outLabel = b === chain.boundaries.length - 1 ? `xchain_${chainIdx}` : `xchain_${chainIdx}_${b}`
-        const transition = normalizeTransitionType(boundary.transition.type)
+        const transition = resolveCanonicalTransitionType(boundary.transition.type).entry.exportMapping.ffmpegXfade
 
         filterParts.push(
           `[${currentLabel}][${nextLabel}]xfade=transition=${transition}:duration=${boundary.duration}:offset=${boundary.offset},format=rgba[${outLabel}]`,

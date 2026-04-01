@@ -3,6 +3,7 @@ import { useEditorStore } from "../../store/editorStore"
 import { findNextAdjacentOnSameTrack, findPrevAdjacentOnSameTrack } from "../../utils/transitions"
 import type { ClipTransition, VideoClip, XfadeTransitionType } from "../../project/projectTypes"
 import { resolveCanonicalTransitionType } from "../../engine/transitionRegistry"
+import { buildClipTransitionView } from "../../project/transitionEdges"
 
 const TRANSITION_TYPES: XfadeTransitionType[] = [
     "fade",
@@ -127,9 +128,11 @@ export function TransitionInspector() {
     const selectedClipId = useEditorStore(s => s.selectedClipId)
     const selectedTransitionClipId = useEditorStore(s => s.selectedTransitionClipId)
     const tracks = useEditorStore(s => s.project.tracks)
+    const project = useEditorStore(s => s.project)
     const setClipTransitionIn = useEditorStore(s => s.setClipTransitionIn)
     const setClipTransitionOut = useEditorStore(s => s.setClipTransitionOut)
     const setSelectedTransitionClip = useEditorStore(s => s.setSelectedTransitionClip)
+    const transitionViewByClipId = buildClipTransitionView(project)
 
     // Resolve the clip — works for both selectedTransitionClipId and selectedClipId
     const inspectedClipId = selectedTransitionClipId ?? selectedClipId
@@ -146,15 +149,16 @@ export function TransitionInspector() {
             const hasAdjacentNext = !!nextClip && nextClip.type === "video"
             const hasAdjacentPrev = !!prevClip && prevClip.type === "video"
 
-            // transitionIn is blocked if prev clip has transitionOut
-            const prevBlocksTransitionIn = hasAdjacentPrev &&
-                (prevClip as VideoClip).transitionOut !== undefined
+            const transitionView = transitionViewByClipId.get(clip.id)
 
             return {
                 clip: clip as VideoClip,
                 hasAdjacentNext,
                 hasAdjacentPrev,
-                prevBlocksTransitionIn,
+                transitionIn: transitionView?.transitionIn,
+                transitionOut: transitionView?.transitionOut,
+                transitionInOverrideMessage: transitionView?.transitionInOverrideMessage,
+                transitionOutOverrideMessage: transitionView?.transitionOutOverrideMessage,
             }
         }
 
@@ -186,30 +190,47 @@ export function TransitionInspector() {
         return null
     }
 
-    const { clip, hasAdjacentNext, hasAdjacentPrev, prevBlocksTransitionIn } = clipContext
+    const {
+        clip,
+        hasAdjacentNext,
+        hasAdjacentPrev,
+        transitionIn,
+        transitionOut,
+        transitionInOverrideMessage,
+        transitionOutOverrideMessage,
+    } = clipContext
 
     return (
         <div className="space-y-4">
             {/* Transition In section */}
             <TransitionSection
                 label="Transition In"
-                transition={clip.transitionIn}
-                disabled={prevBlocksTransitionIn}
-                disabledMessage="Controlled by previous clip's out-transition"
+                transition={transitionIn}
+                disabled={false}
+                disabledMessage={transitionInOverrideMessage}
                 hasAdjacentClip={hasAdjacentPrev}
                 onChange={(t) => setClipTransitionIn(clip.id, t)}
             />
+
+            {transitionInOverrideMessage && (
+                <div className={warningBox}>{transitionInOverrideMessage}</div>
+            )}
 
             <div className="h-px bg-white/8" />
 
             {/* Transition Out section */}
             <TransitionSection
                 label="Transition Out"
-                transition={clip.transitionOut}
+                transition={transitionOut}
                 disabled={false}
+                disabledMessage={transitionOutOverrideMessage}
                 hasAdjacentClip={hasAdjacentNext}
                 onChange={(t) => setClipTransitionOut(clip.id, t)}
             />
+
+            {transitionOutOverrideMessage && (
+                <div className={warningBox}>{transitionOutOverrideMessage}</div>
+            )}
         </div>
     )
 }

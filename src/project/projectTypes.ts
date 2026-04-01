@@ -79,6 +79,33 @@ export interface TransitionEdge {
   sourceReason: TransitionSourceReason
 }
 
+export interface TransitionClipRef {
+  clipId?: string
+  synthetic?: SyntheticTransitionEndpoint
+}
+
+export type TransitionAudioCurveType = "equal_power"
+
+export interface CompiledTransition {
+  transitionId: string
+  trackId: string
+  clipARef: TransitionClipRef
+  clipBRef: TransitionClipRef
+  startTimeS: number
+  endTimeS: number
+  boundaryTimeS: number
+  durationS: number
+  typeCanonical: string
+  normalizedParams: Record<string, unknown>
+  audioCurveType: TransitionAudioCurveType
+  debugFields: {
+    edgeId: string
+    sourceReason: TransitionSourceReason
+    requestedDurationS: number
+    clampedDurationS: number
+  }
+}
+
 export interface BaseClip {
   id: string
   trackId: string
@@ -203,6 +230,7 @@ export type ExportVideoCodec = "h264" | "vp9" | "av1"
 
 export interface RenderJob {
   segments: RenderSegment[]
+  transitions: CompiledTransition[]
   outputFormat: ExportOutputFormat
   codec?: ExportVideoCodec
   resolution: { width: number; height: number }

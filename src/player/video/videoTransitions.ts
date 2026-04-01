@@ -1,6 +1,7 @@
 import type { VideoClip } from "../../project/projectTypes"
 import { CLIP_EPSILON } from "../../utils/time"
 import { applyColorAdjustmentsToEl } from "../render/transformUtils"
+import { resolveCanonicalTransitionType } from "../../engine/transitionRegistry"
 
 export interface TransitionSwapMetadata {
     type: string
@@ -9,39 +10,15 @@ export interface TransitionSwapMetadata {
 
 type PreviewTransitionType =
     | "fade"
-    | "fadeblack"
-    | "fadewhite"
-    | "dissolve"
     | "wipeleft"
     | "wiperight"
-    | "wipeup"
-    | "wipedown"
     | "slideleft"
     | "slideright"
-    | "slideup"
-    | "slidedown"
     | "circlecrop"
     | "distance"
 
 function normalizePreviewTransitionType(type: string | undefined): PreviewTransitionType {
-    switch (type) {
-        case "fadeblack":
-        case "fadewhite":
-        case "dissolve":
-        case "wipeleft":
-        case "wiperight":
-        case "wipeup":
-        case "wipedown":
-        case "slideleft":
-        case "slideright":
-        case "slideup":
-        case "slidedown":
-        case "circlecrop":
-        case "distance":
-            return type
-        default:
-            return "fade"
-    }
+    return resolveCanonicalTransitionType(type).entry.previewMapping.renderer as PreviewTransitionType
 }
 
 function clearTransitionStyles(outgoingEl: HTMLVideoElement, incomingEl: HTMLVideoElement): void {
@@ -110,17 +87,6 @@ export function runTransitionApproximation({
     outgoingEl.style.opacity = "1"
     incomingEl.style.opacity = "0" // always hidden until the rAF commits initial state
 
-    switch (t) {
-        case "fadeblack":
-            outgoingEl.style.filter = "brightness(1)"
-            incomingEl.style.filter = "brightness(0)"
-            break
-        case "fadewhite":
-            outgoingEl.style.filter = "brightness(1)"
-            incomingEl.style.filter = "brightness(2)"
-            break
-    }
-
     requestAnimationFrame(() => {
 
         // opacity and spatial properties (clip-path / translate) are written in
@@ -138,16 +104,6 @@ export function runTransitionApproximation({
                 incomingEl.style.clipPath = "inset(0 0 0 100%)"
                 outgoingEl.style.scale = "1"
                 break
-            case "wipeup":
-                incomingEl.style.opacity = "1"
-                incomingEl.style.clipPath = "inset(100% 0 0 0)"
-                outgoingEl.style.scale = "1"
-                break
-            case "wipedown":
-                incomingEl.style.opacity = "1"
-                incomingEl.style.clipPath = "inset(0 0 100% 0)"
-                outgoingEl.style.scale = "1"
-                break
             case "slideleft":
                 incomingEl.style.opacity = "1"
                 incomingEl.style.setProperty("translate", "100% 0")
@@ -160,18 +116,6 @@ export function runTransitionApproximation({
                 outgoingEl.style.setProperty("translate", "0 0")
                 outgoingEl.style.scale = "1"
                 break
-            case "slideup":
-                incomingEl.style.opacity = "1"
-                incomingEl.style.setProperty("translate", "0 100%")
-                outgoingEl.style.setProperty("translate", "0 0")
-                outgoingEl.style.scale = "1"
-                break
-            case "slidedown":
-                incomingEl.style.opacity = "1"
-                incomingEl.style.setProperty("translate", "0 -100%")
-                outgoingEl.style.setProperty("translate", "0 0")
-                outgoingEl.style.scale = "1"
-                break
             case "circlecrop":
                 incomingEl.style.opacity = "1"
                 incomingEl.style.clipPath = "circle(0% at 50% 50%)"
@@ -180,7 +124,7 @@ export function runTransitionApproximation({
                 // Intentionally keep opacity at 0 — we fade + scale-up simultaneously
                 incomingEl.style.scale = "0.5"
                 break
-            // fade / fadeblack / fadewhite / dissolve: incoming stays at opacity:0
+            // fade: incoming stays at opacity:0
             // set in Phase 1; Phase 2B will transition it to 1.
         }
 
@@ -191,22 +135,8 @@ export function runTransitionApproximation({
         incomingEl.style.transition = transitionValue
 
         switch (t) {
-            case "fadeblack":
-                outgoingEl.style.opacity = "0"
-                outgoingEl.style.filter = "brightness(0)"
-                incomingEl.style.opacity = "1"
-                incomingEl.style.filter = "brightness(1)"
-                break
-            case "fadewhite":
-                outgoingEl.style.opacity = "0"
-                outgoingEl.style.filter = "brightness(2)"
-                incomingEl.style.opacity = "1"
-                incomingEl.style.filter = "brightness(1)"
-                break
             case "wipeleft":
             case "wiperight":
-            case "wipeup":
-            case "wipedown":
                 outgoingEl.style.opacity = "0"
                 outgoingEl.style.scale = "1.05"
                 incomingEl.style.clipPath = "inset(0 0 0 0)"
@@ -225,18 +155,6 @@ export function runTransitionApproximation({
                 outgoingEl.style.scale = "0.95"
                 incomingEl.style.setProperty("translate", "0 0")
                 break
-            case "slideup":
-                outgoingEl.style.setProperty("translate", "0 -100%")
-                outgoingEl.style.opacity = "0"
-                outgoingEl.style.scale = "0.95"
-                incomingEl.style.setProperty("translate", "0 0")
-                break
-            case "slidedown":
-                outgoingEl.style.setProperty("translate", "0 100%")
-                outgoingEl.style.opacity = "0"
-                outgoingEl.style.scale = "0.95"
-                incomingEl.style.setProperty("translate", "0 0")
-                break
             case "circlecrop":
                 outgoingEl.style.opacity = "0"
                 incomingEl.style.clipPath = "circle(100% at 50% 50%)"
@@ -248,7 +166,6 @@ export function runTransitionApproximation({
                 incomingEl.style.opacity = "1"
                 incomingEl.style.scale = "1"
                 break
-            case "dissolve":
             case "fade":
             default:
                 outgoingEl.style.opacity = "0"

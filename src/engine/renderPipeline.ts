@@ -1,14 +1,15 @@
 import type {
   Clip,
-  ClipTransition,
   ExportOutputFormat,
   ExportVideoCodec,
   Project,
   RenderJob,
   RenderSegment,
+  TransitionEdge,
 } from "../project/projectTypes"
 import { getProjectDuration, CLIP_EPSILON } from "../utils/time"
 import { DEFAULT_SPEED } from "../constants/speed"
+import { compileTransitionEdges } from "../project/transitionEdges"
 
 export interface ExportOptions {
   outputFormat: ExportOutputFormat
@@ -26,6 +27,7 @@ function clipToSegment(
 ): RenderSegment {
   if (clip.type === "video") {
     return {
+      clipId: clip.id,
       mediaId: clip.mediaId,
       mediaStart: clip.mediaStart,
       mediaEnd: clip.mediaEnd,
@@ -47,6 +49,7 @@ function clipToSegment(
 
   if (clip.type === "audio") {
     return {
+      clipId: clip.id,
       mediaId: clip.mediaId,
       mediaStart: clip.mediaStart,
       mediaEnd: clip.mediaEnd,
@@ -64,6 +67,7 @@ function clipToSegment(
 
   if (clip.type === "image") {
     return {
+      clipId: clip.id,
       mediaId: clip.mediaId,
       mediaStart: 0,
       mediaEnd: clip.timelineEnd - clip.timelineStart,
@@ -81,6 +85,7 @@ function clipToSegment(
 
   // TextClip — mediaId is empty; filtered out downstream
   return {
+    clipId: clip.id,
     mediaId: "",
     mediaStart: 0,
     mediaEnd: clip.timelineEnd - clip.timelineStart,
@@ -95,76 +100,53 @@ function clipToSegment(
   }
 }
 
-function clampTransition(
-  t: ClipTransition,
-  clipA: { timelineStart: number; timelineEnd: number } | null,
-  clipB: { timelineStart: number; timelineEnd: number } | null,
-): ClipTransition {
-  const durationA = clipA ? Math.max(0, clipA.timelineEnd - clipA.timelineStart) : Infinity
-  const durationB = clipB ? Math.max(0, clipB.timelineEnd - clipB.timelineStart) : Infinity
-  const maxDuration = Math.min(durationA, durationB) / 2
-  return { ...t, duration: Math.min(t.duration, maxDuration) }
-}
-
-/**
- * Resolves raw transitionIn/transitionOut into concrete ResolvedTransition values.
- * Evaluates the priority rule: if clip A has transitionOut and clip B has transitionIn,
- * transitionOut of A wins and transitionIn of B is discarded for that pair.
- * Called once per render job — consumers read resolvedTransitionIn/Out.
- */
-function resolveTransitions(segments: RenderSegment[]): void {
-  // Group video segments by track
-  const byTrack = new Map<string, RenderSegment[]>()
+function resolveTransitionsFromEdges(segments: RenderSegment[], transitionEdges: TransitionEdge[]): void {
+  const byClipId = new Map<string, RenderSegment>()
   for (const seg of segments) {
     if (seg.type !== "video") continue
-    const list = byTrack.get(seg.trackId)
-    if (list) list.push(seg)
-    else byTrack.set(seg.trackId, [seg])
+    seg.resolvedTransitionIn = undefined
+    seg.resolvedTransitionOut = undefined
+    byClipId.set(seg.clipId, seg)
   }
 
-  for (const trackSegs of byTrack.values()) {
-    trackSegs.sort((a, b) => a.timelineStart - b.timelineStart)
+  for (const edge of transitionEdges) {
+    if (edge.durationS <= CLIP_EPSILON) continue
 
-    for (let i = 0; i < trackSegs.length; i++) {
-      const seg = trackSegs[i]
-      const prevSeg = i > 0 ? trackSegs[i - 1] : null
-      const nextSeg = i < trackSegs.length - 1 ? trackSegs[i + 1] : null
+    const clipA = edge.clipAId ? byClipId.get(edge.clipAId) : undefined
+    const clipB = edge.clipBId ? byClipId.get(edge.clipBId) : undefined
 
-      // Check adjacency
-      const hasAdjacentNext = nextSeg && Math.abs(nextSeg.timelineStart - seg.timelineEnd) <= CLIP_EPSILON
-      const hasAdjacentPrev = prevSeg && Math.abs(prevSeg.timelineEnd - seg.timelineStart) <= CLIP_EPSILON
-
-      // --- transitionOut ---
-      if (seg.transitionOut && seg.transitionOut.duration > CLIP_EPSILON) {
-        const clamped = clampTransition(seg.transitionOut, seg, hasAdjacentNext ? nextSeg : null)
-        if (clamped.duration > CLIP_EPSILON) {
-          const kind = hasAdjacentNext ? 'crossfade' as const : 'fade_to_black' as const
-          seg.resolvedTransitionOut = {
-            type: clamped.type,
-            duration: clamped.duration,
-            overlapStartS: seg.timelineEnd - clamped.duration,
-            kind,
-          }
-        }
+    if (clipA && clipB) {
+      clipA.resolvedTransitionOut = {
+        type: edge.transitionTypeCanonical,
+        duration: edge.durationS,
+        overlapStartS: edge.startTimeS,
+        kind: "crossfade",
       }
+      clipB.resolvedTransitionIn = {
+        type: edge.transitionTypeCanonical,
+        duration: edge.durationS,
+        overlapStartS: edge.startTimeS,
+        kind: "crossfade",
+      }
+      continue
+    }
 
-      // --- transitionIn ---
-      // Only if the previous clip does NOT have transitionOut (priority rule)
-      if (seg.transitionIn && seg.transitionIn.duration > CLIP_EPSILON) {
-        const prevHasTransitionOut = hasAdjacentPrev && prevSeg!.transitionOut &&
-          prevSeg!.transitionOut.duration > CLIP_EPSILON
-        if (!prevHasTransitionOut) {
-          const clamped = clampTransition(seg.transitionIn, hasAdjacentPrev ? prevSeg : null, seg)
-          if (clamped.duration > CLIP_EPSILON) {
-            const kind = hasAdjacentPrev ? 'crossfade' as const : 'fade_from_black' as const
-            seg.resolvedTransitionIn = {
-              type: clamped.type,
-              duration: clamped.duration,
-              overlapStartS: seg.timelineStart,
-              kind,
-            }
-          }
-        }
+    if (clipA && !clipB) {
+      clipA.resolvedTransitionOut = {
+        type: edge.transitionTypeCanonical,
+        duration: edge.durationS,
+        overlapStartS: edge.startTimeS,
+        kind: "fade_to_black",
+      }
+      continue
+    }
+
+    if (!clipA && clipB) {
+      clipB.resolvedTransitionIn = {
+        type: edge.transitionTypeCanonical,
+        duration: edge.durationS,
+        overlapStartS: edge.startTimeS,
+        kind: "fade_from_black",
       }
     }
   }
@@ -195,7 +177,8 @@ export function buildRenderJob(
     }
   }
 
-  resolveTransitions(segments)
+  const transitionEdges = project.transitionEdges ?? compileTransitionEdges(project).edges
+  resolveTransitionsFromEdges(segments, transitionEdges)
 
   return {
     segments,

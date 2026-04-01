@@ -97,9 +97,23 @@ export function useMediaSync({
 
   // Pool covers ALL tracks (video + audio) so VideoClip audio is not lost.
   const allTrackIds = useMemo(
-    () => tracks.map(t => t.id),
+    () => tracks
+      .flatMap(t => t.clips)
+      .filter((clip): clip is AudioClip | VideoClip => clip.type === "audio" || clip.type === "video")
+      .map(clip => clip.id),
     [tracks],
   )
+
+  const audioClipById = useMemo(() => {
+    const byId = new Map<string, AudioClip | VideoClip>()
+    for (const track of project.tracks) {
+      for (const clip of track.clips) {
+        if (clip.type !== "audio" && clip.type !== "video") continue
+        byId.set(clip.id, clip)
+      }
+    }
+    return byId
+  }, [project])
 
   const useCompilerTransitions = isTransitionCompilerCutoverEnabled()
 
@@ -247,9 +261,11 @@ export function useMediaSync({
         ph,
         isPlayingRef.current,
         clipIndexRef.current,
+        audioClipById,
         audioElementsRef.current,
         prevActiveAudioIdsRef.current,
         id => registryRef.current.getObjectUrl(id),
+        resolvedTransitions,
         isMutedRef.current,
         volumeRef.current,
       )
@@ -257,7 +273,7 @@ export function useMediaSync({
 
     syncMediaElements.current = impl
     return () => { syncMediaElements.current = null }
-  }, [secondaryClipsRef, secondaryVideoElemsRef, resolvedTransitions])
+  }, [secondaryClipsRef, secondaryVideoElemsRef, resolvedTransitions, audioClipById])
 
   useEffect(() => {
     onFrameRef.current = ph => { if (syncMediaElements.current) syncMediaElements.current(ph) }
@@ -289,7 +305,7 @@ export function useMediaSync({
       .filter((c): c is AudioClip | VideoClip => c.type === "audio" || c.type === "video")
 
     for (const clip of activeAudioClips) {
-      const el = audioElementsRef.current.get(clip.trackId)
+      const el = audioElementsRef.current.get(clip.id)
       if (!el) continue
       el.playbackRate = clip.speed ?? DEFAULT_SPEED
       if (isPlaying) {

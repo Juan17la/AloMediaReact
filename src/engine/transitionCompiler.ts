@@ -62,7 +62,12 @@ export function compileUnifiedTransitions(project: Project): UnifiedTransitionCo
         }
     }
 
-    const sourceEdges = project.transitionEdges ?? compileTransitionEdges(project).edges
+    const migration = project.transitionEdges
+        ? { edges: project.transitionEdges, report: { generatedEdges: project.transitionEdges.length, warnings: [] } }
+        : compileTransitionEdges(project)
+    warnings.push(...migration.report.warnings)
+
+    const sourceEdges = migration.edges
     const edges = sortEdgesDeterministically(sourceEdges)
     const transitions: CompiledTransition[] = []
 
@@ -75,6 +80,12 @@ export function compileUnifiedTransitions(project: Project): UnifiedTransitionCo
         const availableHeadB = getAvailableHead(clipB, edge.boundaryTimeS)
         const maxAllowedDuration = Math.min(requestedDurationS, availableTailA, availableHeadB)
         const clampedDurationS = normalizeSeconds(maxAllowedDuration)
+
+        if (clampedDurationS < requestedDurationS - CLIP_EPSILON) {
+            warnings.push(
+                `[transitionCompiler] Clamped transition edge ${edge.edgeId} from ${requestedDurationS.toFixed(3)}s to ${clampedDurationS.toFixed(3)}s.`,
+            )
+        }
 
         if (clampedDurationS <= CLIP_EPSILON) {
             warnings.push(
@@ -95,6 +106,12 @@ export function compileUnifiedTransitions(project: Project): UnifiedTransitionCo
         const fallbackReason = typeof edge.params.fallbackReason === "string"
             ? edge.params.fallbackReason
             : typeResolution.entry.fallbackPolicy.reason
+
+        if (typeResolution.normalized) {
+            warnings.push(
+                `[transitionCompiler] Normalized transition type on edge ${edge.edgeId} from "${typeResolution.requestedId}" to "${typeResolution.canonicalId}" (${fallbackReason}).`,
+            )
+        }
 
         transitions.push({
             transitionId: buildTransitionId(edge, clipARef, clipBRef),

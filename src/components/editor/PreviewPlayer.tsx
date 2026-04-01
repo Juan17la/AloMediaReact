@@ -13,6 +13,25 @@ import { TransformOverlay } from "./TransformOverlay"
 import { RangeSlider } from "../ui/RangeSlider"
 import { getActiveVideoClip } from "../../player/timeline/activeClipResolver"
 import { DEFAULT_SPEED } from "../../constants/speed"
+import { compileUnifiedTransitions } from "../../engine/transitionCompiler"
+
+
+// ======================================================
+// REMOVE: This is a playground for testing out the preview player and related features. It's not currently used in the app, but it can be useful for development and experimentation.
+// ======================================================
+
+interface ActiveTransitionDebugView {
+  transitionId: string
+  sourceA: string
+  sourceB: string
+  startTimeS: number
+  endTimeS: number
+  boundaryTimeS: number
+  canonicalType: string
+  progress: number
+}
+
+// ===============================================
 
 function formatTimecode(seconds: number): string {
   seconds = Math.max(0, isFinite(seconds) ? seconds : 0)
@@ -143,6 +162,42 @@ export function PreviewPlayer() {
     )
   }, [activeClips, primaryVideoClip])
 
+
+  // ======================================================
+  // REMOVE: This is a playground for testing out the preview player and related features. It's not currently used in the app, but it can be useful for development and experimentation.
+  // ======================================================
+
+  const activeTransitionDebug = useMemo<ActiveTransitionDebugView | null>(() => {
+    const compiled = compileUnifiedTransitions(project)
+    const active = compiled.transitions
+      .filter(transition => playhead >= transition.startTimeS - CLIP_EPSILON && playhead <= transition.endTimeS + CLIP_EPSILON)
+      .sort((a, b) => {
+        const boundaryDiff = a.boundaryTimeS - b.boundaryTimeS
+        if (Math.abs(boundaryDiff) > CLIP_EPSILON) return boundaryDiff
+        return a.transitionId.localeCompare(b.transitionId)
+      })[0]
+
+    if (!active) return null
+
+    const rawProgress = active.durationS <= CLIP_EPSILON
+      ? 1
+      : (playhead - active.startTimeS) / active.durationS
+    const progress = Math.max(0, Math.min(1, rawProgress))
+
+    return {
+      transitionId: active.transitionId,
+      sourceA: active.clipARef.clipId ?? active.clipARef.synthetic?.kind ?? "none",
+      sourceB: active.clipBRef.clipId ?? active.clipBRef.synthetic?.kind ?? "none",
+      startTimeS: active.startTimeS,
+      endTimeS: active.endTimeS,
+      boundaryTimeS: active.boundaryTimeS,
+      canonicalType: active.typeCanonical,
+      progress,
+    }
+  }, [project, playhead])
+
+  // =======================================================
+
   // Keep a ref copy of secondary clips but do the assignment in an effect
   // to avoid updating refs during render (eslint: react-hooks/refs).
   useEffect(() => {
@@ -271,6 +326,27 @@ export function PreviewPlayer() {
               />
             )
           })()}
+
+
+          {/* // ======================================================
+          // REMOVE: This is a playground for testing out the preview player and related features. It's not currently used in the app, but it can be useful for development and experimentation.
+          // ====================================================== */}
+
+          {activeTransitionDebug && (
+            <div className="absolute left-2 top-2 z-20 min-w-68 rounded-md border border-white/20 bg-black/62 px-2.5 py-2 text-[11px] text-white/86 backdrop-blur-sm">
+              <div className="mb-1 font-semibold uppercase tracking-[0.06em] text-white/70">Transition Debug</div>
+              <div>ID: {activeTransitionDebug.transitionId}</div>
+              <div>A: {activeTransitionDebug.sourceA}</div>
+              <div>B: {activeTransitionDebug.sourceB}</div>
+              <div>startTimeS: {activeTransitionDebug.startTimeS.toFixed(3)}</div>
+              <div>endTimeS: {activeTransitionDebug.endTimeS.toFixed(3)}</div>
+              <div>boundaryTimeS: {activeTransitionDebug.boundaryTimeS.toFixed(3)}</div>
+              <div>progress: {activeTransitionDebug.progress.toFixed(3)}</div>
+              <div>canonicalType: {activeTransitionDebug.canonicalType}</div>
+            </div>
+          )}
+
+          {/* ============================================================== */}
         </div>
       </div>
 

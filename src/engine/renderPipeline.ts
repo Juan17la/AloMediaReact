@@ -1,15 +1,15 @@
 import type {
+  CompiledTransition,
   Clip,
   ExportOutputFormat,
   ExportVideoCodec,
   Project,
   RenderJob,
   RenderSegment,
-  TransitionEdge,
 } from "../project/projectTypes"
 import { getProjectDuration, CLIP_EPSILON } from "../utils/time"
 import { DEFAULT_SPEED } from "../constants/speed"
-import { compileTransitionEdges } from "../project/transitionEdges"
+import { compileUnifiedTransitions } from "./transitionCompiler"
 
 export interface ExportOptions {
   outputFormat: ExportOutputFormat
@@ -100,7 +100,7 @@ function clipToSegment(
   }
 }
 
-function resolveTransitionsFromEdges(segments: RenderSegment[], transitionEdges: TransitionEdge[]): void {
+function resolveTransitionsFromCompiler(segments: RenderSegment[], compiledTransitions: CompiledTransition[]): void {
   const byClipId = new Map<string, RenderSegment>()
   for (const seg of segments) {
     if (seg.type !== "video") continue
@@ -109,23 +109,23 @@ function resolveTransitionsFromEdges(segments: RenderSegment[], transitionEdges:
     byClipId.set(seg.clipId, seg)
   }
 
-  for (const edge of transitionEdges) {
-    if (edge.durationS <= CLIP_EPSILON) continue
+  for (const transition of compiledTransitions) {
+    if (transition.durationS <= CLIP_EPSILON) continue
 
-    const clipA = edge.clipAId ? byClipId.get(edge.clipAId) : undefined
-    const clipB = edge.clipBId ? byClipId.get(edge.clipBId) : undefined
+    const clipA = transition.clipARef.clipId ? byClipId.get(transition.clipARef.clipId) : undefined
+    const clipB = transition.clipBRef.clipId ? byClipId.get(transition.clipBRef.clipId) : undefined
 
     if (clipA && clipB) {
       clipA.resolvedTransitionOut = {
-        type: edge.transitionTypeCanonical,
-        duration: edge.durationS,
-        overlapStartS: edge.startTimeS,
+        type: transition.typeCanonical,
+        duration: transition.durationS,
+        overlapStartS: transition.startTimeS,
         kind: "crossfade",
       }
       clipB.resolvedTransitionIn = {
-        type: edge.transitionTypeCanonical,
-        duration: edge.durationS,
-        overlapStartS: edge.startTimeS,
+        type: transition.typeCanonical,
+        duration: transition.durationS,
+        overlapStartS: transition.startTimeS,
         kind: "crossfade",
       }
       continue
@@ -133,9 +133,9 @@ function resolveTransitionsFromEdges(segments: RenderSegment[], transitionEdges:
 
     if (clipA && !clipB) {
       clipA.resolvedTransitionOut = {
-        type: edge.transitionTypeCanonical,
-        duration: edge.durationS,
-        overlapStartS: edge.startTimeS,
+        type: transition.typeCanonical,
+        duration: transition.durationS,
+        overlapStartS: transition.startTimeS,
         kind: "fade_to_black",
       }
       continue
@@ -143,9 +143,9 @@ function resolveTransitionsFromEdges(segments: RenderSegment[], transitionEdges:
 
     if (!clipA && clipB) {
       clipB.resolvedTransitionIn = {
-        type: edge.transitionTypeCanonical,
-        duration: edge.durationS,
-        overlapStartS: edge.startTimeS,
+        type: transition.typeCanonical,
+        duration: transition.durationS,
+        overlapStartS: transition.startTimeS,
         kind: "fade_from_black",
       }
     }
@@ -177,11 +177,15 @@ export function buildRenderJob(
     }
   }
 
-  const transitionEdges = project.transitionEdges ?? compileTransitionEdges(project).edges
-  resolveTransitionsFromEdges(segments, transitionEdges)
+  const compiled = compileUnifiedTransitions(project)
+  for (const warning of compiled.warnings) {
+    console.warn(warning)
+  }
+  resolveTransitionsFromCompiler(segments, compiled.transitions)
 
   return {
     segments,
+    transitions: compiled.transitions,
     outputFormat: options.outputFormat,
     codec: options.codec,
     resolution: options.resolution,

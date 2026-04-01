@@ -7,6 +7,7 @@ import type {
 } from "../project/projectTypes"
 import { compileTransitionEdges } from "../project/transitionEdges"
 import { CLIP_EPSILON, toMs, toSeconds } from "../utils/time"
+import { resolveCanonicalTransitionType } from "./transitionRegistry"
 
 export interface UnifiedTransitionCompilerResult {
     transitions: CompiledTransition[]
@@ -87,6 +88,13 @@ export function compileUnifiedTransitions(project: Project): UnifiedTransitionCo
         const endTimeS = boundaryTimeS
         const clipARef = toClipRef(edge.clipAId)
         const clipBRef = toClipRef(edge.clipBId)
+        const requestedType = typeof edge.params.requestedType === "string"
+            ? edge.params.requestedType
+            : edge.transitionTypeCanonical
+        const typeResolution = resolveCanonicalTransitionType(requestedType)
+        const fallbackReason = typeof edge.params.fallbackReason === "string"
+            ? edge.params.fallbackReason
+            : typeResolution.entry.fallbackPolicy.reason
 
         transitions.push({
             transitionId: buildTransitionId(edge, clipARef, clipBRef),
@@ -97,7 +105,7 @@ export function compileUnifiedTransitions(project: Project): UnifiedTransitionCo
             endTimeS,
             boundaryTimeS,
             durationS: clampedDurationS,
-            typeCanonical: edge.transitionTypeCanonical,
+            typeCanonical: typeResolution.canonicalId,
             normalizedParams: { ...edge.params },
             audioCurveType: "equal_power",
             debugFields: {
@@ -105,6 +113,9 @@ export function compileUnifiedTransitions(project: Project): UnifiedTransitionCo
                 sourceReason: edge.sourceReason,
                 requestedDurationS: normalizeSeconds(requestedDurationS),
                 clampedDurationS,
+                requestedType: typeResolution.requestedId,
+                normalizedType: typeResolution.normalized,
+                fallbackReason,
             },
         })
     }

@@ -1,10 +1,9 @@
-import type { ClipTransition, Track, VideoClip } from "../../project/projectTypes"
+import type { ClipTransition, ResolvedTransition, Track, VideoClip } from "../../project/projectTypes"
 import { PRELOAD_LOOKAHEAD_MS, DRIFT_CORRECTION_THRESHOLD_S } from "../../constants/timeline"
 import { getActiveVideoClip, getNextVideoClip } from "../timeline/activeClipResolver"
 import { applyTransformToEl, applyColorAdjustmentsToEl } from "../render/transformUtils"
 import { DEFAULT_SPEED } from "../../constants/speed"
 import { CLIP_EPSILON } from "../../utils/time"
-import { findPrevAdjacentOnSameTrack } from "../../utils/transitions"
 import { runTransitionApproximation, type TransitionSwapMetadata } from "./videoTransitions"
 
 export interface BufferState {
@@ -220,31 +219,23 @@ export class VideoBufferManager {
    * Computes the opacity for fade-in from black (transitionIn without previous clip).
    * Returns 1 when no fade-in applies.
    */
-  private getFadeInOpacity(ph: number, clip: VideoClip, tracks: Track[]): number {
-    if (!clip.transitionIn || clip.transitionIn.duration <= CLIP_EPSILON) return 1
-    // Only apply if no previous adjacent clip has transitionOut
-    const track = tracks.find(t => t.id === clip.trackId)
-    if (!track) return 1
-    const prevClip = findPrevAdjacentOnSameTrack(clip, track.clips)
-    if (prevClip && prevClip.type === "video" && prevClip.transitionOut) return 1
-    const elapsed = ph - clip.timelineStart
+  private getFadeInOpacity(ph: number, transitionIn: ResolvedTransition | undefined): number {
+    if (!transitionIn || transitionIn.kind !== "fade_from_black" || transitionIn.duration <= CLIP_EPSILON) return 1
+    const elapsed = ph - transitionIn.overlapStartS
     if (elapsed < 0) return 0
-    if (elapsed >= clip.transitionIn.duration) return 1
-    return Math.min(1, Math.max(0, elapsed / clip.transitionIn.duration))
+    if (elapsed >= transitionIn.duration) return 1
+    return Math.min(1, Math.max(0, elapsed / transitionIn.duration))
   }
 
   /**
    * Computes the opacity for fade-out to black (transitionOut without next clip).
    * Returns 1 when no fade-out applies.
    */
-  private getFadeOutOpacity(ph: number, clip: VideoClip, tracks: Track[]): number {
-    if (!clip.transitionOut || clip.transitionOut.duration <= CLIP_EPSILON) return 1
-    // Only apply fade-to-black when there is no adjacent next clip
-    const nextClip = getNextVideoClip(tracks, clip)
-    if (nextClip) return 1
-    const fadeStart = clip.timelineEnd - clip.transitionOut.duration
+  private getFadeOutOpacity(ph: number, transitionOut: ResolvedTransition | undefined): number {
+    if (!transitionOut || transitionOut.kind !== "fade_to_black" || transitionOut.duration <= CLIP_EPSILON) return 1
+    const fadeStart = transitionOut.overlapStartS
     if (ph < fadeStart) return 1
-    const progress = (ph - fadeStart) / clip.transitionOut.duration
+    const progress = (ph - fadeStart) / transitionOut.duration
     return 1 - Math.min(1, Math.max(0, progress))
   }
 
@@ -254,7 +245,8 @@ export class VideoBufferManager {
     getUrl: UrlResolver,
     getIsPlaying: () => boolean,
     activeOutgoingTransition?: ClipTransition,
-    _activeIncomingTransition?: ClipTransition,
+    transitionInByClipId?: Map<string, ResolvedTransition>,
+    transitionOutByClipId?: Map<string, ResolvedTransition>,
   ): void {
     const playing = getIsPlaying()
     const timelineActiveClip = getActiveVideoClip(tracks, ph)
@@ -319,10 +311,12 @@ export class VideoBufferManager {
         const activeEl = this.getActiveEl()
         activeEl.playbackRate = clipSpeed
         const clipStartPh = this.clipPlayStartPh.get(playbackClip.id) ?? playbackClip.timelineStart
+        const playbackTransitionIn = transitionInByClipId?.get(playbackClip.id)
+        const playbackTransitionOut = transitionOutByClipId?.get(playbackClip.id)
 
         // Apply fade-in/out opacity for non-crossfade transitions
-        const fadeIn = this.getFadeInOpacity(ph, playbackClip, tracks)
-        const fadeOut = this.getFadeOutOpacity(ph, playbackClip, tracks)
+        const fadeIn = this.getFadeInOpacity(ph, playbackTransitionIn)
+        const fadeOut = this.getFadeOutOpacity(ph, playbackTransitionOut)
         const combinedOpacity = Math.min(fadeIn, fadeOut)
         if (combinedOpacity < 1) {
           activeEl.style.opacity = String(combinedOpacity)
@@ -352,10 +346,12 @@ export class VideoBufferManager {
         el.currentTime = timelineActiveClip.mediaStart + (ph - timelineActiveClip.timelineStart) * clipSpeed
         applyTransformToEl(el, timelineActiveClip.transform)
         applyColorAdjustmentsToEl(el, timelineActiveClip.colorAdjustments)
+        const activeTransitionIn = transitionInByClipId?.get(timelineActiveClip.id)
+        const activeTransitionOut = transitionOutByClipId?.get(timelineActiveClip.id)
 
         // Show fade-in/out opacity even when paused/scrubbing
-        const fadeIn = this.getFadeInOpacity(ph, timelineActiveClip, tracks)
-        const fadeOut = this.getFadeOutOpacity(ph, timelineActiveClip, tracks)
+        const fadeIn = this.getFadeInOpacity(ph, activeTransitionIn)
+        const fadeOut = this.getFadeOutOpacity(ph, activeTransitionOut)
         el.style.opacity = String(Math.min(fadeIn, fadeOut))
 
         this.clipSeekDone = null

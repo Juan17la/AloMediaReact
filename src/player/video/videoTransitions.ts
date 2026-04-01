@@ -89,7 +89,6 @@ export function runTransitionApproximation({
     }
 
     const duration = Math.max(0.08, transition.duration)
-    // Use an easing curve instead of linear for a more cinematic feel
     const easing = "cubic-bezier(0.25, 1, 0.5, 1)"
     const transitionCss = `${duration}s ${easing}`
     const t = normalizePreviewTransitionType(transition.type)
@@ -109,168 +108,152 @@ export function runTransitionApproximation({
     outgoingEl.style.zIndex = "1"
     incomingEl.style.zIndex = "2"
     outgoingEl.style.opacity = "1"
-    incomingEl.style.opacity = "0"
+    incomingEl.style.opacity = "0" // always hidden until the rAF commits initial state
 
     switch (t) {
-        case "fadeblack": {
+        case "fadeblack":
             outgoingEl.style.filter = "brightness(1)"
             incomingEl.style.filter = "brightness(0)"
             break
-        }
-        case "fadewhite": {
+        case "fadewhite":
             outgoingEl.style.filter = "brightness(1)"
             incomingEl.style.filter = "brightness(2)"
-            break
-        }
-        case "wipeleft": {
-            incomingEl.style.opacity = "1"
-            incomingEl.style.clipPath = "inset(0 100% 0 0)"
-            outgoingEl.style.scale = "1"
-            break
-        }
-        case "wiperight": {
-            incomingEl.style.opacity = "1"
-            incomingEl.style.clipPath = "inset(0 0 0 100%)"
-            outgoingEl.style.scale = "1"
-            break
-        }
-        case "wipeup": {
-            incomingEl.style.opacity = "1"
-            incomingEl.style.clipPath = "inset(100% 0 0 0)"
-            outgoingEl.style.scale = "1"
-            break
-        }
-        case "wipedown": {
-            incomingEl.style.opacity = "1"
-            incomingEl.style.clipPath = "inset(0 0 100% 0)"
-            outgoingEl.style.scale = "1"
-            break
-        }
-        case "slideleft": {
-            incomingEl.style.opacity = "1"
-            incomingEl.style.setProperty("translate", "100% 0")
-            outgoingEl.style.setProperty("translate", "0 0")
-            outgoingEl.style.scale = "1"
-            break
-        }
-        case "slideright": {
-            incomingEl.style.opacity = "1"
-            incomingEl.style.setProperty("translate", "-100% 0")
-            outgoingEl.style.setProperty("translate", "0 0")
-            outgoingEl.style.scale = "1"
-            break
-        }
-        case "slideup": {
-            incomingEl.style.opacity = "1"
-            incomingEl.style.setProperty("translate", "0 100%")
-            outgoingEl.style.setProperty("translate", "0 0")
-            outgoingEl.style.scale = "1"
-            break
-        }
-        case "slidedown": {
-            incomingEl.style.opacity = "1"
-            incomingEl.style.setProperty("translate", "0 -100%")
-            outgoingEl.style.setProperty("translate", "0 0")
-            outgoingEl.style.scale = "1"
-            break
-        }
-        case "circlecrop": {
-            incomingEl.style.opacity = "1"
-            incomingEl.style.clipPath = "circle(0% at 50% 50%)"
-            break
-        }
-        case "distance": {
-            incomingEl.style.opacity = "0"
-            incomingEl.style.scale = "0.5"
-            outgoingEl.style.scale = "1"
-            break
-        }
-        case "dissolve":
-        case "fade":
-        default:
             break
     }
 
     requestAnimationFrame(() => {
-        outgoingEl.style.transition = `opacity ${transitionCss}, clip-path ${transitionCss}, translate ${transitionCss}, scale ${transitionCss}, filter ${transitionCss}`
-        incomingEl.style.transition = `opacity ${transitionCss}, clip-path ${transitionCss}, translate ${transitionCss}, scale ${transitionCss}, filter ${transitionCss}`
+
+        // opacity and spatial properties (clip-path / translate) are written in
+        // the same synchronous block, so the browser commits them together.
+        // A forced reflow after this block guarantees they are all applied
+        // before the CSS transition is enabled – no intermediate flash possible.
+        switch (t) {
+            case "wipeleft":
+                incomingEl.style.opacity = "1"
+                incomingEl.style.clipPath = "inset(0 100% 0 0)"
+                outgoingEl.style.scale = "1"
+                break
+            case "wiperight":
+                incomingEl.style.opacity = "1"
+                incomingEl.style.clipPath = "inset(0 0 0 100%)"
+                outgoingEl.style.scale = "1"
+                break
+            case "wipeup":
+                incomingEl.style.opacity = "1"
+                incomingEl.style.clipPath = "inset(100% 0 0 0)"
+                outgoingEl.style.scale = "1"
+                break
+            case "wipedown":
+                incomingEl.style.opacity = "1"
+                incomingEl.style.clipPath = "inset(0 0 100% 0)"
+                outgoingEl.style.scale = "1"
+                break
+            case "slideleft":
+                incomingEl.style.opacity = "1"
+                incomingEl.style.setProperty("translate", "100% 0")
+                outgoingEl.style.setProperty("translate", "0 0")
+                outgoingEl.style.scale = "1"
+                break
+            case "slideright":
+                incomingEl.style.opacity = "1"
+                incomingEl.style.setProperty("translate", "-100% 0")
+                outgoingEl.style.setProperty("translate", "0 0")
+                outgoingEl.style.scale = "1"
+                break
+            case "slideup":
+                incomingEl.style.opacity = "1"
+                incomingEl.style.setProperty("translate", "0 100%")
+                outgoingEl.style.setProperty("translate", "0 0")
+                outgoingEl.style.scale = "1"
+                break
+            case "slidedown":
+                incomingEl.style.opacity = "1"
+                incomingEl.style.setProperty("translate", "0 -100%")
+                outgoingEl.style.setProperty("translate", "0 0")
+                outgoingEl.style.scale = "1"
+                break
+            case "circlecrop":
+                incomingEl.style.opacity = "1"
+                incomingEl.style.clipPath = "circle(0% at 50% 50%)"
+                break
+            case "distance":
+                // Intentionally keep opacity at 0 — we fade + scale-up simultaneously
+                incomingEl.style.scale = "0.5"
+                break
+            // fade / fadeblack / fadewhite / dissolve: incoming stays at opacity:0
+            // set in Phase 1; Phase 2B will transition it to 1.
+        }
+
+        void incomingEl.offsetWidth
+
+        const transitionValue = `opacity ${transitionCss}, clip-path ${transitionCss}, translate ${transitionCss}, scale ${transitionCss}, filter ${transitionCss}`
+        outgoingEl.style.transition = transitionValue
+        incomingEl.style.transition = transitionValue
 
         switch (t) {
-            case "fadeblack": {
+            case "fadeblack":
                 outgoingEl.style.opacity = "0"
                 outgoingEl.style.filter = "brightness(0)"
                 incomingEl.style.opacity = "1"
                 incomingEl.style.filter = "brightness(1)"
                 break
-            }
-            case "fadewhite": {
+            case "fadewhite":
                 outgoingEl.style.opacity = "0"
                 outgoingEl.style.filter = "brightness(2)"
                 incomingEl.style.opacity = "1"
                 incomingEl.style.filter = "brightness(1)"
                 break
-            }
             case "wipeleft":
             case "wiperight":
             case "wipeup":
-            case "wipedown": {
+            case "wipedown":
                 outgoingEl.style.opacity = "0"
                 outgoingEl.style.scale = "1.05"
                 incomingEl.style.clipPath = "inset(0 0 0 0)"
-                incomingEl.style.opacity = "1"
+                // incomingEl opacity already 1 from Phase 2A, no change needed
                 break
-            }
-            case "slideleft": {
+            case "slideleft":
                 outgoingEl.style.setProperty("translate", "-100% 0")
                 outgoingEl.style.opacity = "0"
                 outgoingEl.style.scale = "0.95"
                 incomingEl.style.setProperty("translate", "0 0")
-                incomingEl.style.opacity = "1"
+                // incomingEl opacity already 1 from Phase 2A
                 break
-            }
-            case "slideright": {
+            case "slideright":
                 outgoingEl.style.setProperty("translate", "100% 0")
                 outgoingEl.style.opacity = "0"
                 outgoingEl.style.scale = "0.95"
                 incomingEl.style.setProperty("translate", "0 0")
-                incomingEl.style.opacity = "1"
                 break
-            }
-            case "slideup": {
+            case "slideup":
                 outgoingEl.style.setProperty("translate", "0 -100%")
                 outgoingEl.style.opacity = "0"
                 outgoingEl.style.scale = "0.95"
                 incomingEl.style.setProperty("translate", "0 0")
-                incomingEl.style.opacity = "1"
                 break
-            }
-            case "slidedown": {
+            case "slidedown":
                 outgoingEl.style.setProperty("translate", "0 100%")
                 outgoingEl.style.opacity = "0"
                 outgoingEl.style.scale = "0.95"
                 incomingEl.style.setProperty("translate", "0 0")
-                incomingEl.style.opacity = "1"
                 break
-            }
-            case "circlecrop": {
+            case "circlecrop":
                 outgoingEl.style.opacity = "0"
                 incomingEl.style.clipPath = "circle(100% at 50% 50%)"
+                // incomingEl opacity already 1 from Phase 2A
                 break
-            }
-            case "distance": {
+            case "distance":
                 outgoingEl.style.opacity = "0"
                 outgoingEl.style.scale = "2"
                 incomingEl.style.opacity = "1"
                 incomingEl.style.scale = "1"
                 break
-            }
             case "dissolve":
             case "fade":
-            default: {
+            default:
                 outgoingEl.style.opacity = "0"
                 incomingEl.style.opacity = "1"
                 break
-            }
         }
     })
 

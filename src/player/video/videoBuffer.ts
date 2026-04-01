@@ -1,4 +1,4 @@
-import type { ClipTransition, ResolvedTransition, Track, VideoClip } from "../../project/projectTypes"
+import type { ResolvedTransition, Track, VideoClip } from "../../project/projectTypes"
 import { PRELOAD_LOOKAHEAD_MS, DRIFT_CORRECTION_THRESHOLD_S } from "../../constants/timeline"
 import { getActiveVideoClip, getNextVideoClip } from "../timeline/activeClipResolver"
 import { applyTransformToEl, applyColorAdjustmentsToEl } from "../render/transformUtils"
@@ -244,7 +244,7 @@ export class VideoBufferManager {
     tracks: Track[],
     getUrl: UrlResolver,
     getIsPlaying: () => boolean,
-    activeOutgoingTransition?: ClipTransition,
+    activeOutgoingTransition?: ResolvedTransition,
     transitionInByClipId?: Map<string, ResolvedTransition>,
     transitionOutByClipId?: Map<string, ResolvedTransition>,
   ): void {
@@ -276,9 +276,10 @@ export class VideoBufferManager {
         !this.swapPending &&
         timelineActiveClip.id === this.state.activeClipId &&
         activeOutgoingTransition &&
+        activeOutgoingTransition.kind === "crossfade" &&
         activeOutgoingTransition.duration > CLIP_EPSILON
       ) {
-        const transitionStart = timelineActiveClip.timelineEnd - activeOutgoingTransition.duration
+        const transitionStart = activeOutgoingTransition.overlapStartS
         if (ph >= transitionStart - CLIP_EPSILON) {
           const nextClip = getNextVideoClip(tracks, timelineActiveClip)
           if (nextClip && nextClip.id !== timelineActiveClip.id) {
@@ -293,8 +294,9 @@ export class VideoBufferManager {
 
       const isTransitioning =
         activeOutgoingTransition &&
+        activeOutgoingTransition.kind === "crossfade" &&
         activeOutgoingTransition.duration > CLIP_EPSILON &&
-        ph >= (timelineActiveClip.timelineEnd - activeOutgoingTransition.duration - CLIP_EPSILON)
+        ph >= (activeOutgoingTransition.overlapStartS - CLIP_EPSILON)
 
 
       if (

@@ -124,7 +124,7 @@ function buildAudioSegmentFilters(seg: RenderSegment, overrideTimelineStart?: nu
 
   // Audio fade-in during crossfade (incoming clip)
   if (seg.resolvedTransitionIn?.kind === 'crossfade') {
-    filters.push(`afade=t=in:st=0:d=${seg.resolvedTransitionIn.duration.toFixed(3)}`)
+    filters.push(`afade=t=in:st=0:d=${seg.resolvedTransitionIn.duration.toFixed(3)}:curve=qsin`)
   }
 
   // Audio fade-out to black
@@ -136,7 +136,7 @@ function buildAudioSegmentFilters(seg: RenderSegment, overrideTimelineStart?: nu
   // Audio fade-out during crossfade (outgoing clip)
   if (seg.resolvedTransitionOut?.kind === 'crossfade') {
     const fadeStart = (seg.resolvedTransitionOut.overlapStartS - seg.timelineStart).toFixed(3)
-    filters.push(`afade=t=out:st=${fadeStart}:d=${seg.resolvedTransitionOut.duration.toFixed(3)}`)
+    filters.push(`afade=t=out:st=${fadeStart}:d=${seg.resolvedTransitionOut.duration.toFixed(3)}:curve=iqsin`)
   }
 
   filters.push(`adelay=${delayMs}|${delayMs}`)
@@ -256,14 +256,18 @@ export function buildFilterGraph(
   // Tracks audio labels actually generated; used to set audioOutputLabel correctly.
   const audioLabels: string[] = []
   const xfadeChains = options.disableTransitions || !hasVideo ? [] : buildXfadeChains(visualSegments)
-  // In fixed-duration transition mode, each chain boundary is anchored to authored
-  // timeline positions so incoming clip audio starts at the same boundary.
+  // Canonical transition windows are absolute timeline values; for incoming
+  // crossfade clips we shift audio start to overlapStartS so audio and video
+  // transition windows remain aligned.
   const effectiveAudioStartMap = new Map<number, number>()
   for (const chain of xfadeChains) {
-    const chainStartTime = visualSegments[chain.segmentIndexes[0]].timelineStart
-    effectiveAudioStartMap.set(chain.segmentIndexes[0], chainStartTime)
-    for (const boundary of chain.boundaries) {
-      effectiveAudioStartMap.set(boundary.toSegmentIndex, chainStartTime + boundary.offset)
+    for (const segIdx of chain.segmentIndexes) {
+      const seg = visualSegments[segIdx]
+      if (seg.resolvedTransitionIn?.kind === 'crossfade') {
+        effectiveAudioStartMap.set(segIdx, seg.resolvedTransitionIn.overlapStartS)
+      } else {
+        effectiveAudioStartMap.set(segIdx, seg.timelineStart)
+      }
     }
   }
 

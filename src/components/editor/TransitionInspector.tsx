@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { useEditorStore } from "../../store/editorStore"
 import { findNextAdjacentOnSameTrack, findPrevAdjacentOnSameTrack } from "../../utils/transitions"
 import type { ClipTransition, VideoClip, XfadeTransitionType } from "../../project/projectTypes"
+import { resolveCanonicalTransitionType } from "../../engine/transitionRegistry"
 
 const TRANSITION_TYPES: XfadeTransitionType[] = [
     "fade",
@@ -46,6 +47,7 @@ function TransitionSection({
     onChange: (transition: ClipTransition | undefined) => void
 }) {
     const isActive = !!transition
+    const normalization = transition ? resolveCanonicalTransitionType(transition.type) : null
 
     return (
         <section className="space-y-2">
@@ -70,6 +72,12 @@ function TransitionSection({
 
             {isActive && !disabled && (
                 <>
+                    {normalization?.normalized && (
+                        <div className={warningBox}>
+                            Unsupported type "{normalization.requestedId}" normalizes to "{normalization.canonicalId}".
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-2 gap-2">
                         {TRANSITION_TYPES.map(type => {
                             // Crossfade types only available when there's an adjacent clip

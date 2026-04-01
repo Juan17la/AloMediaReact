@@ -178,16 +178,14 @@ export function compileTransitionEdges(project: Project): { edges: TransitionEdg
             const incoming = next && hasPositiveDuration(next.transitionIn) ? next.transitionIn : undefined
 
             const hasAdjacentPrev = !!prev && Math.abs(current.timelineStart - prev.timelineEnd) <= CLIP_EPSILON
-            const prevHasOut = !!(prev && hasPositiveDuration(prev.transitionOut))
 
             if (inCurrent) {
                 if (!hasAdjacentPrev) {
                     const inEdge = buildEdge(track.id, current.timelineStart, null, current, inCurrent, "synthesizedStart")
                     if (inEdge) edges.push(inEdge)
                     else warnings.push(`[transitionMigration] Dropped oversized/invalid transitionIn on ${current.id}`)
-                } else if (prevHasOut) {
-                    // Adjacent previous outgoing transition takes priority over this incoming transition.
                 }
+                // If hasAdjacentPrev: the boundary edge is handled in the adjacent block when the previous clip is iterated.
             }
 
             if (!next) {
@@ -215,23 +213,24 @@ export function compileTransitionEdges(project: Project): { edges: TransitionEdg
             const adjacent = Math.abs(next.timelineStart - current.timelineEnd) <= CLIP_EPSILON
             if (adjacent) {
                 const boundary = next.timelineStart
-                if (out) {
-                    const reason: TransitionEdge["sourceReason"] = incoming ? "conflictResolved" : "legacyOut"
-                    if (incoming) {
+                if (incoming) {
+                    // Clip B's transitionIn takes priority over Clip A's transitionOut at a shared boundary.
+                    const reason: TransitionEdge["sourceReason"] = out ? "conflictResolved" : "legacyIn"
+                    if (out) {
                         warnings.push(
-                            `[transitionMigration] Conflict on edge ${current.id}->${next.id}; selected transitionOut from ${current.id} over transitionIn on ${next.id}.`,
+                            `[transitionMigration] Conflict on edge ${current.id}->${next.id}; selected transitionIn from ${next.id} over transitionOut on ${current.id}.`,
                         )
                     }
-                    const edge = buildEdge(track.id, boundary, current, next, out, reason)
+                    const edge = buildEdge(track.id, boundary, current, next, incoming, reason)
                     if (edge) edges.push(edge)
-                    else warnings.push(`[transitionMigration] Dropped oversized/invalid transitionOut edge ${current.id}->${next.id}`)
+                    else warnings.push(`[transitionMigration] Dropped oversized/invalid transitionIn edge ${current.id}->${next.id}`)
                     continue
                 }
 
-                if (incoming) {
-                    const edge = buildEdge(track.id, boundary, current, next, incoming, "legacyIn")
+                if (out) {
+                    const edge = buildEdge(track.id, boundary, current, next, out, "legacyOut")
                     if (edge) edges.push(edge)
-                    else warnings.push(`[transitionMigration] Dropped oversized/invalid transitionIn edge ${current.id}->${next.id}`)
+                    else warnings.push(`[transitionMigration] Dropped oversized/invalid transitionOut edge ${current.id}->${next.id}`)
                 }
                 continue
             }
@@ -293,14 +292,14 @@ export function buildClipTransitionView(project: Project): Map<string, ClipTrans
         if (edge.clipAId) {
             const state = getState(edge.clipAId)
             state.transitionOut = transition
+            if (edge.sourceReason === "conflictResolved") {
+                state.transitionOutOverrideMessage = "Overridden by next clip's in-transition on this edge"
+            }
         }
 
         if (edge.clipBId) {
             const state = getState(edge.clipBId)
             state.transitionIn = transition
-            if (edge.sourceReason === "conflictResolved") {
-                state.transitionInOverrideMessage = "Overridden by previous clip out-transition on this edge"
-            }
         }
     }
 

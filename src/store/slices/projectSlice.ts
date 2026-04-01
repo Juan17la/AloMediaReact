@@ -8,6 +8,7 @@ import { renderSingleFrame, resetPlayer, resumePlayer } from "../../hooks/usePla
 import { hashFile } from "../../utils/fileHash"
 import { getFileFromCache } from "../../services/fileCacheService"
 import { generateProxy } from "../../engine/proxyEngine"
+import { applyCanonicalTransitionEdit } from "../../project/transitionEdges"
 import type {
   AudioConfig,
   Clip,
@@ -417,8 +418,8 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
   setClipTransitionIn(clipId, transition) {
     get().pushHistory(transition ? "Set transition in" : "Remove transition in")
     resetPlayer()
-    set(state => ({
-      project: {
+    set(state => {
+      const withLegacyUpdated = {
         ...state.project,
         tracks: state.project.tracks.map(track => ({
           ...track,
@@ -433,8 +434,12 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
             return rest
           }),
         })),
-      },
-    }))
+      }
+
+      return {
+        project: applyCanonicalTransitionEdit(withLegacyUpdated, clipId, "in", transition),
+      }
+    })
   },
 
   setClipTransitionOut(clipId, transition) {
@@ -444,22 +449,27 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
       selectedTransitionClipId: !transition && state.selectedTransitionClipId === clipId
         ? undefined
         : state.selectedTransitionClipId,
-      project: {
-        ...state.project,
-        tracks: state.project.tracks.map(track => ({
-          ...track,
-          clips: track.clips.map(clip => {
-            if (clip.id !== clipId) return clip
-            if (clip.type !== "video") return clip
-            if (transition) {
-              return { ...clip, transitionOut: { ...transition } }
-            }
-            const { transitionOut: _removed, ...rest } = clip
-            void _removed
-            return rest
-          }),
-        })),
-      },
+      project: applyCanonicalTransitionEdit(
+        {
+          ...state.project,
+          tracks: state.project.tracks.map(track => ({
+            ...track,
+            clips: track.clips.map(clip => {
+              if (clip.id !== clipId) return clip
+              if (clip.type !== "video") return clip
+              if (transition) {
+                return { ...clip, transitionOut: { ...transition } }
+              }
+              const { transitionOut: _removed, ...rest } = clip
+              void _removed
+              return rest
+            }),
+          })),
+        },
+        clipId,
+        "out",
+        transition,
+      ),
     }))
   },
 

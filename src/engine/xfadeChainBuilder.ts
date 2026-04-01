@@ -1,10 +1,4 @@
 import type { ClipTransition, RenderSegment } from "../project/projectTypes"
-import {
-    clampTransitionDuration,
-    findNextAdjacentOnSameTrack,
-    getOutgoingTransition,
-    supportsOutgoingTransition,
-} from "../utils/transitions"
 import { CLIP_EPSILON } from "../utils/time"
 
 export interface XfadeChainBoundary {
@@ -57,66 +51,65 @@ export function buildXfadeChains(visualSegments: RenderSegment[]): XfadeChain[] 
         for (let i = 0; i < trackSegments.length; i++) {
             const first = trackSegments[i]
             if (consumedIndexes.has(first.index)) continue
-            if (!supportsOutgoingTransition(first.segment)) continue
+            if (first.segment.resolvedTransitionOut?.kind !== "crossfade") continue
 
-            const maybeTransition = getOutgoingTransition(first.segment)
-            if (!maybeTransition) continue
-
-            const sameTrackSegments = trackSegments.map(entry => entry.segment)
-            const immediateNext = findNextAdjacentOnSameTrack(first.segment, sameTrackSegments)
-            if (!immediateNext) continue
-
-            const nextEntry = trackSegments.find(entry => entry.segment === immediateNext)
+            const nextEntry = i < trackSegments.length - 1 ? trackSegments[i + 1] : null
             if (!nextEntry || consumedIndexes.has(nextEntry.index)) continue
+            if (Math.abs(nextEntry.segment.timelineStart - first.segment.timelineEnd) > CLIP_EPSILON) continue
 
             const segmentIndexes: number[] = [first.index, nextEntry.index]
             const boundaries: XfadeChainBoundary[] = []
 
-            const initialDuration = clampTransitionDuration(
-                maybeTransition.duration,
+            const initialDuration = Math.max(0, Math.min(
+                first.segment.resolvedTransitionOut.duration,
                 getSegmentDuration(first.segment),
                 getSegmentDuration(nextEntry.segment),
-            )
+            ))
 
             if (initialDuration <= CLIP_EPSILON) continue
 
             boundaries.push({
                 fromSegmentIndex: first.index,
                 toSegmentIndex: nextEntry.index,
-                transition: maybeTransition,
+                transition: {
+                    type: first.segment.resolvedTransitionOut.type,
+                    duration: initialDuration,
+                },
                 duration: initialDuration,
                 offset: Math.max(0, nextEntry.segment.timelineStart - first.segment.timelineStart),
             })
 
             let cursor = nextEntry
-            while (supportsOutgoingTransition(cursor.segment)) {
-                const outgoing = getOutgoingTransition(cursor.segment)
-                if (!outgoing) break
-
-                const candidateNext = findNextAdjacentOnSameTrack(cursor.segment, sameTrackSegments)
-                if (!candidateNext) break
-
-                const candidateNextEntry = trackSegments.find(entry => entry.segment === candidateNext)
+            let cursorPos = i + 1
+            while (cursor.segment.resolvedTransitionOut?.kind === "crossfade") {
+                const candidateNextEntry = cursorPos < trackSegments.length - 1
+                    ? trackSegments[cursorPos + 1]
+                    : null
                 if (!candidateNextEntry || consumedIndexes.has(candidateNextEntry.index)) break
+                if (Math.abs(candidateNextEntry.segment.timelineStart - cursor.segment.timelineEnd) > CLIP_EPSILON) break
 
-                const transitionDuration = clampTransitionDuration(
-                    outgoing.duration,
+                const transitionDuration = Math.max(0, Math.min(
+                    cursor.segment.resolvedTransitionOut.duration,
                     getSegmentDuration(cursor.segment),
                     getSegmentDuration(candidateNextEntry.segment),
-                )
+                ))
 
                 if (transitionDuration <= CLIP_EPSILON) break
 
                 boundaries.push({
                     fromSegmentIndex: cursor.index,
                     toSegmentIndex: candidateNextEntry.index,
-                    transition: outgoing,
+                    transition: {
+                        type: cursor.segment.resolvedTransitionOut.type,
+                        duration: transitionDuration,
+                    },
                     duration: transitionDuration,
                     offset: Math.max(0, candidateNextEntry.segment.timelineStart - first.segment.timelineStart),
                 })
 
                 segmentIndexes.push(candidateNextEntry.index)
                 cursor = candidateNextEntry
+                cursorPos += 1
             }
 
             if (segmentIndexes.length < 2) continue

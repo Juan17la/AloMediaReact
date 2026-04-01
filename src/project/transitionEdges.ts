@@ -86,6 +86,7 @@ export function compileTransitionEdges(project: Project): { edges: TransitionEdg
 
         for (let i = 0; i < clips.length; i++) {
             const current = clips[i]
+            const prev = i > 0 ? clips[i - 1] : null
             const next = i < clips.length - 1 ? clips[i + 1] : null
 
             if (clipDurationS(current) <= CLIP_EPSILON) {
@@ -96,7 +97,21 @@ export function compileTransitionEdges(project: Project): { edges: TransitionEdg
             }
 
             const out = hasPositiveDuration(current.transitionOut) ? current.transitionOut : undefined
+            const inCurrent = hasPositiveDuration(current.transitionIn) ? current.transitionIn : undefined
             const incoming = next && hasPositiveDuration(next.transitionIn) ? next.transitionIn : undefined
+
+            const hasAdjacentPrev = !!prev && Math.abs(current.timelineStart - prev.timelineEnd) <= CLIP_EPSILON
+            const prevHasOut = !!(prev && hasPositiveDuration(prev.transitionOut))
+
+            if (inCurrent) {
+                if (!hasAdjacentPrev) {
+                    const inEdge = buildEdge(track.id, current.timelineStart, null, current, inCurrent, "synthesizedStart")
+                    if (inEdge) edges.push(inEdge)
+                    else warnings.push(`[transitionMigration] Dropped oversized/invalid transitionIn on ${current.id}`)
+                } else if (prevHasOut) {
+                    // Adjacent previous outgoing transition takes priority over this incoming transition.
+                }
+            }
 
             if (!next) {
                 if (out) {
@@ -145,11 +160,7 @@ export function compileTransitionEdges(project: Project): { edges: TransitionEdg
                 else warnings.push(`[transitionMigration] Dropped oversized/invalid non-adjacent transitionOut on ${current.id}`)
             }
 
-            if (incoming) {
-                const inEdge = buildEdge(track.id, next.timelineStart, null, next, incoming, "synthesizedStart")
-                if (inEdge) edges.push(inEdge)
-                else warnings.push(`[transitionMigration] Dropped oversized/invalid non-adjacent transitionIn on ${next.id}`)
-            }
+            // transitionIn is compiled on its owning clip iteration above.
         }
     }
 

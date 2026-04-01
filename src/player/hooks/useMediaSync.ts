@@ -11,6 +11,8 @@ import { syncAudioElements } from "../audio/audioSync"
 import { syncAudioPool, destroyAudioPool } from "../audio/audioPool"
 import { syncSecondaryVideoTracks } from "../video/secondaryVideoSync"
 import { DEFAULT_SPEED } from "../../constants/speed"
+import { compileUnifiedTransitions } from "../../engine/transitionCompiler"
+import type { ResolvedTransition } from "../../project/projectTypes"
 
 interface UseMediaSyncParams {
   onFrameRef: { current: ((ph: number) => void) | null }
@@ -97,6 +99,54 @@ export function useMediaSync({
     [tracks],
   )
 
+  const resolvedTransitions = useMemo(() => {
+    const compiled = compileUnifiedTransitions(project)
+    const transitionInByClipId = new Map<string, ResolvedTransition>()
+    const transitionOutByClipId = new Map<string, ResolvedTransition>()
+
+    for (const transition of compiled.transitions) {
+      const hasClipA = !!transition.clipARef.clipId
+      const hasClipB = !!transition.clipBRef.clipId
+
+      if (hasClipA && hasClipB) {
+        transitionOutByClipId.set(transition.clipARef.clipId!, {
+          type: transition.typeCanonical,
+          duration: transition.durationS,
+          overlapStartS: transition.startTimeS,
+          kind: "crossfade",
+        })
+        transitionInByClipId.set(transition.clipBRef.clipId!, {
+          type: transition.typeCanonical,
+          duration: transition.durationS,
+          overlapStartS: transition.startTimeS,
+          kind: "crossfade",
+        })
+        continue
+      }
+
+      if (hasClipA) {
+        transitionOutByClipId.set(transition.clipARef.clipId!, {
+          type: transition.typeCanonical,
+          duration: transition.durationS,
+          overlapStartS: transition.startTimeS,
+          kind: "fade_to_black",
+        })
+        continue
+      }
+
+      if (hasClipB) {
+        transitionInByClipId.set(transition.clipBRef.clipId!, {
+          type: transition.typeCanonical,
+          duration: transition.durationS,
+          overlapStartS: transition.startTimeS,
+          kind: "fade_from_black",
+        })
+      }
+    }
+
+    return { transitionInByClipId, transitionOutByClipId }
+  }, [project])
+
   useEffect(() => { syncAudioPool(audioElementsRef.current, allTrackIds) }, [allTrackIds])
   useEffect(() => () => { destroyAudioPool(audioElementsRef.current) }, [])
 
@@ -112,14 +162,19 @@ export function useMediaSync({
       // can keep using the proxy URL for smooth scrubbing.
       const getUrl = (id: string) => registryRef.current.getObjectUrl(id)
       const getIsPlaying = () => isPlayingRef.current
+      const outgoing = activeVideoClip ? resolvedTransitions.transitionOutByClipId.get(activeVideoClip.id) : undefined
+      const outgoingCrossfade = outgoing?.kind === "crossfade"
+        ? { type: outgoing.type, duration: outgoing.duration }
+        : undefined
 
       managerRef.current?.syncVideo(
         ph,
         p.tracks,
         getUrl,
         getIsPlaying,
-        activeVideoClip?.transitionOut,
-        activeVideoClip?.transitionIn,
+        outgoingCrossfade,
+        resolvedTransitions.transitionInByClipId,
+        resolvedTransitions.transitionOutByClipId,
       )
 
       syncSecondaryVideoTracks({
@@ -143,7 +198,7 @@ export function useMediaSync({
 
     syncMediaElements.current = impl
     return () => { syncMediaElements.current = null }
-  }, [secondaryClipsRef, secondaryVideoElemsRef])
+  }, [secondaryClipsRef, secondaryVideoElemsRef, resolvedTransitions])
 
   useEffect(() => {
     onFrameRef.current = ph => { if (syncMediaElements.current) syncMediaElements.current(ph) }

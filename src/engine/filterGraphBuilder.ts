@@ -82,9 +82,10 @@ function buildVideoSegmentFilters(
   }
 
   // Fade-in from black (transitionIn without preceding clip → fade_from_black)
+  // st=0: the fade starts at the clip's own beginning. overlapStartS is before the clip boundary
+  // in absolute time, so (overlapStartS - timelineStart) would yield a negative st value.
   if (seg.resolvedTransitionIn?.kind === 'fade_from_black') {
-    const fadeStart = (seg.resolvedTransitionIn.overlapStartS - seg.timelineStart).toFixed(3)
-    filters.push(`fade=t=in:st=${fadeStart}:d=${seg.resolvedTransitionIn.duration.toFixed(3)}`)
+    filters.push(`fade=t=in:st=0:d=${seg.resolvedTransitionIn.duration.toFixed(3)}`)
   }
 
   // Fade-out to black (transitionOut without following clip → fade_to_black)
@@ -117,9 +118,10 @@ function buildAudioSegmentFilters(seg: RenderSegment, overrideTimelineStart?: nu
   }
 
   // Audio fade-in from black
+  // st=0: after atrim+asetpts=PTS-STARTPTS the audio PTS starts at 0, so the fade must
+  // begin there. Using (overlapStartS - timelineStart) would give a negative st value.
   if (seg.resolvedTransitionIn?.kind === 'fade_from_black') {
-    const fadeStart = (seg.resolvedTransitionIn.overlapStartS - seg.timelineStart).toFixed(3)
-    filters.push(`afade=t=in:st=${fadeStart}:d=${seg.resolvedTransitionIn.duration.toFixed(3)}`)
+    filters.push(`afade=t=in:st=0:d=${seg.resolvedTransitionIn.duration.toFixed(3)}`)
   }
 
   // Audio fade-in during crossfade (incoming clip)

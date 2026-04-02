@@ -10,10 +10,12 @@ import type { EditorStore } from "../editorStore"
 
 export interface UiSlice {
   selectedClipId?: string
+  selectedTransitionClipId?: string
   selectedTrackId?: string
   timelineScale: number
   clipboard: Clip | null
   setSelectedClip: (clipId: string | undefined) => void
+  setSelectedTransitionClip: (clipId: string | undefined) => void
   setSelectedTrack: (trackId: string | undefined) => void
   setTimelineScale: (scale: number) => void
   /** Copies the currently selected clip into the clipboard. No-op if nothing is selected or the clip is a text clip. */
@@ -36,12 +38,17 @@ function findClipById(tracks: EditorStore["project"]["tracks"], clipId: string):
 
 export const createUiSlice: StateCreator<EditorStore, [], [], UiSlice> = (set, get) => ({
   selectedClipId: undefined,
+  selectedTransitionClipId: undefined,
   selectedTrackId: undefined,
   timelineScale: TIMELINE_ZOOM.DEFAULT,
   clipboard: null,
 
   setSelectedClip(clipId) {
-    set({ selectedClipId: clipId })
+    set({ selectedClipId: clipId, selectedTransitionClipId: undefined })
+  },
+
+  setSelectedTransitionClip(clipId) {
+    set({ selectedTransitionClipId: clipId, selectedClipId: undefined })
   },
 
   setSelectedTrack(trackId) {

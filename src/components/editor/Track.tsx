@@ -1,9 +1,12 @@
-import { useState, type DragEvent } from "react"
+import { useEffect, useMemo, useState, type DragEvent } from "react"
 import { Eye, EyeOff, Trash2, Film, Music } from "lucide-react"
 import type { MediaType, Track, TrackType } from "../../project/projectTypes"
 import { ClipComponent } from "./Clip"
 import { useEditorStore } from "../../store/editorStore"
 import { pxToTime, timeToPx, TRACK_HEADER_WIDTH } from "../../utils/time"
+import { supportsOutgoingTransition } from "../../utils/transitions"
+import { TransitionBadge } from "./TransitionBadge"
+import { buildClipTransitionView, getCanonicalTransitionEdges } from "../../project/transitionEdges"
 
 interface TrackProps {
   track: Track
@@ -78,12 +81,15 @@ function TrackControlBtn({
 
 export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDrop, onClipDrop, resolveDropPosition }: TrackProps) {
   const selectedClipId = useEditorStore(s => s.selectedClipId)
+  const selectedTransitionClipId = useEditorStore(s => s.selectedTransitionClipId)
   const setSelectedClip = useEditorStore(s => s.setSelectedClip)
+  const setSelectedTransitionClip = useEditorStore(s => s.setSelectedTransitionClip)
   const scale = useEditorStore(s => s.timelineScale)
   const removeTrack = useEditorStore(s => s.removeTrack)
   const reorderTrack = useEditorStore(s => s.reorderTrack)
   const allTracks = useEditorStore(s => s.project.tracks)
   const projectMedia = useEditorStore(s => s.project.media)
+  const project = useEditorStore(s => s.project)
 
   const sameTypeTracks = allTracks.filter(t => t.type === track.type)
   const trackIndex = sameTypeTracks.findIndex(t => t.id === track.id)
@@ -97,6 +103,61 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
 
   const isOver = dragOverTrackId === track.id
   const rowHeight = track.type === "video" ? 55 : 50
+
+  const transitionBadges = useMemo(() => {
+    const edges = getCanonicalTransitionEdges(project)
+      .filter(edge => edge.trackId === track.id)
+
+    return edges.flatMap(edge => {
+      const badges: Array<{
+        key: string
+        clipId: string
+        transition: { type: string; duration: number }
+        left: number
+        position: "in" | "out"
+      }> = []
+
+      if (edge.clipAId) {
+        badges.push({
+          key: `out-${edge.edgeId}`,
+          clipId: edge.clipAId,
+          transition: { type: edge.transitionTypeCanonical, duration: edge.durationS },
+          left: timeToPx(edge.boundaryTimeS, scale),
+          position: "out",
+        })
+      }
+
+      if (edge.clipBId) {
+        badges.push({
+          key: `in-${edge.edgeId}`,
+          clipId: edge.clipBId,
+          transition: { type: edge.transitionTypeCanonical, duration: edge.durationS },
+          left: timeToPx(edge.boundaryTimeS, scale),
+          position: "in",
+        })
+      }
+
+      return badges
+    })
+  }, [project, scale, track.id])
+
+  useEffect(() => {
+    if (!selectedTransitionClipId) return
+
+    const selected = track.clips.find(c => c.id === selectedTransitionClipId)
+    if (!selected) return
+
+    if (!supportsOutgoingTransition(selected)) {
+      setSelectedTransitionClip(undefined)
+      return
+    }
+    const transitionView = buildClipTransitionView(project).get(selected.id)
+    const hasOut = !!(transitionView?.transitionOut && transitionView.transitionOut.duration > 0)
+    const hasIn = !!(transitionView?.transitionIn && transitionView.transitionIn.duration > 0)
+    if (!hasOut && !hasIn) {
+      setSelectedTransitionClip(undefined)
+    }
+  }, [project, selectedTransitionClipId, setSelectedTransitionClip, track.clips])
 
   function isCompatibleDrop(mediaType: MediaType, trackType: TrackType): boolean {
     if (mediaType === "audio") return trackType === "audio"
@@ -229,6 +290,18 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
 
       {/* Clips area */}
       <div className="relative flex-1 overflow-hidden h-full">
+        {transitionBadges.map(badge => (
+          <TransitionBadge
+            key={badge.key}
+            clipId={badge.clipId}
+            transition={badge.transition}
+            left={badge.left}
+            position={badge.position}
+            isSelected={selectedTransitionClipId === badge.clipId}
+            onSelect={setSelectedTransitionClip}
+          />
+        ))}
+
         {/* Snap indicator */}
         {snapIndicatorX !== null && (
           <div

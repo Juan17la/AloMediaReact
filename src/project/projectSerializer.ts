@@ -1,10 +1,14 @@
 import type { Project, SavedProject } from "./projectTypes"
+import { ensureCanonicalTransitionEdges } from "./transitionEdges"
+
+const PROJECT_SCHEMA_VERSION = 2
 
 export function saveProject(project: Project): SavedProject {
   const now = Date.now()
+  const canonicalized = ensureCanonicalTransitionEdges(project)
   return {
-    project,
-    version: 1,
+    project: canonicalized.project,
+    version: PROJECT_SCHEMA_VERSION,
     createdAt: now,
     updatedAt: now,
   }
@@ -34,5 +38,17 @@ export function loadProject(json: string): Project {
   if (!Array.isArray(saved.project.tracks)) throw new Error("Invalid project file: 'project.tracks' must be an array.")
   if (!Array.isArray(saved.project.media)) throw new Error("Invalid project file: 'project.media' must be an array.")
 
-  return saved.project
+  const canonicalized = ensureCanonicalTransitionEdges(saved.project)
+  if (canonicalized.report.warnings.length > 0) {
+    for (const warning of canonicalized.report.warnings) {
+      console.warn(warning)
+    }
+  }
+  if ((saved.version ?? 0) < PROJECT_SCHEMA_VERSION) {
+    console.info(
+      `[projectSerializer] Migrated project ${saved.project.id} to schema v${PROJECT_SCHEMA_VERSION} with ${canonicalized.report.generatedEdges} transition edge(s).`,
+    )
+  }
+
+  return canonicalized.project
 }

@@ -1,4 +1,5 @@
 import type {
+  CompiledTransition,
   Clip,
   ExportOutputFormat,
   ExportVideoCodec,
@@ -6,8 +7,9 @@ import type {
   RenderJob,
   RenderSegment,
 } from "../project/projectTypes"
-import { getProjectDuration } from "../utils/time"
+import { getProjectDuration, CLIP_EPSILON } from "../utils/time"
 import { DEFAULT_SPEED } from "../constants/speed"
+import { compileUnifiedTransitions } from "./transitionCompiler"
 
 export interface ExportOptions {
   outputFormat: ExportOutputFormat
@@ -25,6 +27,7 @@ function clipToSegment(
 ): RenderSegment {
   if (clip.type === "video") {
     return {
+      clipId: clip.id,
       mediaId: clip.mediaId,
       mediaStart: clip.mediaStart,
       mediaEnd: clip.mediaEnd,
@@ -39,11 +42,14 @@ function clipToSegment(
       volume: clip.audioConfig?.volume ?? clip.volume,
       colorAdjustments: clip.colorAdjustments,
       audioConfig: clip.audioConfig,
+      transitionIn: clip.transitionIn,
+      transitionOut: clip.transitionOut,
     }
   }
 
   if (clip.type === "audio") {
     return {
+      clipId: clip.id,
       mediaId: clip.mediaId,
       mediaStart: clip.mediaStart,
       mediaEnd: clip.mediaEnd,
@@ -61,6 +67,7 @@ function clipToSegment(
 
   if (clip.type === "image") {
     return {
+      clipId: clip.id,
       mediaId: clip.mediaId,
       mediaStart: 0,
       mediaEnd: clip.timelineEnd - clip.timelineStart,
@@ -78,6 +85,7 @@ function clipToSegment(
 
   // TextClip — mediaId is empty; filtered out downstream
   return {
+    clipId: clip.id,
     mediaId: "",
     mediaStart: 0,
     mediaEnd: clip.timelineEnd - clip.timelineStart,
@@ -89,6 +97,58 @@ function clipToSegment(
     trackOrder,
     trackType,
     transform: clip.transform,
+  }
+}
+
+function resolveTransitionsFromCompiler(segments: RenderSegment[], compiledTransitions: CompiledTransition[]): void {
+  const byClipId = new Map<string, RenderSegment>()
+  for (const seg of segments) {
+    if (seg.type !== "video") continue
+    seg.resolvedTransitionIn = undefined
+    seg.resolvedTransitionOut = undefined
+    byClipId.set(seg.clipId, seg)
+  }
+
+  for (const transition of compiledTransitions) {
+    if (transition.durationS <= CLIP_EPSILON) continue
+
+    const clipA = transition.clipARef.clipId ? byClipId.get(transition.clipARef.clipId) : undefined
+    const clipB = transition.clipBRef.clipId ? byClipId.get(transition.clipBRef.clipId) : undefined
+
+    if (clipA && clipB) {
+      clipA.resolvedTransitionOut = {
+        type: transition.typeCanonical,
+        duration: transition.durationS,
+        overlapStartS: transition.startTimeS,
+        kind: "crossfade",
+      }
+      clipB.resolvedTransitionIn = {
+        type: transition.typeCanonical,
+        duration: transition.durationS,
+        overlapStartS: transition.startTimeS,
+        kind: "crossfade",
+      }
+      continue
+    }
+
+    if (clipA && !clipB) {
+      clipA.resolvedTransitionOut = {
+        type: transition.typeCanonical,
+        duration: transition.durationS,
+        overlapStartS: transition.startTimeS,
+        kind: "fade_to_black",
+      }
+      continue
+    }
+
+    if (!clipA && clipB) {
+      clipB.resolvedTransitionIn = {
+        type: transition.typeCanonical,
+        duration: transition.durationS,
+        overlapStartS: transition.startTimeS,
+        kind: "fade_from_black",
+      }
+    }
   }
 }
 
@@ -117,8 +177,15 @@ export function buildRenderJob(
     }
   }
 
+  const compiled = compileUnifiedTransitions(project)
+  for (const warning of compiled.warnings) {
+    console.warn(warning)
+  }
+  resolveTransitionsFromCompiler(segments, compiled.transitions)
+
   return {
     segments,
+    transitions: compiled.transitions,
     outputFormat: options.outputFormat,
     codec: options.codec,
     resolution: options.resolution,

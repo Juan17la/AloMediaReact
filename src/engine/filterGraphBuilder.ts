@@ -202,6 +202,18 @@ function buildVideoSegmentFiltersForXfadeChain(
     filters.push(`rotate=${radians.toFixed(6)}:fillcolor=black@0`)
   }
 
+  // Preserve authored fade transitions for clips that participate in xfade chains.
+  // The chain-specific path previously skipped these, which made exported fades appear
+  // as hard cuts even though preview playback rendered them correctly.
+  if (seg.resolvedTransitionIn?.kind === 'fade_from_black') {
+    filters.push(`fade=t=in:st=0:d=${seg.resolvedTransitionIn.duration.toFixed(3)}`)
+  }
+
+  if (seg.resolvedTransitionOut?.kind === 'fade_to_black') {
+    const fadeStart = (seg.resolvedTransitionOut.overlapStartS - seg.timelineStart).toFixed(3)
+    filters.push(`fade=t=out:st=${fadeStart}:d=${seg.resolvedTransitionOut.duration.toFixed(3)}`)
+  }
+
   filters.push(`format=rgba`)
   filters.push(`fps=${fps}`)
   filters.push(`settb=1/90000`)
@@ -299,6 +311,15 @@ export function buildFilterGraph(
       for (const boundary of chain.boundaries) {
         const prev = outgoingHandleByIndex.get(boundary.fromSegmentIndex) ?? 0
         outgoingHandleByIndex.set(boundary.fromSegmentIndex, Math.max(prev, boundary.duration))
+      }
+
+      // The last segment in a chain is only used as the second input to the final xfade.
+      // It still needs tail padding equal to that final overlap, otherwise the composed
+      // stream ends early and the base canvas shows black after the last transition.
+      if (chain.boundaries.length > 0) {
+        const lastBoundary = chain.boundaries[chain.boundaries.length - 1]
+        const prev = outgoingHandleByIndex.get(lastBoundary.toSegmentIndex) ?? 0
+        outgoingHandleByIndex.set(lastBoundary.toSegmentIndex, Math.max(prev, lastBoundary.duration))
       }
 
       for (const idx of chain.segmentIndexes) {

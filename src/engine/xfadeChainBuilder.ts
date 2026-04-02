@@ -25,6 +25,13 @@ function getSegmentDuration(segment: RenderSegment): number {
     return Math.max(0, segment.timelineEnd - segment.timelineStart)
 }
 
+function getBoundaryOffsetFromOverlapStart(
+    chainStart: number,
+    overlapStartS: number,
+): number {
+    return Math.max(0, overlapStartS - chainStart)
+}
+
 export function buildXfadeChains(visualSegments: RenderSegment[]): XfadeChain[] {
     const indexedSegments = visualSegments.map((segment, index) => ({ segment, index }))
     const videoByTrack = new Map<string, Array<{ segment: RenderSegment; index: number }>>()
@@ -76,7 +83,12 @@ export function buildXfadeChains(visualSegments: RenderSegment[]): XfadeChain[] 
                     duration: initialDuration,
                 },
                 duration: initialDuration,
-                offset: Math.max(0, nextEntry.segment.timelineStart - first.segment.timelineStart),
+                // xfade offset is the transition start on the chain timeline,
+                // not the boundary where the outgoing clip ends.
+                offset: getBoundaryOffsetFromOverlapStart(
+                    first.segment.timelineStart,
+                    first.segment.resolvedTransitionOut.overlapStartS,
+                ),
             })
 
             let cursor = nextEntry
@@ -104,7 +116,10 @@ export function buildXfadeChains(visualSegments: RenderSegment[]): XfadeChain[] 
                         duration: transitionDuration,
                     },
                     duration: transitionDuration,
-                    offset: Math.max(0, candidateNextEntry.segment.timelineStart - first.segment.timelineStart),
+                    offset: getBoundaryOffsetFromOverlapStart(
+                        first.segment.timelineStart,
+                        cursor.segment.resolvedTransitionOut.overlapStartS,
+                    ),
                 })
 
                 segmentIndexes.push(candidateNextEntry.index)

@@ -8,7 +8,7 @@ import { renderSingleFrame, resetPlayer, resumePlayer } from "../../hooks/usePla
 import { hashFile } from "../../utils/fileHash"
 import { getFileFromCache } from "../../services/fileCacheService"
 import { generateProxy } from "../../engine/proxyEngine"
-import { applyCanonicalTransitionEdit } from "../../project/transitionEdges"
+import { applyCanonicalTransitionEdit, ensureCanonicalTransitionEdges } from "../../project/transitionEdges"
 import type {
   AudioConfig,
   Clip,
@@ -263,15 +263,17 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
         timelineEnd: toSeconds(toMs(roundedStart + duration)),
       }
 
+      const updatedProject = {
+        ...state.project,
+        tracks: tracksWithout.map(track =>
+          track.id === trackId
+            ? { ...track, clips: [...track.clips, updatedClip] }
+            : track
+        ),
+      }
+
       return {
-        project: {
-          ...state.project,
-          tracks: tracksWithout.map(track =>
-            track.id === trackId
-              ? { ...track, clips: [...track.clips, updatedClip] }
-              : track
-          ),
-        },
+        project: ensureCanonicalTransitionEdges(updatedProject).project,
       }
     })
   },

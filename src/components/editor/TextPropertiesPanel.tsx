@@ -219,8 +219,8 @@ export function TextPropertiesPanel({ clipId }: TextPropertiesPanelProps) {
               className={[
                 "flex-1 h-7 rounded-md border text-xs font-medium cursor-pointer transition-[background,border-color,color] duration-100",
                 s.backgroundColor
-                  ? "bg-[rgba(192,57,43,0.12)] border-[rgba(192,57,43,0.35)] text-[var(--color-accent-red)]"
-                  : "bg-white/[0.04] border-white/8 text-white/45 hover:bg-white/[0.07] hover:text-white/70",
+                  ? "bg-[rgba(192,57,43,0.12)] border-[rgba(192,57,43,0.35)] text-accent-red"
+                  : "bg-white/4 border-white/8 text-white/45 hover:bg-white/[0.07] hover:text-white/70",
               ].join(" ")}
             >
               {s.backgroundColor ? "Enabled" : "None (transparent)"}

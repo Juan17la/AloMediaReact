@@ -139,10 +139,22 @@ export interface ImageClip extends BaseClip {
   colorAdjustments?: ColorAdjustments
 }
 
+export interface TextStyle {
+  fontSize: number                          // px in canvas space, default 48
+  fontFamily: string                        // CSS font-family value, default "Inter, sans-serif"
+  color: string                             // CSS color, default "#ffffff"
+  backgroundColor?: string                  // CSS color, undefined = transparent
+  textAlign: "left" | "center" | "right"   // default "center"
+  opacity: number                           // 0.0 to 1.0, default 1
+  bold: boolean                             // default false
+  italic: boolean                           // default false
+}
+
 export interface TextClip extends BaseClip {
   type: "text"
   content: string
   transform: Transform
+  style: TextStyle
 }
 
 export interface AudioClip extends BaseClip {
@@ -222,6 +234,8 @@ export interface RenderSegment {
   volume?: number
   colorAdjustments?: ColorAdjustments
   audioConfig?: AudioConfig
+  content?: string
+  style?: TextStyle
   transitionIn?: ClipTransition
   transitionOut?: ClipTransition
   resolvedTransitionIn?: ResolvedTransition

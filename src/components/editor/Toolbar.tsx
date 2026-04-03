@@ -13,6 +13,7 @@ import {
   Magnet,
   Film,
   Music,
+  Type,
   HelpCircle,
   X,
 } from "lucide-react"
@@ -23,6 +24,9 @@ import {
   MIN_PIXELS_PER_SECOND,
   MAX_PIXELS_PER_SECOND,
 } from "../../constants/timeline"
+import { DEFAULT_TEXT_STYLE, DEFAULT_TEXT_TRANSFORM } from "../../constants/textStyle"
+import { generateId } from "../../utils/id"
+import type { TextClip } from "../../project/projectTypes"
 
 const SHORTCUTS = [
   { keys: "Ctrl+Z",          action: "Undo" },
@@ -186,6 +190,8 @@ export function Toolbar() {
     return undefined
   })
   const playhead = useEditorStore(s => s.playhead)
+  const addClip = useEditorStore(s => s.addClip)
+  const setSelectedClip = useEditorStore(s => s.setSelectedClip)
   const splitClip = useEditorStore(s => s.splitClip)
   const copyClip = useEditorStore(s => s.copyClip)
   const pasteClip = useEditorStore(s => s.pasteClip)
@@ -247,10 +253,27 @@ export function Toolbar() {
     }, 400)
   }
 
+  function handleInsertText() {
+    const videoTrack = addTrack("video")
+    const duration = 5
+    const newClip: TextClip = {
+      id: generateId(),
+      trackId: videoTrack.id,
+      timelineStart: playhead,
+      timelineEnd: playhead + duration,
+      type: "text",
+      content: "Add text",
+      transform: { ...DEFAULT_TEXT_TRANSFORM },
+      style: { ...DEFAULT_TEXT_STYLE },
+    }
+    addClip(newClip)
+    setSelectedClip(newClip.id)
+  }
+
   // Compute zoom percentage from scale
   const zoomPercent = Math.round((timelineScale / 100) * 100)
-  const canCopyOrCut = !!selectedClipId && selectedClip?.type !== "text"
-  const canPaste = !!clipboard && clipboard.type !== "text"
+  const canCopyOrCut = !!selectedClipId
+  const canPaste = !!clipboard
   const canDelete = !!selectedClipId
   const canExtractAudio = selectedClip?.type === "video"
 
@@ -368,6 +391,11 @@ export function Toolbar() {
           icon={<Music size={14} />}
           label="+ Audio Track"
           onClick={() => addTrack("audio")}
+        />
+        <TrackBtn
+          icon={<Type size={14} />}
+          label="+ Text"
+          onClick={handleInsertText}
         />
 
         <div className="flex-1" />

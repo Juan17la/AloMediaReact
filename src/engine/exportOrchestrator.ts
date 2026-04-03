@@ -6,6 +6,9 @@ import type { ExportProgress } from "./exportProgress"
 import { estimateTimeRemaining } from "./exportProgress"
 import { isFfmpegTerminateError, safeMediaFileName } from "./ffmpegUtils"
 import { EXPORT_FORMAT_PROFILES } from "../constants/exportFormats"
+import { buildTextClipFileName, renderTextClipToPngBytes } from "./textClipRenderer"
+
+type TextClipRenderSource = Parameters<typeof renderTextClipToPngBytes>[0] & { clipId: string }
 
 export async function runExport(
   ffmpeg: FFmpeg,
@@ -19,6 +22,16 @@ export async function runExport(
 
   const written = new Set<string>()
   const fileNames = new Map<string, string>()
+  const textSegmentsByMediaId = new Map<string, TextClipRenderSource>()
+  for (const segment of job.segments) {
+    if (segment.type !== 'text' || !segment.content || !segment.style || !segment.transform) continue
+    textSegmentsByMediaId.set(segment.mediaId, {
+      clipId: segment.clipId,
+      content: segment.content,
+      style: segment.style,
+      transform: segment.transform,
+    })
+  }
   const uniqueMediaIds = [...new Set(job.segments.map(s => s.mediaId).filter(Boolean))]
 
   for (let i = 0; i < uniqueMediaIds.length; i++) {
@@ -29,24 +42,42 @@ export async function runExport(
 
     const mediaId = uniqueMediaIds[i]
     const file = fileMap.get(mediaId)
-    if (!file) {
-      throw new Error(`[export] No file found in fileMap for mediaId: ${mediaId}`)
-    }
 
-    const outputName = safeMediaFileName(mediaId, file)
+    if (file) {
+      const outputName = safeMediaFileName(mediaId, file)
 
-    try {
-      await ffmpeg.writeFile(outputName, await fetchFile(file), { signal })
-    } catch (err) {
-      if (signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) {
-        await cleanup(ffmpeg, written, job.outputFormat)
-        throw new DOMException('Export cancelled', 'AbortError')
+      try {
+        await ffmpeg.writeFile(outputName, await fetchFile(file), { signal })
+      } catch (err) {
+        if (signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) {
+          await cleanup(ffmpeg, written, job.outputFormat)
+          throw new DOMException('Export cancelled', 'AbortError')
+        }
+        throw err
       }
-      throw err
-    }
 
-    written.add(outputName)
-    fileNames.set(mediaId, outputName)
+      written.add(outputName)
+      fileNames.set(mediaId, outputName)
+    } else {
+      const textSegment = textSegmentsByMediaId.get(mediaId)
+      if (!textSegment) {
+        throw new Error(`[export] No file found in fileMap for mediaId: ${mediaId}`)
+      }
+
+      const outputName = buildTextClipFileName(textSegment.clipId)
+      try {
+        await ffmpeg.writeFile(outputName, await renderTextClipToPngBytes(textSegment), { signal })
+      } catch (err) {
+        if (signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) {
+          await cleanup(ffmpeg, written, job.outputFormat)
+          throw new DOMException('Export cancelled', 'AbortError')
+        }
+        throw err
+      }
+
+      written.add(outputName)
+      fileNames.set(mediaId, outputName)
+    }
 
     if (signal.aborted) {
       await cleanup(ffmpeg, written, job.outputFormat)

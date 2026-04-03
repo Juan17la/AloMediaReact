@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { SkipBack, Rewind, Play, Pause, FastForward, SkipForward, Volume2, VolumeX } from "lucide-react"
 import type { VideoClip, ImageClip, TextClip } from "../../project/projectTypes"
 import { useEditorStore } from "../../store/editorStore"
@@ -8,6 +8,7 @@ import { useMediaSync } from "../../player/hooks/useMediaSync"
 import { applyTransform } from "../../player/render/transformUtils"
 import { buildCssFilter } from "../../utils/colorAdjustmentFilters"
 import { DEFAULT_COLOR_ADJUSTMENTS } from "../../constants/colorAdjustments"
+import { DEFAULT_TEXT_STYLE } from "../../constants/textStyle"
 import { setupCanvasScaling } from "../../player/render/canvasScaling"
 import { TransformOverlay } from "./TransformOverlay"
 import { RangeSlider } from "../ui/RangeSlider"
@@ -89,6 +90,8 @@ export function PreviewPlayer() {
   const updateClipTransform = useEditorStore(s => s.updateClipTransform)
   const commitTransform = useEditorStore(s => s.commitTransform)
   const setSelectedClip = useEditorStore(s => s.setSelectedClip)
+  const updateTextClip = useEditorStore(s => s.updateTextClip)
+  const pushHistory = useEditorStore(s => s.pushHistory)
   const { play, pause, seek, onFrameRef, playheadRef, seekFlagResetRef } = usePlayer()
   const tracks = project.tracks
   const duration = getProjectDuration(tracks)
@@ -96,6 +99,16 @@ export function PreviewPlayer() {
   const innerCanvasRef = useRef<HTMLDivElement>(null)
   const [isMuted, setIsMuted] = useState(false)
   const [volume, setVolume] = useState(1)
+  const [editingTextClipId, setEditingTextClipId] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState("")
+  const [editingOriginalContent, setEditingOriginalContent] = useState("")
+  const editingDoneRef = useRef(false)
+  // Stable ref callback: only focus+select when a new edit session starts (editingTextClipId changes).
+  // An inline arrow ref would be a new function every render, causing el.select() to fire on every
+  // store-triggered re-render and replacing typed text with the next keystroke.
+  const editTextareaRef = useCallback((el: HTMLTextAreaElement | null) => {
+    if (el) { el.focus(); el.select() }
+  }, [editingTextClipId])
 
   const secondaryVideoElemsRef = useRef<Map<string, HTMLVideoElement>>(new Map())
   const secondaryClipsRef = useRef<VideoClip[]>([])
@@ -234,6 +247,42 @@ export function PreviewPlayer() {
     }
   }, [secondaryVideoClips])
 
+  function commitTextEdit() {
+    if (editingDoneRef.current) return
+    editingDoneRef.current = true
+    pushHistory("Edit text content")
+    setEditingTextClipId(null)
+  }
+
+  function cancelTextEdit() {
+    if (editingDoneRef.current || !editingTextClipId) return
+    editingDoneRef.current = true
+    updateTextClip(editingTextClipId, { content: editingOriginalContent })
+    setEditingTextClipId(null)
+  }
+
+  function handleCanvasDoubleClick(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = canvasContainerRef.current!.getBoundingClientRect()
+    const canvasX = (e.clientX - rect.left) / (rect.width / 1280)
+    const canvasY = (e.clientY - rect.top) / (rect.height / 720)
+
+    const hit = [...activeClips].reverse().find(clip => {
+      if (clip.type !== "text") return false
+      const t = clip.transform
+      return canvasX >= t.x && canvasX <= t.x + t.width
+        && canvasY >= t.y && canvasY <= t.y + t.height
+    }) as TextClip | undefined
+
+    if (hit) {
+      editingDoneRef.current = false
+      setEditingTextClipId(hit.id)
+      setEditingContent(hit.content)
+      setEditingOriginalContent(hit.content)
+      setSelectedClip(hit.id)
+      pause()
+    }
+  }
+
   function handleCanvasClick(e: React.MouseEvent<HTMLDivElement>) {
     const rect = canvasContainerRef.current!.getBoundingClientRect()
     const canvasX = (e.clientX - rect.left) / (rect.width / 1280)
@@ -255,6 +304,7 @@ export function PreviewPlayer() {
         <div
           ref={canvasContainerRef}
           onClick={handleCanvasClick}
+          onDoubleClick={handleCanvasDoubleClick}
           className="relative bg-(--color-background-base) overflow-hidden cursor-default aspect-video h-full max-w-full w-auto border-2 border-white/7 border-b-glass"
         >
           <div
@@ -298,7 +348,40 @@ export function PreviewPlayer() {
                 return <img key={clip.id} src={getObjectUrl(clip.mediaId)} style={{ ...applyTransform(clip.transform), filter: buildCssFilter((clip as ImageClip).colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId) }} alt="" />
               }
               if (clip.type === "text") {
-                return <div key={clip.id} style={{ ...applyTransform(clip.transform), zIndex: zIndex(clip.trackId) }}>{clip.content}</div>
+                if (clip.id === editingTextClipId) return null
+                const s = clip.style ?? DEFAULT_TEXT_STYLE
+                const justifyContent =
+                  s.textAlign === "center" ? "center"
+                  : s.textAlign === "right" ? "flex-end"
+                  : "flex-start"
+                return (
+                  <div
+                    key={clip.id}
+                    style={{
+                      ...applyTransform(clip.transform),
+                      zIndex: zIndex(clip.trackId),
+                      fontFamily: s.fontFamily,
+                      fontSize: s.fontSize,
+                      color: s.color,
+                      backgroundColor: s.backgroundColor ?? "transparent",
+                      textAlign: s.textAlign,
+                      opacity: s.opacity,
+                      fontWeight: s.bold ? "bold" : "normal",
+                      fontStyle: s.italic ? "italic" : "normal",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      overflow: "hidden",
+                      pointerEvents: "none",
+                      userSelect: "none",
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {clip.content}
+                  </div>
+                )
               }
               return null
             })}
@@ -306,7 +389,7 @@ export function PreviewPlayer() {
 
           {/* Transform overlay */}
           {(() => {
-            if (!selectedClipId) return null
+            if (!selectedClipId || !!editingTextClipId) return null
             let selectedClip: VideoClip | ImageClip | TextClip | undefined
             for (const track of project.tracks) {
               const found = track.clips.find(c => c.id === selectedClipId)
@@ -327,6 +410,72 @@ export function PreviewPlayer() {
             )
           })()}
 
+
+          {/* Inline text editor overlay */}
+          {editingTextClipId && (() => {
+            let editClip: TextClip | undefined
+            for (const track of project.tracks) {
+              const found = track.clips.find(c => c.id === editingTextClipId)
+              if (found?.type === "text") { editClip = found as TextClip; break }
+            }
+            if (!editClip) return null
+            const s = editClip.style ?? DEFAULT_TEXT_STYLE
+            const scaleX = previewSize.width / 1280
+            const scaleY = previewSize.height / 720
+            const t = editClip.transform
+            // Approximate vertical centering in textarea via top padding
+            const singleLineH = s.fontSize * scaleY * 1.25
+            const topPad = Math.max(4, (t.height * scaleY - singleLineH) / 2)
+            return (
+              <textarea
+                key={editingTextClipId}
+                ref={editTextareaRef}
+                value={editingContent}
+                onChange={e => {
+                  const newContent = e.target.value
+                  setEditingContent(newContent)
+                  updateTextClip(editingTextClipId, { content: newContent })
+                }}
+                onKeyDown={e => {
+                  if (e.key === "Escape") { e.preventDefault(); cancelTextEdit() }
+                  else if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitTextEdit() }
+                }}
+                onBlur={commitTextEdit}
+                onClick={e => e.stopPropagation()}
+                onDoubleClick={e => e.stopPropagation()}
+                style={{
+                  position: "absolute",
+                  left: t.x * scaleX,
+                  top: t.y * scaleY,
+                  width: t.width * scaleX,
+                  height: t.height * scaleY,
+                  transform: `rotate(${t.rotation}deg)`,
+                  transformOrigin: "top left",
+                  zIndex: 100,
+                  fontFamily: s.fontFamily,
+                  fontSize: s.fontSize * scaleY,
+                  color: s.color,
+                  backgroundColor: s.backgroundColor ?? "rgba(0,0,0,0.65)",
+                  textAlign: s.textAlign,
+                  opacity: s.opacity,
+                  fontWeight: s.bold ? "bold" : "normal",
+                  fontStyle: s.italic ? "italic" : "normal",
+                  lineHeight: 1.25,
+                  resize: "none",
+                  outline: "2px solid var(--color-accent-red)",
+                  outlineOffset: "-2px",
+                  border: "none",
+                  padding: `${topPad}px 4px 4px`,
+                  margin: 0,
+                  overflow: "hidden",
+                  boxSizing: "border-box",
+                  cursor: "text",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              />
+            )
+          })()}
 
           {/* // ======================================================
           // REMOVE: This is a playground for testing out the preview player and related features. It's not currently used in the app, but it can be useful for development and experimentation.

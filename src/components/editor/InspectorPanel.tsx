@@ -2,10 +2,11 @@ import { useMemo, useState } from "react"
 import { AudioConfigPanel } from "./AudioConfigPanel"
 import { ColorAdjustmentsPanel } from "./ColorAdjustmentsPanel"
 import { SpeedConfigPanel } from "./SpeedConfigPanel"
+import { TextPropertiesPanel } from "./TextPropertiesPanel"
 import { useEditorStore } from "../../store/editorStore"
 import { TransitionInspector } from "./TransitionInspector"
 
-type InspectorTab = "video" | "audio" | "speed" | "transitions"
+type InspectorTab = "video" | "audio" | "speed" | "transitions" | "text"
 
 // Glass panel constant
 
@@ -39,6 +40,7 @@ export function InspectorPanel() {
     if (clip.type === "image") return ["video"]
     if (clip.type === "audio") return ["audio", "speed"]
     if (clip.type === "video") return ["video", "audio", "speed", "transitions"]
+    if (clip.type === "text") return ["text"]
     return []
   }, [clip])
 
@@ -74,6 +76,8 @@ export function InspectorPanel() {
         return <SpeedConfigPanel clipId={inspectorClip.id} />
       case "transitions":
         return <TransitionInspector />
+      case "text":
+        return <TextPropertiesPanel clipId={inspectorClip.id} />
       default:
         return null
     }
@@ -96,7 +100,7 @@ export function InspectorPanel() {
         <div className="flex shrink-0 h-8 border-b border-b-white/7">
           {tabs.map(tab => {
             const active = effectiveTab === tab
-            const label = tab === "video" ? "Video" : tab === "audio" ? "Audio" : tab === "speed" ? "Speed" : "Trans."
+            const label = tab === "video" ? "Video" : tab === "audio" ? "Audio" : tab === "speed" ? "Speed" : tab === "text" ? "Text" : "Trans."
             return (
               <button
                 key={tab}

@@ -38,12 +38,13 @@ function buildVideoSegmentFilters(
   inputFilePath: string,
 ): string[] {
   const speed = seg.speed ?? DEFAULT_SPEED
+  const isStaticVisual = seg.type === 'image' || seg.type === 'text'
   const isAnimatedGif = seg.type === 'image' && isGifFileName(inputFilePath)
   const clipDuration = Math.max(0, seg.timelineEnd - seg.timelineStart)
 
   const filters: string[] = []
 
-  if (seg.type === 'image' && !isAnimatedGif) {
+  if (isStaticVisual && !isAnimatedGif) {
     // Static image: loop a single frame, set fps, trim to clip duration, shift to timeline
     const duration = clipDuration.toFixed(3)
     filters.push(`loop=-1:size=1:start=0`)
@@ -63,7 +64,7 @@ function buildVideoSegmentFilters(
   }
 
   // Keep alpha for image overlays (e.g. PNG/GIF transparency), use yuv420p for videos.
-  const pixelFormat = seg.type === 'image' ? 'rgba' : 'yuv420p'
+  const pixelFormat = isStaticVisual ? 'rgba' : 'yuv420p'
   filters.push(`scale=${scaledW}:${scaledH},format=${pixelFormat}`)
 
   if (seg.colorAdjustments) {
@@ -164,7 +165,9 @@ function buildVideoSegmentFiltersForXfadeChain(
 
   const filters: string[] = []
 
-  if (seg.type === 'image' && !isAnimatedGif) {
+  const isStaticVisual = seg.type === 'image' || seg.type === 'text'
+
+  if (isStaticVisual && !isAnimatedGif) {
     filters.push(`loop=-1:size=1:start=0`)
     filters.push(`fps=${fps}`)
     filters.push(`trim=end=${(clipDuration + handleDuration).toFixed(3)}`)
@@ -235,7 +238,7 @@ export function buildFilterGraph(
 
   // Visual segments sorted background → foreground (highest trackOrder first)
   const visualSegments = job.segments
-    .filter(s => s.type === 'video' || s.type === 'image')
+    .filter(s => s.type === 'video' || s.type === 'image' || s.type === 'text')
     .sort((a, b) => {
       const orderDiff = b.trackOrder - a.trackOrder
       return orderDiff !== 0 ? orderDiff : a.timelineStart - b.timelineStart

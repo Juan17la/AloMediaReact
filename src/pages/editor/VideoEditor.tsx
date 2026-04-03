@@ -109,7 +109,8 @@ export default function VideoEditor() {
     !!selectedTransitionClipId ||
     selectedClip?.type === "video" ||
     selectedClip?.type === "image" ||
-    selectedClip?.type === "audio"
+    selectedClip?.type === "audio" ||
+    selectedClip?.type === "text"
 
   function handleLoadFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

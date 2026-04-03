@@ -91,9 +91,15 @@ function getMediaDuration(file: File, type: MediaType): Promise<number | null> {
   })
 }
 
+const AUDIO_EXTENSIONS = new Set(["wav", "mp3", "ogg", "flac", "m4a", "aac", "opus"])
+const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm", "avi", "mkv", "m4v"])
+
 function detectMediaType(file: File): MediaType {
   if (file.type.startsWith("video/")) return "video"
   if (file.type.startsWith("audio/")) return "audio"
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? ""
+  if (AUDIO_EXTENSIONS.has(ext)) return "audio"
+  if (VIDEO_EXTENSIONS.has(ext)) return "video"
   return "image"
 }
 

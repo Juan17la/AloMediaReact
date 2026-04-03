@@ -83,10 +83,10 @@ function clipToSegment(
     }
   }
 
-  // TextClip — mediaId is empty; filtered out downstream
+  // TextClip — rendered as a generated image during export.
   return {
     clipId: clip.id,
-    mediaId: "",
+    mediaId: `text:${clip.id}`,
     mediaStart: 0,
     mediaEnd: clip.timelineEnd - clip.timelineStart,
     timelineStart: clip.timelineStart,
@@ -97,6 +97,8 @@ function clipToSegment(
     trackOrder,
     trackType,
     transform: clip.transform,
+    content: clip.content,
+    style: clip.style,
   }
 }
 
@@ -165,10 +167,9 @@ export function buildRenderJob(
     for (const clip of track.clips) {
       const seg = clipToSegment(clip, track.id, track.order, track.type)
 
-      // Skip text clips and clips with no backing file
-      if (seg.type === "text") continue
+      // Skip clips that have neither a backing file nor a generated export source.
       if (!seg.mediaId) continue
-      if (!fileMap.has(seg.mediaId)) {
+      if (seg.type !== "text" && !fileMap.has(seg.mediaId)) {
         console.warn(`[renderPipeline] No file for mediaId "${seg.mediaId}" — skipping clip`)
         continue
       }

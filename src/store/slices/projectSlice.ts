@@ -17,6 +17,7 @@ import type {
   Media,
   MediaType,
   Project,
+  TextStyle,
   Track,
   TrackType,
   Transform,
@@ -47,6 +48,7 @@ export interface ProjectSlice {
   setClipTransitionIn: (clipId: string, transition: ClipTransition | undefined) => void
   setClipTransitionOut: (clipId: string, transition: ClipTransition | undefined) => void
   setClipSpeed: (clipId: string, speed: number) => void
+  updateTextClip: (clipId: string, updates: { content?: string; style?: Partial<TextStyle> }) => void
   extractAudioFromClip: (clipId: string) => void
   removeMedia: (mediaId: string) => void
   setMissingMediaIds: (ids: Set<string>) => void
@@ -386,6 +388,26 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     renderSingleFrame()
     // Small UX improvement: keep playback running after transform commit.
     if (wasPlaying) resumePlayer()
+  },
+
+  updateTextClip(clipId, updates) {
+    set(state => ({
+      project: {
+        ...state.project,
+        tracks: state.project.tracks.map(track => ({
+          ...track,
+          clips: track.clips.map(clip => {
+            if (clip.id !== clipId || clip.type !== "text") return clip
+            return {
+              ...clip,
+              ...(updates.content !== undefined ? { content: updates.content } : {}),
+              ...(updates.style !== undefined ? { style: { ...(clip.style ?? {}), ...updates.style } } : {}),
+            }
+          }),
+        })),
+      },
+    }))
+    renderSingleFrame()
   },
 
   updateClipColorAdjustments(clipId, adjustments) {

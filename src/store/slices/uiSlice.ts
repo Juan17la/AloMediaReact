@@ -18,7 +18,7 @@ export interface UiSlice {
   setSelectedTransitionClip: (clipId: string | undefined) => void
   setSelectedTrack: (trackId: string | undefined) => void
   setTimelineScale: (scale: number) => void
-  /** Copies the currently selected clip into the clipboard. No-op if nothing is selected or the clip is a text clip. */
+  /** Copies the currently selected clip into the clipboard. No-op if nothing is selected. */
   copyClip: () => void
   /** Pastes the clipboard clip onto a matching track at the current playhead, resolving overlaps by appending after the last conflicting clip. */
   pasteClip: () => void
@@ -63,14 +63,14 @@ export const createUiSlice: StateCreator<EditorStore, [], [], UiSlice> = (set, g
     const state = get()
     if (!state.selectedClipId) return
     const selected = findClipById(state.project.tracks, state.selectedClipId)
-    if (!selected || selected.type === "text") return
+    if (!selected) return
     set({ clipboard: deepClone(selected) })
   },
 
   pasteClip() {
     const state = get()
     const { clipboard } = state
-    if (!clipboard || clipboard.type === "text") return
+    if (!clipboard) return
 
     const trackType: TrackType = clipboard.type === "audio" ? "audio" : "video"
     const targetTrack = state.project.tracks.find(t => t.type === trackType) ?? get().addTrack(trackType)

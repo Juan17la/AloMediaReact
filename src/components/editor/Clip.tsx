@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from "react"
 import type { Clip } from "../../project/projectTypes"
-import { timeToPx, pxToTime } from "../../utils/time"
+import { getMediaBackedClipMaxTimelineEnd, timeToPx, pxToTime } from "../../utils/time"
 import { useEditorStore } from "../../store/editorStore"
 import { TimelineClipContextMenu } from "./TimelineClipContextMenu"
 
@@ -68,10 +68,11 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
     e.preventDefault()
     const startX = e.clientX
     const originalEnd = clip.timelineEnd
+    const maxEnd = getMediaBackedClipMaxTimelineEnd(clip) ?? Number.POSITIVE_INFINITY
 
     function onMove(ev: MouseEvent) {
       const dx = ev.clientX - startX
-      const newEnd = Math.max(clip.timelineStart + 0.5, originalEnd + pxToTime(dx, scale))
+      const newEnd = Math.max(clip.timelineStart + 0.5, Math.min(originalEnd + pxToTime(dx, scale), maxEnd))
       resizeClip(clip.id, newEnd)
     }
 

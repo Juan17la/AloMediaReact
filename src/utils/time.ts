@@ -1,6 +1,7 @@
 import type { RefObject } from "react"
-import type { Track } from "../project/projectTypes"
+import type { Clip, Track } from "../project/projectTypes"
 import { DEFAULT_PIXELS_PER_SECOND, GRID_INTERVALS_SECONDS } from "../constants/timeline"
+import { DEFAULT_SPEED } from "../constants/speed"
 
 // Width of the track header column — must be consistent across Track, Timeline, PlayheadBar
 export const TRACK_HEADER_WIDTH = 120
@@ -41,6 +42,16 @@ export function pxToTime(px: number, scale: number): number {
 
 export function timeToPx(time: number, scale: number): number {
   return time * scale
+}
+
+export function getMediaBackedClipMaxTimelineEnd(clip: Clip): number | null {
+  if (!("mediaStart" in clip) || !("mediaEnd" in clip)) return null
+
+  const baseDuration = clip.mediaEnd - clip.mediaStart
+  const speed = clip.speed ?? DEFAULT_SPEED
+  const maxDuration = baseDuration / speed
+
+  return toSeconds(toMs(clip.timelineStart + maxDuration))
 }
 
 export function clientXToTime(

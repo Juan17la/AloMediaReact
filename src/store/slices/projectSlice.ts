@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand"
 import { generateId } from "../../utils/id"
-import { toMs, toSeconds } from "../../utils/time"
+import { getMediaBackedClipMaxTimelineEnd, toMs, toSeconds } from "../../utils/time"
 import { getInsertionIndex } from "../../utils/tracks"
 import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig"
 import { DEFAULT_SPEED, MAX_SPEED, MIN_SPEED } from "../../constants/speed"
@@ -115,6 +115,66 @@ function findClipById(tracks: Track[], clipId: string): Clip | undefined {
     if (clip) return clip
   }
   return undefined
+}
+
+function normalizeTimelineValue(value: number): number {
+  return toSeconds(toMs(value))
+}
+
+function applyTrackRippleForEndChange(track: Track, clipId: string, requestedEnd: number): Track {
+  const targetClip = track.clips.find(clip => clip.id === clipId)
+  if (!targetClip) return track
+
+  const normalizedRequestedEnd = normalizeTimelineValue(requestedEnd)
+  const targetCurrentEnd = normalizeTimelineValue(targetClip.timelineEnd)
+  if (normalizedRequestedEnd === targetCurrentEnd) return track
+
+  const nextById = new Map<string, Clip>()
+  nextById.set(clipId, { ...targetClip, timelineEnd: normalizedRequestedEnd })
+
+  if (normalizedRequestedEnd <= targetCurrentEnd) {
+    return {
+      ...track,
+      clips: track.clips.map(clip => nextById.get(clip.id) ?? clip),
+    }
+  }
+
+  const downstream = track.clips
+    .filter(clip => clip.id !== clipId && clip.timelineStart >= targetClip.timelineStart)
+    .slice()
+    .sort((a, b) => {
+      const startDiff = a.timelineStart - b.timelineStart
+      if (Math.abs(startDiff) > Number.EPSILON) return startDiff
+      return a.id.localeCompare(b.id)
+    })
+
+  let requiredStart = normalizedRequestedEnd
+  let cumulativeShift = 0
+
+  for (const downstreamClip of downstream) {
+    let shiftedStart = normalizeTimelineValue(downstreamClip.timelineStart + cumulativeShift)
+    let shiftedEnd = normalizeTimelineValue(downstreamClip.timelineEnd + cumulativeShift)
+
+    if (shiftedStart < requiredStart) {
+      const extraShift = normalizeTimelineValue(requiredStart - shiftedStart)
+      cumulativeShift = normalizeTimelineValue(cumulativeShift + extraShift)
+      shiftedStart = normalizeTimelineValue(shiftedStart + extraShift)
+      shiftedEnd = normalizeTimelineValue(shiftedEnd + extraShift)
+    }
+
+    nextById.set(downstreamClip.id, {
+      ...downstreamClip,
+      timelineStart: shiftedStart,
+      timelineEnd: shiftedEnd,
+    })
+
+    requiredStart = shiftedEnd
+  }
+
+  return {
+    ...track,
+    clips: track.clips.map(clip => nextById.get(clip.id) ?? clip),
+  }
 }
 
 export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice> = (set, get) => ({
@@ -435,19 +495,32 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
 
   resizeClip(clipId, newEnd) {
     resetPlayer()
-    set(state => ({
-      project: {
+    set(state => {
+      let didUpdate = false
+
+      const nextTracks = state.project.tracks.map(track => {
+        const target = track.clips.find(clip => clip.id === clipId)
+        if (!target) return track
+
+        const minEnd = target.timelineStart + 0.5
+        const maxEnd = getMediaBackedClipMaxTimelineEnd(target) ?? Number.POSITIVE_INFINITY
+        const clampedEnd = Math.max(minEnd, Math.min(newEnd, maxEnd))
+        const nextTrack = applyTrackRippleForEndChange(track, clipId, clampedEnd)
+        if (nextTrack !== track) didUpdate = true
+        return nextTrack
+      })
+
+      if (!didUpdate) return state
+
+      const updatedProject = {
         ...state.project,
-        tracks: state.project.tracks.map(track => ({
-          ...track,
-          clips: track.clips.map(clip => {
-            if (clip.id !== clipId) return clip
-            if (newEnd <= clip.timelineStart + 0.5) return clip
-            return { ...clip, timelineEnd: newEnd }
-          }),
-        })),
-      },
-    }))
+        tracks: nextTracks,
+      }
+
+      return {
+        project: ensureCanonicalTransitionEdges(updatedProject).project,
+      }
+    })
   },
 
   updateClipTransform(clipId, transform) {
@@ -630,44 +703,51 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
 
     const clampedSpeed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, speed))
 
-    set(curr => ({
-      project: {
+    set(curr => {
+      let didUpdate = false
+
+      const nextTracks = curr.project.tracks.map(track => {
+        const targetClip = track.clips.find(c => c.id === clipId)
+        if (!targetClip || (targetClip.type !== "video" && targetClip.type !== "audio")) {
+          return track
+        }
+
+        const baseDuration = targetClip.mediaEnd - targetClip.mediaStart
+        const computedTimelineEnd = normalizeTimelineValue(targetClip.timelineStart + (baseDuration / clampedSpeed))
+        const minEnd = targetClip.timelineStart
+        const clampedTimelineEnd = Math.max(minEnd, computedTimelineEnd)
+        const currentSpeed = targetClip.speed ?? DEFAULT_SPEED
+        const currentEnd = normalizeTimelineValue(targetClip.timelineEnd)
+        if (currentSpeed === clampedSpeed && currentEnd === clampedTimelineEnd) return track
+
+        const trackWithRipple = applyTrackRippleForEndChange(track, clipId, clampedTimelineEnd)
+        const nextTrack = {
+          ...trackWithRipple,
+          clips: trackWithRipple.clips.map(clip => {
+            if (clip.id !== clipId) return clip
+            if (clip.type !== "video" && clip.type !== "audio") return clip
+            return {
+              ...clip,
+              speed: clampedSpeed,
+              timelineEnd: clampedTimelineEnd,
+            }
+          }),
+        }
+        if (nextTrack !== track) didUpdate = true
+        return nextTrack
+      })
+
+      if (!didUpdate) return curr
+
+      const updatedProject = {
         ...curr.project,
-        tracks: curr.project.tracks.map(track => {
-          const targetClip = track.clips.find(c => c.id === clipId)
-          if (!targetClip || (targetClip.type !== "video" && targetClip.type !== "audio")) {
-            return track
-          }
+        tracks: nextTracks,
+      }
 
-          const baseDuration = targetClip.mediaEnd - targetClip.mediaStart
-          const computedTimelineEnd = toSeconds(toMs(targetClip.timelineStart + (baseDuration / clampedSpeed)))
-          const nextTimelineStart = track.clips
-            .filter(c => c.id !== clipId && c.timelineStart >= targetClip.timelineStart)
-            .reduce<number | null>((next, c) => {
-              if (next == null) return c.timelineStart
-              return Math.min(next, c.timelineStart)
-            }, null)
-
-          const maxEnd = nextTimelineStart ?? Number.POSITIVE_INFINITY
-          const clampedTimelineEnd = toSeconds(
-            toMs(Math.max(targetClip.timelineStart, Math.min(computedTimelineEnd, maxEnd))),
-          )
-
-          return {
-            ...track,
-            clips: track.clips.map(clip => {
-              if (clip.id !== clipId) return clip
-              if (clip.type !== "video" && clip.type !== "audio") return clip
-              return {
-                ...clip,
-                speed: clampedSpeed,
-                timelineEnd: clampedTimelineEnd,
-              }
-            }),
-          }
-        }),
-      },
-    }))
+      return {
+        project: ensureCanonicalTransitionEdges(updatedProject).project,
+      }
+    })
 
     get().pushHistory("Set clip speed")
     resetPlayer()

@@ -1,5 +1,5 @@
 import type { DragEvent } from "react"
-import { useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useEditorStore } from "../../store/editorStore"
 import { useTimeline } from "../../hooks/useTimeline"
 import { getProjectDuration, selectGridInterval, timeToPx, pxToTime, TRACK_HEADER_WIDTH } from "../../utils/time"
@@ -20,7 +20,17 @@ export function Timeline() {
   const setTimelineScale = useEditorStore(s => s.setTimelineScale)
   const addClip = useEditorStore(s => s.addClip)
   const moveClip = useEditorStore(s => s.moveClip)
+  const moveClipsBatch = useEditorStore(s => s.moveClipsBatch)
+  const setSelectedClips = useEditorStore(s => s.setSelectedClips)
+  const clearClipSelection = useEditorStore(s => s.clearClipSelection)
   const containerRef = useRef<HTMLDivElement>(null)
+  const tracksAreaRef = useRef<HTMLDivElement>(null)
+  const [marquee, setMarquee] = useState<{
+    startX: number
+    startY: number
+    currentX: number
+    currentY: number
+  } | null>(null)
 
   function handleWheel(e: React.WheelEvent<HTMLDivElement>) {
     if (!e.ctrlKey) return
@@ -95,6 +105,7 @@ export function Timeline() {
   function handleClipDrop(e: DragEvent<HTMLDivElement>, targetTrackId: string) {
     const clipId = e.dataTransfer.getData("clipId")
     const offsetX = parseFloat(e.dataTransfer.getData("clipOffsetX") || "0")
+    const dragSelectionRaw = e.dataTransfer.getData("clipDragSelection")
 
     let sourceClip: Clip | undefined
     for (const track of project.tracks) {
@@ -110,9 +121,135 @@ export function Timeline() {
     const newStart = resolveDropPosition(targetTrackId, rawStart, clipDuration, clipId)
     const newEnd = newStart + clipDuration
 
-    if (hasCollision(targetTrackId, newStart, newEnd, clipId)) return
+    const dragSelection = (() => {
+      if (!dragSelectionRaw) return [] as Array<{ clipId: string; timelineStart: number; trackId: string }>
+      try {
+        return JSON.parse(dragSelectionRaw) as Array<{ clipId: string; timelineStart: number; trackId: string }>
+      } catch {
+        return []
+      }
+    })()
 
-    moveClip(clipId, newStart, targetTrackId)
+    if (dragSelection.length <= 1) {
+      if (hasCollision(targetTrackId, newStart, newEnd, clipId)) return
+      moveClip(clipId, newStart, targetTrackId)
+      return
+    }
+
+    const anchor = dragSelection.find(item => item.clipId === clipId)
+    if (!anchor) {
+      if (hasCollision(targetTrackId, newStart, newEnd, clipId)) return
+      moveClip(clipId, newStart, targetTrackId)
+      return
+    }
+
+    let delta = newStart - anchor.timelineStart
+    const minStart = Math.min(...dragSelection.map(item => item.timelineStart))
+    if (minStart + delta < 0) {
+      delta = -minStart
+    }
+
+    const movingIds = new Set(dragSelection.map(item => item.clipId))
+    const clipById = new Map(project.tracks.flatMap(track => track.clips.map(clip => [clip.id, clip] as const)))
+
+    const proposed = dragSelection
+      .map(item => {
+        const clip = clipById.get(item.clipId)
+        if (!clip) return null
+        return {
+          clipId: item.clipId,
+          trackId: clip.trackId,
+          newStart: Math.max(0, item.timelineStart + delta),
+          duration: clip.timelineEnd - clip.timelineStart,
+        }
+      })
+      .filter((item): item is { clipId: string; trackId: string; newStart: number; duration: number } => !!item)
+
+    const hasGroupCollision = proposed.some(move => {
+      const track = project.tracks.find(t => t.id === move.trackId)
+      if (!track) return false
+      const newEndTime = move.newStart + move.duration
+      return track.clips.some(clip => {
+        if (movingIds.has(clip.id)) return false
+        return move.newStart < clip.timelineEnd && newEndTime > clip.timelineStart
+      })
+    })
+
+    if (hasGroupCollision) return
+
+    moveClipsBatch(proposed.map(({ clipId: id, trackId, newStart: nextStart }) => ({ clipId: id, trackId, newStart: nextStart })))
+  }
+
+  const sortedTracks = useMemo(
+    () => [...project.tracks].sort((a, b) => a.order - b.order),
+    [project.tracks],
+  )
+
+  useEffect(() => {
+    if (!marquee) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMarquee(null)
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [marquee])
+
+  function handleTracksMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    if (e.button !== 0) return
+    const target = e.target as HTMLElement
+    if (target.closest("[data-clip-id]")) return
+
+    const rect = tracksAreaRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const startX = e.clientX - rect.left
+    const startY = e.clientY - rect.top
+    setMarquee({ startX, startY, currentX: startX, currentY: startY })
+
+    const onMove = (ev: MouseEvent) => {
+      const nextX = ev.clientX - rect.left
+      const nextY = ev.clientY - rect.top
+      setMarquee(curr => (curr ? { ...curr, currentX: nextX, currentY: nextY } : null))
+    }
+
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove)
+      document.removeEventListener("mouseup", onUp)
+      setMarquee(curr => {
+        if (!curr) return null
+        const x1 = Math.min(curr.startX, curr.currentX)
+        const x2 = Math.max(curr.startX, curr.currentX)
+        const y1 = Math.min(curr.startY, curr.currentY)
+        const y2 = Math.max(curr.startY, curr.currentY)
+
+        const selected: string[] = []
+        let yOffset = 0
+        for (const track of sortedTracks) {
+          const rowHeight = track.type === "video" ? 55 : 50
+          for (const clip of track.clips) {
+            const cx1 = TRACK_HEADER_WIDTH + timeToPx(clip.timelineStart, timelineScale)
+            const cx2 = cx1 + Math.max(timeToPx(clip.timelineEnd - clip.timelineStart, timelineScale), 4)
+            const cy1 = yOffset
+            const cy2 = yOffset + rowHeight
+            const intersects = cx1 < x2 && cx2 > x1 && cy1 < y2 && cy2 > y1
+            if (intersects) selected.push(clip.id)
+          }
+          yOffset += rowHeight
+        }
+
+        if (selected.length === 0) {
+          clearClipSelection()
+        } else {
+          setSelectedClips(selected)
+        }
+
+        return null
+      })
+    }
+
+    document.addEventListener("mousemove", onMove)
+    document.addEventListener("mouseup", onUp)
   }
 
   const totalWidth = timeToPx(rulerDuration, timelineScale)
@@ -133,7 +270,9 @@ export function Timeline() {
           <PlayheadBar totalWidth={totalWidth} duration={rulerDuration} majorInterval={majorInterval} />
 
           {/* Tracks area */}
-          <div
+            <div
+              ref={tracksAreaRef}
+              onMouseDown={handleTracksMouseDown}
             className="relative bg-white/2 border-t border-t-white/7 backdrop-blur-4xl"
           >
             {/* Major gridlines */}
@@ -154,7 +293,7 @@ export function Timeline() {
             />
 
             {/* Tracks */}
-            {[...project.tracks].sort((a, b) => a.order - b.order).map(track => (
+            {sortedTracks.map(track => (
               <TrackComponent
                 key={track.id}
                 track={track}
@@ -165,6 +304,18 @@ export function Timeline() {
                 resolveDropPosition={resolveDropPosition}
               />
             ))}
+
+            {marquee && (
+              <div
+                className="absolute z-20 border-2 border-accent-red/70 bg-accent-red/15 pointer-events-none"
+                style={{
+                  left: Math.min(marquee.startX, marquee.currentX),
+                  top: Math.min(marquee.startY, marquee.currentY),
+                  width: Math.abs(marquee.currentX - marquee.startX),
+                  height: Math.abs(marquee.currentY - marquee.startY),
+                }}
+              />
+            )}
           </div>
         </div>
       </div>

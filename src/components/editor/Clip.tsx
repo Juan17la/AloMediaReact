@@ -8,7 +8,7 @@ interface ClipProps {
   clip: Clip
   scale: number
   isSelected: boolean
-  onSelect: (clipId: string) => void
+  onSelect: (clipId: string, options?: { toggle?: boolean }) => void
   onDragStart: (e: DragEvent<HTMLDivElement>, clipId: string) => void
   onDragEnd: () => void
 }
@@ -97,9 +97,12 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
     <>
       <div
         draggable
+        data-clip-id={clip.id}
+        data-track-id={clip.trackId}
         onDragStart={e => {
           setIsDragging(true)
           e.dataTransfer.setData("clipDuration", String(clip.timelineEnd - clip.timelineStart))
+          e.dataTransfer.setData("clipTimelineStart", String(clip.timelineStart))
           onDragStart(e, clip.id)
         }}
         onDragEnd={() => {
@@ -107,7 +110,7 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
           onDragEnd()
           window.dispatchEvent(new CustomEvent("alomedia:drag-end"))
         }}
-        onClick={() => onSelect(clip.id)}
+        onClick={(e) => onSelect(clip.id, { toggle: e.ctrlKey || e.metaKey })}
         onContextMenu={handleContextMenu}
         className={[
           clipBase,

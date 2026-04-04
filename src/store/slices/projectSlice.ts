@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand"
 import { generateId } from "../../utils/id"
-import { toMs, toSeconds } from "../../utils/time"
+import { getMediaBackedClipMaxTimelineEnd, toMs, toSeconds } from "../../utils/time"
 import { getInsertionIndex } from "../../utils/tracks"
 import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig"
 import { DEFAULT_SPEED, MAX_SPEED, MIN_SPEED } from "../../constants/speed"
@@ -36,13 +36,16 @@ export interface ProjectSlice {
   addClip: (clip: Clip) => void
   removeClip: (clipId: string) => void
   moveClip: (clipId: string, newStart: number, trackId: string) => void
+  moveClipsBatch: (moves: Array<{ clipId: string; newStart: number; trackId: string }>) => void
   splitClip: (clipId: string, time: number) => void
   addTrack: (type: TrackType) => Track
   removeTrack: (trackId: string) => void
   reorderTrack: (sourceTrackId: string, targetTrackId: string) => void
   resizeClip: (clipId: string, newEnd: number) => void
   updateClipTransform: (clipId: string, transform: Partial<Transform>) => void
+  updateClipTransformsBatch: (updates: Array<{ clipId: string; transform: Partial<Transform> }>) => void
   commitTransform: (clipId: string) => void
+  commitTransformsBatch: () => void
   updateClipColorAdjustments: (clipId: string, adjustments: ColorAdjustments) => void
   updateClipAudioConfig: (clipId: string, config: Partial<AudioConfig>) => void
   setClipTransitionIn: (clipId: string, transition: ClipTransition | undefined) => void
@@ -61,6 +64,7 @@ function makeInitialProject(): Project {
     id: generateId(),
     name: "Untitled Project",
     media: [],
+    clipGroups: [],
     tracks: [
       { id: generateId(), type: "video", order: 0, clips: [] },
       { id: generateId(), type: "audio", order: 1, clips: [] },
@@ -113,6 +117,66 @@ function findClipById(tracks: Track[], clipId: string): Clip | undefined {
   return undefined
 }
 
+function normalizeTimelineValue(value: number): number {
+  return toSeconds(toMs(value))
+}
+
+function applyTrackRippleForEndChange(track: Track, clipId: string, requestedEnd: number): Track {
+  const targetClip = track.clips.find(clip => clip.id === clipId)
+  if (!targetClip) return track
+
+  const normalizedRequestedEnd = normalizeTimelineValue(requestedEnd)
+  const targetCurrentEnd = normalizeTimelineValue(targetClip.timelineEnd)
+  if (normalizedRequestedEnd === targetCurrentEnd) return track
+
+  const nextById = new Map<string, Clip>()
+  nextById.set(clipId, { ...targetClip, timelineEnd: normalizedRequestedEnd })
+
+  if (normalizedRequestedEnd <= targetCurrentEnd) {
+    return {
+      ...track,
+      clips: track.clips.map(clip => nextById.get(clip.id) ?? clip),
+    }
+  }
+
+  const downstream = track.clips
+    .filter(clip => clip.id !== clipId && clip.timelineStart >= targetClip.timelineStart)
+    .slice()
+    .sort((a, b) => {
+      const startDiff = a.timelineStart - b.timelineStart
+      if (Math.abs(startDiff) > Number.EPSILON) return startDiff
+      return a.id.localeCompare(b.id)
+    })
+
+  let requiredStart = normalizedRequestedEnd
+  let cumulativeShift = 0
+
+  for (const downstreamClip of downstream) {
+    let shiftedStart = normalizeTimelineValue(downstreamClip.timelineStart + cumulativeShift)
+    let shiftedEnd = normalizeTimelineValue(downstreamClip.timelineEnd + cumulativeShift)
+
+    if (shiftedStart < requiredStart) {
+      const extraShift = normalizeTimelineValue(requiredStart - shiftedStart)
+      cumulativeShift = normalizeTimelineValue(cumulativeShift + extraShift)
+      shiftedStart = normalizeTimelineValue(shiftedStart + extraShift)
+      shiftedEnd = normalizeTimelineValue(shiftedEnd + extraShift)
+    }
+
+    nextById.set(downstreamClip.id, {
+      ...downstreamClip,
+      timelineStart: shiftedStart,
+      timelineEnd: shiftedEnd,
+    })
+
+    requiredStart = shiftedEnd
+  }
+
+  return {
+    ...track,
+    clips: track.clips.map(clip => nextById.get(clip.id) ?? clip),
+  }
+}
+
 export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice> = (set, get) => ({
   project: makeInitialProject(),
   missingMediaIds: new Set<string>(),
@@ -124,14 +188,27 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
 
   async loadProject(project) {
     fileMap.clear()
+    const existingClipIds = new Set(project.tracks.flatMap(track => track.clips.map(clip => clip.id)))
+    const normalizedProject: Project = {
+      ...project,
+      clipGroups: (project.clipGroups ?? [])
+        .map(group => ({
+          ...group,
+          memberClipIds: group.memberClipIds.filter(id => existingClipIds.has(id)),
+        }))
+        .filter(group => group.memberClipIds.length > 1),
+    }
     set({
-      project,
+      project: normalizedProject,
       proxyMap: {},
       history: [],
       historyIndex: -1,
       playhead: 0,
       isPlaying: false,
       selectedClipId: undefined,
+      selectedClipIds: [],
+      activeGroupId: undefined,
+      groupEditGroupId: undefined,
       selectedTransitionClipId: undefined,
       missingMediaIds: new Set(),
       idbResolvedMediaIds: new Set(),
@@ -142,7 +219,7 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     const resolved = new Set<string>()
 
     await Promise.all(
-      project.media.map(async (m) => {
+      normalizedProject.media.map(async (m) => {
         try {
           const cached = await getFileFromCache(m.hash)
           if (cached) {
@@ -231,12 +308,21 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     get().pushHistory("Remove clip")
     resetPlayer()
     set(state => ({
+      selectedClipId: state.selectedClipId === clipId ? undefined : state.selectedClipId,
+      selectedClipIds: state.selectedClipIds.filter(id => id !== clipId),
+      activeGroupId: state.activeGroupId,
       project: {
         ...state.project,
         tracks: state.project.tracks.map(track => ({
           ...track,
           clips: track.clips.filter(c => c.id !== clipId),
         })),
+        clipGroups: (state.project.clipGroups ?? [])
+          .map(group => ({
+            ...group,
+            memberClipIds: group.memberClipIds.filter(id => id !== clipId),
+          }))
+          .filter(group => group.memberClipIds.length > 1),
         transitionEdges: (state.project.transitionEdges ?? []).filter(
           edge => edge.clipAId !== clipId && edge.clipBId !== clipId,
         ),
@@ -286,6 +372,56 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     })
   },
 
+  moveClipsBatch(moves) {
+    if (moves.length === 0) return
+    get().pushHistory("Move clips")
+    resetPlayer()
+    const moveMap = new Map(moves.map(move => [move.clipId, move]))
+
+    set(state => {
+      const movedClipIds = new Set(moveMap.keys())
+      const movedOriginal = new Map<string, Clip>()
+
+      const tracksWithoutMoved = state.project.tracks.map(track => ({
+        ...track,
+        clips: track.clips.filter(clip => {
+          if (!movedClipIds.has(clip.id)) return true
+          movedOriginal.set(clip.id, clip)
+          return false
+        }),
+      }))
+
+      const movedClipsByTrack = new Map<string, Clip[]>()
+      for (const move of moves) {
+        const source = movedOriginal.get(move.clipId)
+        if (!source) continue
+        const roundedStart = toSeconds(toMs(move.newStart))
+        const duration = source.timelineEnd - source.timelineStart
+        const updated: Clip = {
+          ...source,
+          trackId: move.trackId,
+          timelineStart: roundedStart,
+          timelineEnd: toSeconds(toMs(roundedStart + duration)),
+        }
+        const list = movedClipsByTrack.get(move.trackId)
+        if (list) list.push(updated)
+        else movedClipsByTrack.set(move.trackId, [updated])
+      }
+
+      const updatedProject = {
+        ...state.project,
+        tracks: tracksWithoutMoved.map(track => ({
+          ...track,
+          clips: [...track.clips, ...(movedClipsByTrack.get(track.id) ?? [])],
+        })),
+      }
+
+      return {
+        project: ensureCanonicalTransitionEdges(updatedProject).project,
+      }
+    })
+  },
+
   addTrack(type) {
     get().pushHistory("Add track")
     const sorted = get().project.tracks.slice().sort((a, b) => a.order - b.order)
@@ -319,9 +455,19 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     if (sameType.length <= 1) return
     get().pushHistory("Remove track")
     set(state => ({
+      ...(state.selectedClipId && state.project.tracks.find(t => t.id === trackId)?.clips.some(c => c.id === state.selectedClipId)
+        ? { selectedClipId: undefined }
+        : {}),
+      selectedClipIds: state.selectedClipIds.filter(id => !(state.project.tracks.find(t => t.id === trackId)?.clips.some(c => c.id === id))),
       project: {
         ...state.project,
         tracks: state.project.tracks.filter(t => t.id !== trackId),
+        clipGroups: (state.project.clipGroups ?? [])
+          .map(group => ({
+            ...group,
+            memberClipIds: group.memberClipIds.filter(id => !(state.project.tracks.find(t => t.id === trackId)?.clips.some(c => c.id === id))),
+          }))
+          .filter(group => group.memberClipIds.length > 1),
         transitionEdges: (state.project.transitionEdges ?? []).filter(
           edge => edge.trackId !== trackId,
         ),
@@ -349,19 +495,32 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
 
   resizeClip(clipId, newEnd) {
     resetPlayer()
-    set(state => ({
-      project: {
+    set(state => {
+      let didUpdate = false
+
+      const nextTracks = state.project.tracks.map(track => {
+        const target = track.clips.find(clip => clip.id === clipId)
+        if (!target) return track
+
+        const minEnd = target.timelineStart + 0.5
+        const maxEnd = getMediaBackedClipMaxTimelineEnd(target) ?? Number.POSITIVE_INFINITY
+        const clampedEnd = Math.max(minEnd, Math.min(newEnd, maxEnd))
+        const nextTrack = applyTrackRippleForEndChange(track, clipId, clampedEnd)
+        if (nextTrack !== track) didUpdate = true
+        return nextTrack
+      })
+
+      if (!didUpdate) return state
+
+      const updatedProject = {
         ...state.project,
-        tracks: state.project.tracks.map(track => ({
-          ...track,
-          clips: track.clips.map(clip => {
-            if (clip.id !== clipId) return clip
-            if (newEnd <= clip.timelineStart + 0.5) return clip
-            return { ...clip, timelineEnd: newEnd }
-          }),
-        })),
-      },
-    }))
+        tracks: nextTracks,
+      }
+
+      return {
+        project: ensureCanonicalTransitionEdges(updatedProject).project,
+      }
+    })
   },
 
   updateClipTransform(clipId, transform) {
@@ -382,11 +541,37 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     renderSingleFrame()
   },
 
+  updateClipTransformsBatch(updates) {
+    if (updates.length === 0) return
+    const updateMap = new Map(updates.map(item => [item.clipId, item.transform]))
+    set(state => ({
+      project: {
+        ...state.project,
+        tracks: state.project.tracks.map(track => ({
+          ...track,
+          clips: track.clips.map(clip => {
+            const patch = updateMap.get(clip.id)
+            if (!patch) return clip
+            if (!("transform" in clip)) return clip
+            return { ...clip, transform: { ...clip.transform, ...patch } }
+          }),
+        })),
+      },
+    }))
+    renderSingleFrame()
+  },
+
   commitTransform(_clipId) {
     void _clipId
     const wasPlaying = get().pushHistory("Transform clip")
     renderSingleFrame()
     // Small UX improvement: keep playback running after transform commit.
+    if (wasPlaying) resumePlayer()
+  },
+
+  commitTransformsBatch() {
+    const wasPlaying = get().pushHistory("Transform clips")
+    renderSingleFrame()
     if (wasPlaying) resumePlayer()
   },
 
@@ -518,44 +703,51 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
 
     const clampedSpeed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, speed))
 
-    set(curr => ({
-      project: {
+    set(curr => {
+      let didUpdate = false
+
+      const nextTracks = curr.project.tracks.map(track => {
+        const targetClip = track.clips.find(c => c.id === clipId)
+        if (!targetClip || (targetClip.type !== "video" && targetClip.type !== "audio")) {
+          return track
+        }
+
+        const baseDuration = targetClip.mediaEnd - targetClip.mediaStart
+        const computedTimelineEnd = normalizeTimelineValue(targetClip.timelineStart + (baseDuration / clampedSpeed))
+        const minEnd = targetClip.timelineStart
+        const clampedTimelineEnd = Math.max(minEnd, computedTimelineEnd)
+        const currentSpeed = targetClip.speed ?? DEFAULT_SPEED
+        const currentEnd = normalizeTimelineValue(targetClip.timelineEnd)
+        if (currentSpeed === clampedSpeed && currentEnd === clampedTimelineEnd) return track
+
+        const trackWithRipple = applyTrackRippleForEndChange(track, clipId, clampedTimelineEnd)
+        const nextTrack = {
+          ...trackWithRipple,
+          clips: trackWithRipple.clips.map(clip => {
+            if (clip.id !== clipId) return clip
+            if (clip.type !== "video" && clip.type !== "audio") return clip
+            return {
+              ...clip,
+              speed: clampedSpeed,
+              timelineEnd: clampedTimelineEnd,
+            }
+          }),
+        }
+        if (nextTrack !== track) didUpdate = true
+        return nextTrack
+      })
+
+      if (!didUpdate) return curr
+
+      const updatedProject = {
         ...curr.project,
-        tracks: curr.project.tracks.map(track => {
-          const targetClip = track.clips.find(c => c.id === clipId)
-          if (!targetClip || (targetClip.type !== "video" && targetClip.type !== "audio")) {
-            return track
-          }
+        tracks: nextTracks,
+      }
 
-          const baseDuration = targetClip.mediaEnd - targetClip.mediaStart
-          const computedTimelineEnd = toSeconds(toMs(targetClip.timelineStart + (baseDuration / clampedSpeed)))
-          const nextTimelineStart = track.clips
-            .filter(c => c.id !== clipId && c.timelineStart >= targetClip.timelineStart)
-            .reduce<number | null>((next, c) => {
-              if (next == null) return c.timelineStart
-              return Math.min(next, c.timelineStart)
-            }, null)
-
-          const maxEnd = nextTimelineStart ?? Number.POSITIVE_INFINITY
-          const clampedTimelineEnd = toSeconds(
-            toMs(Math.max(targetClip.timelineStart, Math.min(computedTimelineEnd, maxEnd))),
-          )
-
-          return {
-            ...track,
-            clips: track.clips.map(clip => {
-              if (clip.id !== clipId) return clip
-              if (clip.type !== "video" && clip.type !== "audio") return clip
-              return {
-                ...clip,
-                speed: clampedSpeed,
-                timelineEnd: clampedTimelineEnd,
-              }
-            }),
-          }
-        }),
-      },
-    }))
+      return {
+        project: ensureCanonicalTransitionEdges(updatedProject).project,
+      }
+    })
 
     get().pushHistory("Set clip speed")
     resetPlayer()
@@ -638,7 +830,15 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
               (edge.clipAId === undefined || !removedClipIds.has(edge.clipAId)) &&
               (edge.clipBId === undefined || !removedClipIds.has(edge.clipBId)),
           ),
+          clipGroups: (state.project.clipGroups ?? [])
+            .map(group => ({
+              ...group,
+              memberClipIds: group.memberClipIds.filter(id => !removedClipIds.has(id)),
+            }))
+            .filter(group => group.memberClipIds.length > 1),
         },
+        selectedClipId: state.selectedClipId && removedClipIds.has(state.selectedClipId) ? undefined : state.selectedClipId,
+        selectedClipIds: state.selectedClipIds.filter(id => !removedClipIds.has(id)),
       }
     })
   },
@@ -680,6 +880,16 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
       return {
         project: {
           ...state.project,
+          clipGroups: (state.project.clipGroups ?? [])
+            .map(group => {
+              if (!group.memberClipIds.includes(clipId)) return group
+              const memberClipIds = group.memberClipIds.flatMap(id => {
+                if (id !== clipId) return [id]
+                return [firstHalf.id, secondHalf.id]
+              })
+              return { ...group, memberClipIds }
+            })
+            .filter(group => group.memberClipIds.length > 1),
           tracks: state.project.tracks.map(track => {
             if (!track.clips.find(c => c.id === clipId)) return track
             const filtered = track.clips.filter(c => c.id !== clipId)
@@ -702,6 +912,9 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
       missingMediaIds: new Set(),
       idbResolvedMediaIds: new Set(),
       selectedClipId: undefined,
+      selectedClipIds: [],
+      activeGroupId: undefined,
+      groupEditGroupId: undefined,
       selectedTransitionClipId: undefined,
       selectedTrackId: undefined,
     })

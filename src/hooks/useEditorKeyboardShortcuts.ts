@@ -50,6 +50,10 @@ export function useEditorKeyboardShortcuts() {
   const pasteClip = useEditorStore(s => s.pasteClip)
   const removeClip = useEditorStore(s => s.removeClip)
   const splitClip = useEditorStore(s => s.splitClip)
+  const createGroupFromSelection = useEditorStore(s => s.createGroupFromSelection)
+  const ungroupSelected = useEditorStore(s => s.ungroupSelected)
+  const clearClipSelection = useEditorStore(s => s.clearClipSelection)
+  const exitGroupEditMode = useEditorStore(s => s.exitGroupEditMode)
   const setTimelineScale = useEditorStore(s => s.setTimelineScale)
 
   const { play, pause, seek } = usePlayer()
@@ -92,11 +96,16 @@ export function useEditorKeyboardShortcuts() {
       'ctrl+v': (e) => { e.preventDefault(); pasteClip() },
       'ctrl+x': (e) => {
         e.preventDefault()
-        const { selectedClipId } = storeRef.current()
-        if (!selectedClipId) return
+        const { selectedClipIds, selectedClipId } = storeRef.current()
+        const targets = selectedClipIds.length > 0 ? selectedClipIds : (selectedClipId ? [selectedClipId] : [])
+        if (targets.length === 0) return
         copyClip()
-        removeClip(selectedClipId)
+        for (const clipId of targets) {
+          removeClip(clipId)
+        }
       },
+      'ctrl+g': (e) => { e.preventDefault(); createGroupFromSelection() },
+      'ctrl+shift+g': (e) => { e.preventDefault(); ungroupSelected() },
       ' ': (e) => {
         e.preventDefault()
         const { isPlaying } = storeRef.current()
@@ -115,13 +124,28 @@ export function useEditorKeyboardShortcuts() {
       'shift+-': (e) => { e.preventDefault(); if (!e.repeat) startZoomOut() },
       'Delete': (e) => {
         e.preventDefault()
-        const { selectedClipId } = storeRef.current()
-        if (selectedClipId) removeClip(selectedClipId)
+        const { selectedClipIds, selectedClipId } = storeRef.current()
+        const targets = selectedClipIds.length > 0 ? selectedClipIds : (selectedClipId ? [selectedClipId] : [])
+        for (const clipId of targets) {
+          removeClip(clipId)
+        }
       },
       'Backspace': (e) => {
         e.preventDefault()
-        const { selectedClipId } = storeRef.current()
-        if (selectedClipId) removeClip(selectedClipId)
+        const { selectedClipIds, selectedClipId } = storeRef.current()
+        const targets = selectedClipIds.length > 0 ? selectedClipIds : (selectedClipId ? [selectedClipId] : [])
+        for (const clipId of targets) {
+          removeClip(clipId)
+        }
+      },
+      'Escape': (e) => {
+        e.preventDefault()
+        const { groupEditGroupId } = storeRef.current()
+        if (groupEditGroupId) {
+          exitGroupEditMode()
+          return
+        }
+        clearClipSelection()
       },
       ',': (e) => {
         e.preventDefault()
@@ -158,5 +182,5 @@ export function useEditorKeyboardShortcuts() {
       clearZoomIn()
       clearZoomOut()
     }
-  }, [undo, redo, copyClip, pasteClip, removeClip, splitClip, setTimelineScale, play, pause, seek])
+  }, [undo, redo, copyClip, pasteClip, removeClip, splitClip, createGroupFromSelection, ungroupSelected, clearClipSelection, exitGroupEditMode, setTimelineScale, play, pause, seek])
 }

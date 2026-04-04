@@ -1,6 +1,6 @@
 import { useState, type DragEvent } from "react"
 import type { Clip } from "../../project/projectTypes"
-import { timeToPx, pxToTime } from "../../utils/time"
+import { getMediaBackedClipMaxTimelineEnd, timeToPx, pxToTime } from "../../utils/time"
 import { useEditorStore } from "../../store/editorStore"
 import { TimelineClipContextMenu } from "./TimelineClipContextMenu"
 
@@ -8,7 +8,7 @@ interface ClipProps {
   clip: Clip
   scale: number
   isSelected: boolean
-  onSelect: (clipId: string) => void
+  onSelect: (clipId: string, options?: { toggle?: boolean }) => void
   onDragStart: (e: DragEvent<HTMLDivElement>, clipId: string) => void
   onDragEnd: () => void
 }
@@ -68,10 +68,11 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
     e.preventDefault()
     const startX = e.clientX
     const originalEnd = clip.timelineEnd
+    const maxEnd = getMediaBackedClipMaxTimelineEnd(clip) ?? Number.POSITIVE_INFINITY
 
     function onMove(ev: MouseEvent) {
       const dx = ev.clientX - startX
-      const newEnd = Math.max(clip.timelineStart + 0.5, originalEnd + pxToTime(dx, scale))
+      const newEnd = Math.max(clip.timelineStart + 0.5, Math.min(originalEnd + pxToTime(dx, scale), maxEnd))
       resizeClip(clip.id, newEnd)
     }
 
@@ -97,9 +98,12 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
     <>
       <div
         draggable
+        data-clip-id={clip.id}
+        data-track-id={clip.trackId}
         onDragStart={e => {
           setIsDragging(true)
           e.dataTransfer.setData("clipDuration", String(clip.timelineEnd - clip.timelineStart))
+          e.dataTransfer.setData("clipTimelineStart", String(clip.timelineStart))
           onDragStart(e, clip.id)
         }}
         onDragEnd={() => {
@@ -107,7 +111,7 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
           onDragEnd()
           window.dispatchEvent(new CustomEvent("alomedia:drag-end"))
         }}
-        onClick={() => onSelect(clip.id)}
+        onClick={(e) => onSelect(clip.id, { toggle: e.ctrlKey || e.metaKey })}
         onContextMenu={handleContextMenu}
         className={[
           clipBase,

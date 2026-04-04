@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { useEditorStore } from "../../store/editorStore"
+import type { MediaType } from "../../project/projectTypes"
 
 interface MediaContextMenuProps {
   mediaId: string
+  mediaType: MediaType
   x: number
   y: number
   onClose: () => void
   onInsertAtPlayhead: () => void
+  onImportSubtitles?: () => void
+  isImportingSubtitles?: boolean
 }
 
 const menuPanel =
@@ -22,7 +26,16 @@ const menuActionNeutral =
 const menuActionDanger =
   "text-[rgba(220,60,60,0.90)] hover:bg-white/8"
 
-export function MediaContextMenu({ mediaId, x, y, onClose, onInsertAtPlayhead }: MediaContextMenuProps) {
+export function MediaContextMenu({
+  mediaId,
+  mediaType,
+  x,
+  y,
+  onClose,
+  onInsertAtPlayhead,
+  onImportSubtitles,
+  isImportingSubtitles,
+}: MediaContextMenuProps) {
   const removeMedia = useEditorStore(s => s.removeMedia)
   const proxyMap = useEditorStore(s => s.proxyMap)
   const tracks = useEditorStore(s => s.project.tracks)
@@ -31,6 +44,7 @@ export function MediaContextMenu({ mediaId, x, y, onClose, onInsertAtPlayhead }:
 
   const proxyStatus = proxyMap[mediaId]?.status
   const isProxyPending = proxyStatus === 'pending'
+  const isSubtitles = mediaType === "subtitles"
 
   const clipsUsingMedia = tracks.flatMap(t => t.clips).filter(
     c => 'mediaId' in c && c.mediaId === mediaId,
@@ -39,7 +53,7 @@ export function MediaContextMenu({ mediaId, x, y, onClose, onInsertAtPlayhead }:
 
   // Clamp position to viewport
   const menuWidth = 200
-  const menuHeight = 88
+  const menuHeight = confirmDelete ? 104 : isSubtitles ? 120 : 88
   const clampedX = Math.min(x, window.innerWidth - menuWidth - 8)
   const clampedY = Math.min(y, window.innerHeight - menuHeight - 8)
 
@@ -70,6 +84,12 @@ export function MediaContextMenu({ mediaId, x, y, onClose, onInsertAtPlayhead }:
     onClose()
   }
 
+  function handleImportSubtitles() {
+    if (!onImportSubtitles || isImportingSubtitles) return
+    onImportSubtitles()
+    onClose()
+  }
+
   function handleDeleteClick() {
     if (clipCount > 0) {
       setConfirmDelete(true)
@@ -97,15 +117,26 @@ export function MediaContextMenu({ mediaId, x, y, onClose, onInsertAtPlayhead }:
     >
       {!confirmDelete ? (
         <>
-          <button
-            role="menuitem"
-            onClick={handleInsert}
-            disabled={isProxyPending}
-            title={isProxyPending ? "Proxy not ready yet" : undefined}
-            className={`${menuAction} ${menuActionNeutral} disabled:cursor-not-allowed disabled:opacity-40`}
-          >
-            Add to Timeline
-          </button>
+          {isSubtitles ? (
+            <button
+              role="menuitem"
+              onClick={handleImportSubtitles}
+              disabled={isImportingSubtitles || !onImportSubtitles}
+              className={`${menuAction} ${menuActionNeutral} disabled:cursor-not-allowed disabled:opacity-40`}
+            >
+              {isImportingSubtitles ? "Importing..." : "Import as Subtitles"}
+            </button>
+          ) : (
+            <button
+              role="menuitem"
+              onClick={handleInsert}
+              disabled={isProxyPending}
+              title={isProxyPending ? "Proxy not ready yet" : undefined}
+              className={`${menuAction} ${menuActionNeutral} disabled:cursor-not-allowed disabled:opacity-40`}
+            >
+              Add to Timeline
+            </button>
+          )}
           <div className="my-1 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
           <button
             role="menuitem"

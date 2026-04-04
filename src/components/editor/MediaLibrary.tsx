@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { FilePlus2, Plus, Search } from "lucide-react";
 import { useEditorStore, fileMap } from "../../store/editorStore";
 import { MediaCard, LoadingCard } from "./MediaCard";
+import { AiToolsPanel } from "./AiToolsPanel";
 import { generateId } from "../../utils/id";
 import { generateProxy } from "../../engine/proxyEngine";
 import type { Clip, Media, Track } from "../../project/projectTypes";
@@ -10,6 +11,7 @@ import { triggerFileInputRef } from "../../utils/fileInputTrigger";
 import { DEFAULT_COLOR_ADJUSTMENTS } from "../../constants/colorAdjustments";
 import { DEFAULT_SPEED } from "../../constants/speed";
 import { toMs, toSeconds } from "../../utils/time";
+import { parseSrtFile } from "../../utils/srtParser.ts";
 
 interface PendingMedia {
   tempId: string;
@@ -22,8 +24,16 @@ interface PendingMedia {
 const ghostBtn =
   "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-white/80 bg-white/5 border border-white/10 hover:bg-white/9 hover:border-white/[0.18] active:scale-95 transition-all duration-100 cursor-pointer";
 
+const tabBase =
+  "h-full px-3.5 text-[11px] font-semibold bg-transparent border-0 border-b-2 rounded-none cursor-pointer transition-[color] duration-120";
+const tabActive = "text-accent-white border-b-accent-red";
+const tabInactive = "text-muted border-b-transparent";
+
+type LibraryTab = "library" | "ai-tools";
+
 export function MediaLibrary() {
   const addMedia = useEditorStore((s) => s.addMedia);
+  const importSubtitlesAsGroup = useEditorStore((s) => s.importSubtitlesAsGroup);
   const setProxyState = useEditorStore((s) => s.setProxyState);
   const proxyMap = useEditorStore((s) => s.proxyMap);
   const idbResolvedMediaIds = useEditorStore((s) => s.idbResolvedMediaIds);
@@ -37,6 +47,9 @@ export function MediaLibrary() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [dropError, setDropError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<LibraryTab>("library");
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
+  const [subtitleImportingIds, setSubtitleImportingIds] = useState<Set<string>>(new Set());
   const dropZoneRef = useRef<HTMLDivElement>(null);
   // One object URL per mediaId, revoked on unmount
   const objectUrlsRef = useRef<Map<string, string>>(new Map());
@@ -64,6 +77,23 @@ export function MediaLibrary() {
       urls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
+
+  // Clear selection if the selected media item is removed from the library
+  useEffect(() => {
+    if (selectedMediaId && !media.find((m) => m.id === selectedMediaId)) {
+      setSelectedMediaId(null);
+    }
+  }, [media, selectedMediaId]);
+
+  function isSubtitleFile(file: File): boolean {
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    const mime = file.type.toLowerCase();
+    return ext === "srt" || mime === "application/x-subrip" || mime === "application/srt" || mime === "text/srt" || mime === "text/x-srt";
+  }
+
+  function isSubtitleMedia(mediaItem: Media): boolean {
+    return mediaItem.type === "subtitles";
+  }
 
   async function handleFiles(files: FileList | null) {
     if (!files) return;
@@ -133,7 +163,8 @@ export function MediaLibrary() {
         if (
           file.type.startsWith("video/") ||
           file.type.startsWith("audio/") ||
-          file.type.startsWith("image/")
+          file.type.startsWith("image/") ||
+          isSubtitleFile(file)
         ) {
           accepted.push(file);
         } else {
@@ -159,6 +190,8 @@ export function MediaLibrary() {
   );
 
   function insertMediaAtPlayhead(item: Media) {
+    if (isSubtitleMedia(item)) return;
+
     const trackType = item.type === "audio" ? "audio" : "video";
     const roundedPlayhead = toSeconds(toMs(playhead));
     const duration = item.duration ?? 5;
@@ -224,6 +257,37 @@ export function MediaLibrary() {
     addClip(newClip);
   }
 
+  async function handleSubtitleImport(item: Media) {
+    if (!isSubtitleMedia(item)) return;
+
+    const source = fileMap.get(item.id);
+    if (!source) {
+      window.alert("Subtitle source file is no longer available.");
+      return;
+    }
+
+    const content = await source.text();
+    const parsed = parseSrtFile(content);
+    if (parsed.length === 0) {
+      window.alert("No valid subtitles were found in the file.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Import ${parsed.length} subtitle clips from ${item.name}?`);
+    if (!confirmed) return;
+
+    setSubtitleImportingIds(prev => new Set(prev).add(item.id));
+    try {
+      await importSubtitlesAsGroup(item.name.replace(/\.srt$/i, ""), source);
+    } finally {
+      setSubtitleImportingIds(prev => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  }
+
   const hasItems = media.length > 0 || pending.length > 0;
 
   const filteredMedia = searchQuery.trim()
@@ -232,10 +296,14 @@ export function MediaLibrary() {
       )
     : media;
 
+  const selectedMedia = selectedMediaId
+    ? (media.find((m) => m.id === selectedMediaId) ?? null)
+    : null;
+
   return (
     <div
       ref={dropZoneRef}
-      className="flex flex-col h-full w-70 overflow-hidden relative border-l border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.35),0_16px_32px_rgba(0,0,0,0.20)]"
+      className="flex flex-col h-full w-80 overflow-hidden relative border-l border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.35),0_16px_32px_rgba(0,0,0,0.20)]"
       style={{
         backdropFilter: "blur(24px) saturate(150%)",
         WebkitBackdropFilter: "blur(24px) saturate(150%)",
@@ -263,22 +331,40 @@ export function MediaLibrary() {
       )}
 
       {/* Panel header */}
-      <div className="flex items-center shrink-0 h-10 my-1 mx-3 px-2 border-b border-b-dark-border">
+      <div className="flex items-center shrink-0 h-10 my-1 mx-3 px-2">
         <span className="flex-1 text-[10px] font-semibold tracking-[0.12em] uppercase text-muted">
           Media
         </span>
+        {activeTab === "library" && (
+          <button
+            onClick={() => inputRef.current?.click()}
+            title="Add media"
+            className={ghostBtn}
+          >
+            <Plus size={14} />
+            Add Files
+          </button>
+        )}
+      </div>
+
+      {/* Tab row */}
+      <div className="flex shrink-0 h-8 border-b border-b-white/7 mx-3">
         <button
-          onClick={() => inputRef.current?.click()}
-          title="Add media"
-          className={ghostBtn}
+          onClick={() => setActiveTab("library")}
+          className={[tabBase, activeTab === "library" ? tabActive : tabInactive].join(" ")}
         >
-          <Plus size={14} />
-          Add Files
+          Library
+        </button>
+        <button
+          onClick={() => setActiveTab("ai-tools")}
+          className={[tabBase, activeTab === "ai-tools" ? tabActive : tabInactive].join(" ")}
+        >
+          AI Tools
         </button>
       </div>
 
-      {/* Search bar */}
-      {hasItems && (
+      {/* Search bar — library tab only */}
+      {activeTab === "library" && hasItems && (
         <div
           className="flex items-center shrink-0 gap-1.5 my-1 mx-3 px-3 py-2 bg-black/30 border border-white/8 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,box-shadow] duration-150 focus-within:border-accent-red/55 focus-within:ring-2 focus-within:ring-accent-red/12"
           style={{
@@ -300,7 +386,7 @@ export function MediaLibrary() {
       <input
         ref={inputRef}
         type="file"
-        accept="video/*,audio/*,image/*"
+        accept="video/*,audio/*,image/*,.srt,text/plain,text/srt,text/x-srt,application/x-subrip"
         multiple
         className="hidden"
         onChange={(e) => {
@@ -309,51 +395,80 @@ export function MediaLibrary() {
         }}
       />
 
-      {/* Empty state */}
-      {!hasItems && (
-        <div className="flex flex-col items-center justify-center flex-1 gap-3 p-4">
-          <div
-            className="border-2 border-dashed border-dark-border w-full flex-1 flex flex-col items-center justify-center gap-2 cursor-pointer"
-            onClick={() => inputRef.current?.click()}
-          >
-            <FilePlus2 size={24} className="text-muted" />
-            <span className="text-[10px] text-muted text-center">
-              Click or drop
-              <br />
-              video, audio or images
-            </span>
-          </div>
-        </div>
+      {/* ── Library tab ────────────────────────────────────────────────────── */}
+      {activeTab === "library" && (
+        <>
+          {/* Empty state */}
+          {!hasItems && (
+            <div className="flex flex-col items-center justify-center flex-1 gap-3 p-4">
+              <div
+                className="border-2 border-dashed border-dark-border w-full flex-1 flex flex-col items-center justify-center gap-2 cursor-pointer"
+                onClick={() => inputRef.current?.click()}
+              >
+                <FilePlus2 size={24} className="text-muted" />
+                <span className="text-[10px] text-muted text-center">
+                  Click or drop
+                  <br />
+                  video, audio or images
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Media grid — 2 cols, gap acts as border */}
+          {hasItems && (
+            <div className="flex-1 overflow-y-auto my-1 mx-3 grid grid-cols-2 gap-0.5 content-start">
+              {filteredMedia.map((item) => {
+                const isSelected = selectedMediaId === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    className={[
+                      "min-w-0 overflow-hidden relative rounded-lg transition-shadow duration-120",
+                      isSelected
+                        ? "ring-2 ring-accent-red/70 ring-offset-1 ring-offset-transparent"
+                        : "",
+                    ].join(" ")}
+                    onClick={() =>
+                      setSelectedMediaId(isSelected ? null : item.id)
+                    }
+                    onDoubleClick={() => insertMediaAtPlayhead(item)}
+                  >
+                    <MediaCard
+                      media={item}
+                      objectUrl={getObjectUrl(item.id)}
+                      proxyStatus={proxyMap[item.id]?.status}
+                      onInsertAtPlayhead={() => insertMediaAtPlayhead(item)}
+                      onImportSubtitles={() => void handleSubtitleImport(item)}
+                      isImportingSubtitles={subtitleImportingIds.has(item.id)}
+                    />
+                    {idbResolvedMediaIds.has(item.id) && (
+                      <div
+                        title="Loaded from local cache"
+                        className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-green-400 pointer-events-none"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+              {pending.map((p) => (
+                <div key={p.tempId} className="min-w-0 overflow-hidden">
+                  <LoadingCard fileName={p.fileName} />
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Media grid — 2 cols, gap acts as border */}
-      {hasItems && (
-        <div className="flex-1 overflow-y-auto my-1 mx-3 grid grid-cols-2 gap-0.5 content-start">
-          {filteredMedia.map((item) => (
-            <div
-              key={item.id}
-              className="min-w-0 overflow-hidden relative"
-              onDoubleClick={() => insertMediaAtPlayhead(item)}
-            >
-              <MediaCard
-                media={item}
-                objectUrl={getObjectUrl(item.id)}
-                proxyStatus={proxyMap[item.id]?.status}
-                onInsertAtPlayhead={() => insertMediaAtPlayhead(item)}
-              />
-              {idbResolvedMediaIds.has(item.id) && (
-                <div
-                  title="Loaded from local cache"
-                  className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-green-400 pointer-events-none"
-                />
-              )}
-            </div>
-          ))}
-          {pending.map((p) => (
-            <div key={p.tempId} className="min-w-0 overflow-hidden">
-              <LoadingCard fileName={p.fileName} />
-            </div>
-          ))}
+      {/* ── AI Tools tab ───────────────────────────────────────────────────── */}
+      {activeTab === "ai-tools" && (
+        <div className="flex flex-col flex-1 overflow-y-auto">
+          {/* Re-mount when selected media changes to reset internal state */}
+          <AiToolsPanel
+            key={selectedMediaId ?? "none"}
+            selectedMedia={selectedMedia}
+          />
         </div>
       )}
     </div>

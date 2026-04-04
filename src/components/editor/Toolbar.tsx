@@ -13,6 +13,9 @@ import {
   Magnet,
   Film,
   Music,
+  Type,
+  Link2,
+  Unlink2,
   HelpCircle,
   X,
 } from "lucide-react"
@@ -23,6 +26,9 @@ import {
   MIN_PIXELS_PER_SECOND,
   MAX_PIXELS_PER_SECOND,
 } from "../../constants/timeline"
+import { DEFAULT_TEXT_STYLE, DEFAULT_TEXT_TRANSFORM } from "../../constants/textStyle"
+import { generateId } from "../../utils/id"
+import type { TextClip } from "../../project/projectTypes"
 
 const SHORTCUTS = [
   { keys: "Ctrl+Z",          action: "Undo" },
@@ -30,6 +36,8 @@ const SHORTCUTS = [
   { keys: "Ctrl+C",          action: "Copy selected clip" },
   { keys: "Ctrl+V",          action: "Paste clip" },
   { keys: "Ctrl+X",          action: "Cut selected clip" },
+  { keys: "Ctrl+G",          action: "Group selected clips" },
+  { keys: "Ctrl+Shift+G",    action: "Ungroup selected clips" },
   { keys: "Space",           action: "Play / Pause" },
   { keys: "Shift+I",         action: "Add media (open picker)" },
   { keys: "Shift+S",         action: "Split clip at playhead" },
@@ -177,6 +185,7 @@ function GroupDivider() {
 
 export function Toolbar() {
   const selectedClipId = useEditorStore(s => s.selectedClipId)
+  const selectedClipIds = useEditorStore(s => s.selectedClipIds)
   const selectedClip = useEditorStore(s => {
     if (!s.selectedClipId) return undefined
     for (const track of s.project.tracks) {
@@ -186,10 +195,14 @@ export function Toolbar() {
     return undefined
   })
   const playhead = useEditorStore(s => s.playhead)
+  const addClip = useEditorStore(s => s.addClip)
+  const setSelectedClip = useEditorStore(s => s.setSelectedClip)
   const splitClip = useEditorStore(s => s.splitClip)
   const copyClip = useEditorStore(s => s.copyClip)
   const pasteClip = useEditorStore(s => s.pasteClip)
   const removeClip = useEditorStore(s => s.removeClip)
+  const createGroupFromSelection = useEditorStore(s => s.createGroupFromSelection)
+  const ungroupSelected = useEditorStore(s => s.ungroupSelected)
   const extractAudioFromClip = useEditorStore(s => s.extractAudioFromClip)
   const clipboard = useEditorStore(s => s.clipboard)
   const undo = useEditorStore(s => s.undo)
@@ -247,11 +260,31 @@ export function Toolbar() {
     }, 400)
   }
 
+  function handleInsertText() {
+    const videoTrack = addTrack("video")
+    const duration = 5
+    const newClip: TextClip = {
+      id: generateId(),
+      trackId: videoTrack.id,
+      timelineStart: playhead,
+      timelineEnd: playhead + duration,
+      type: "text",
+      content: "Add text",
+      transform: { ...DEFAULT_TEXT_TRANSFORM },
+      style: { ...DEFAULT_TEXT_STYLE },
+    }
+    addClip(newClip)
+    setSelectedClip(newClip.id)
+  }
+
   // Compute zoom percentage from scale
   const zoomPercent = Math.round((timelineScale / 100) * 100)
-  const canCopyOrCut = !!selectedClipId && selectedClip?.type !== "text"
-  const canPaste = !!clipboard && clipboard.type !== "text"
-  const canDelete = !!selectedClipId
+  const selectionTargets = selectedClipIds.length > 0 ? selectedClipIds : (selectedClipId ? [selectedClipId] : [])
+  const canCopyOrCut = selectionTargets.length > 0
+  const canPaste = !!clipboard
+  const canDelete = selectionTargets.length > 0
+  const canGroup = selectionTargets.length >= 2
+  const canUngroup = selectionTargets.length > 0
   const canExtractAudio = selectedClip?.type === "video"
 
   return (
@@ -281,9 +314,9 @@ export function Toolbar() {
           label="Cut"
           disabled={!canCopyOrCut}
           onClick={() => {
-            if (!selectedClipId || !canCopyOrCut) return
+            if (!canCopyOrCut) return
             copyClip()
-            removeClip(selectedClipId)
+            selectionTargets.forEach(id => removeClip(id))
           }}
         />
         <ToolbarBtn
@@ -297,9 +330,21 @@ export function Toolbar() {
           label="Delete"
           disabled={!canDelete}
           onClick={() => {
-            if (!selectedClipId) return
-            removeClip(selectedClipId)
+            if (!canDelete) return
+            selectionTargets.forEach(id => removeClip(id))
           }}
+        />
+        <ToolbarBtn
+          icon={<Link2 size={14} />}
+          label="Group"
+          disabled={!canGroup}
+          onClick={() => { if (canGroup) createGroupFromSelection() }}
+        />
+        <ToolbarBtn
+          icon={<Unlink2 size={14} />}
+          label="Ungroup"
+          disabled={!canUngroup}
+          onClick={() => { if (canUngroup) ungroupSelected() }}
         />
         <ToolbarBtn
           icon={<Music size={14} />}
@@ -368,6 +413,11 @@ export function Toolbar() {
           icon={<Music size={14} />}
           label="+ Audio Track"
           onClick={() => addTrack("audio")}
+        />
+        <TrackBtn
+          icon={<Type size={14} />}
+          label="+ Text"
+          onClick={handleInsertText}
         />
 
         <div className="flex-1" />

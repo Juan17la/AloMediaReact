@@ -31,19 +31,34 @@ const menuItemDisabled = "pointer-events-none opacity-40"
 
 const shortcutHint = "text-[11px] font-mono text-white/45"
 
+const DEFAULT_TRANSITION = { type: "fade" as const, duration: 0.4 }
+
 export function TimelineClipContextMenu({ x, y, clip, onClose }: TimelineClipContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
   const setSelectedClip = useEditorStore(s => s.setSelectedClip)
+  const setSelectedTransitionClip = useEditorStore(s => s.setSelectedTransitionClip)
+  const setClipTransitionIn = useEditorStore(s => s.setClipTransitionIn)
   const copyClip = useEditorStore(s => s.copyClip)
   const pasteClip = useEditorStore(s => s.pasteClip)
   const splitClip = useEditorStore(s => s.splitClip)
   const removeClip = useEditorStore(s => s.removeClip)
   const extractAudioFromClip = useEditorStore(s => s.extractAudioFromClip)
+  const setClipTransitionOut = useEditorStore(s => s.setClipTransitionOut)
+  const selectedClipIds = useEditorStore(s => s.selectedClipIds)
+  const createGroupFromSelection = useEditorStore(s => s.createGroupFromSelection)
+  const ungroupSelected = useEditorStore(s => s.ungroupSelected)
+  const enterGroupEditMode = useEditorStore(s => s.enterGroupEditMode)
+  const project = useEditorStore(s => s.project)
   const playhead = useEditorStore(s => s.playhead)
   const clipboard = useEditorStore(s => s.clipboard)
 
   const canPaste = !!clipboard
   const canExtractAudio = clip.type === "video"
+  const canAddTransitionIn = clip.type === "video"
+  const canAddTransitionOut = clip.type === "video"
+  const containingGroup = (project.clipGroups ?? []).find(group => group.memberClipIds.includes(clip.id))
+  const canCreateGroup = selectedClipIds.length >= 2
+  const canUngroup = selectedClipIds.some(id => (project.clipGroups ?? []).some(group => group.memberClipIds.includes(id)))
 
   useLayoutEffect(() => {
     const menu = menuRef.current
@@ -105,6 +120,47 @@ export function TimelineClipContextMenu({ x, y, clip, onClose }: TimelineClipCon
         <span className={shortcutHint}>Ctrl + C</span>
       </button>
 
+      <div className="my-1 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
+
+      <button
+        type="button"
+        role="menuitem"
+        className={`${menuItem} ${canCreateGroup ? "" : menuItemDisabled}`}
+        onClick={() => {
+          if (!canCreateGroup) return
+          runAction(() => createGroupFromSelection())
+        }}
+      >
+        <span>Group Selection</span>
+        <span className={shortcutHint}>Ctrl + G</span>
+      </button>
+
+      <button
+        type="button"
+        role="menuitem"
+        className={`${menuItem} ${containingGroup ? "" : menuItemDisabled}`}
+        onClick={() => {
+          if (!containingGroup) return
+          runAction(() => enterGroupEditMode(containingGroup.id))
+        }}
+      >
+        <span>Edit Group Members</span>
+        <span className={shortcutHint} />
+      </button>
+
+      <button
+        type="button"
+        role="menuitem"
+        className={`${menuItem} ${canUngroup ? "" : menuItemDisabled}`}
+        onClick={() => {
+          if (!canUngroup) return
+          runAction(() => ungroupSelected())
+        }}
+      >
+        <span>Ungroup</span>
+        <span className={shortcutHint}>Ctrl + Shift + G</span>
+      </button>
+
       <button
         type="button"
         role="menuitem"
@@ -154,6 +210,40 @@ export function TimelineClipContextMenu({ x, y, clip, onClose }: TimelineClipCon
         }}
       >
         <span>Extract Audio</span>
+        <span className={shortcutHint} />
+      </button>
+
+      <button
+        type="button"
+        role="menuitem"
+        className={`${menuItem} ${canAddTransitionIn ? "" : menuItemDisabled}`}
+        onClick={() => {
+          if (!canAddTransitionIn) return
+          runAction(() => {
+            const current = clip.type === "video" ? clip.transitionIn : undefined
+            setClipTransitionIn(clip.id, current ?? DEFAULT_TRANSITION)
+            setSelectedTransitionClip(clip.id)
+          })
+        }}
+      >
+        <span>Add Transition In</span>
+        <span className={shortcutHint} />
+      </button>
+
+      <button
+        type="button"
+        role="menuitem"
+        className={`${menuItem} ${canAddTransitionOut ? "" : menuItemDisabled}`}
+        onClick={() => {
+          if (!canAddTransitionOut) return
+          runAction(() => {
+            const current = clip.type === "video" ? clip.transitionOut : undefined
+            setClipTransitionOut(clip.id, current ?? DEFAULT_TRANSITION)
+            setSelectedTransitionClip(clip.id)
+          })
+        }}
+      >
+        <span>Add Transition Out</span>
         <span className={shortcutHint} />
       </button>
 

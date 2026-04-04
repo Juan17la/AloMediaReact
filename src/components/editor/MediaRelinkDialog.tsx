@@ -34,6 +34,7 @@ function TypeLabel({ type }: { type: Media["type"] }) {
     video: "bg-sky-900/70",
     audio: "bg-emerald-900/70",
     image: "bg-amber-900/70",
+    subtitles: "bg-purple-900/70",
   }
   return (
     <span className={`shrink-0 rounded px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-white/85 ${typeClass[type]}`}>

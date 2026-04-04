@@ -4,6 +4,7 @@ import { Mail, Lock, User, Eye, EyeOff, Chrome, Github, AlertCircle } from "luci
 import { signUp } from "../../services/authService";
 import { ApiError } from "../../api/errors";
 import { useAuth } from "../../hooks/useAuth";
+import { hashPassword } from "../../utils/passwordHash";
 
 function PasswordField({
   name,
@@ -78,7 +79,12 @@ export default function RegisterPage() {
     setError(null);
     setIsPending(true);
     try {
-      const res = await signUp({ firstName, lastName, email, password });
+      const res = await signUp({
+        firstName,
+        lastName,
+        email,
+        password: hashPassword(password)
+      });
       login({ id: res.id, firstName: res.firstName, lastName: res.lastName, email: res.email, role: res.role });
       navigate("/dashboard", { replace: true });
     } catch (err) {

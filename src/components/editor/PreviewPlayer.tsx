@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { SkipBack, Rewind, Play, Pause, FastForward, SkipForward, Volume2, VolumeX } from "lucide-react"
-import type { VideoClip, ImageClip, TextClip } from "../../project/projectTypes"
+import type { VideoClip, ImageClip, TextClip, Transform } from "../../project/projectTypes"
 import { useEditorStore } from "../../store/editorStore"
 import { usePlayer } from "../../hooks/usePlayer"
 import { getProjectDuration, CLIP_EPSILON } from "../../utils/time"
@@ -8,11 +8,86 @@ import { useMediaSync } from "../../player/hooks/useMediaSync"
 import { applyTransform } from "../../player/render/transformUtils"
 import { buildCssFilter } from "../../utils/colorAdjustmentFilters"
 import { DEFAULT_COLOR_ADJUSTMENTS } from "../../constants/colorAdjustments"
+import { DEFAULT_TEXT_STYLE } from "../../constants/textStyle"
 import { setupCanvasScaling } from "../../player/render/canvasScaling"
 import { TransformOverlay } from "./TransformOverlay"
 import { RangeSlider } from "../ui/RangeSlider"
 import { getActiveVideoClip } from "../../player/timeline/activeClipResolver"
 import { DEFAULT_SPEED } from "../../constants/speed"
+import { compileUnifiedTransitions } from "../../engine/transitionCompiler"
+
+
+// ======================================================
+// REMOVE: This is a playground for testing out the preview player and related features. It's not currently used in the app, but it can be useful for development and experimentation.
+// ======================================================
+
+interface ActiveTransitionDebugView {
+  transitionId: string
+  sourceA: string
+  sourceB: string
+  startTimeS: number
+  endTimeS: number
+  boundaryTimeS: number
+  canonicalType: string
+  progress: number
+}
+
+interface RectLike {
+  x: number
+  y: number
+  width: number
+  height: number
+  rotation: number
+}
+
+function getGroupBounds(transforms: Transform[]): Transform {
+  const minX = Math.min(...transforms.map(t => t.x))
+  const minY = Math.min(...transforms.map(t => t.y))
+  const maxX = Math.max(...transforms.map(t => t.x + t.width))
+  const maxY = Math.max(...transforms.map(t => t.y + t.height))
+  const avgRotation = transforms.reduce((sum, t) => sum + (t.rotation ?? 0), 0) / transforms.length
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(20, maxX - minX),
+    height: Math.max(20, maxY - minY),
+    rotation: avgRotation,
+  }
+}
+
+function applyGroupTransformToChild(current: RectLike, currentGroup: RectLike, nextGroup: RectLike): Transform {
+  const currentCenterX = current.x + current.width / 2
+  const currentCenterY = current.y + current.height / 2
+  const currentGroupCenterX = currentGroup.x + currentGroup.width / 2
+  const currentGroupCenterY = currentGroup.y + currentGroup.height / 2
+  const nextGroupCenterX = nextGroup.x + nextGroup.width / 2
+  const nextGroupCenterY = nextGroup.y + nextGroup.height / 2
+
+  const scaleX = currentGroup.width === 0 ? 1 : nextGroup.width / currentGroup.width
+  const scaleY = currentGroup.height === 0 ? 1 : nextGroup.height / currentGroup.height
+  const deltaRotationDeg = (nextGroup.rotation ?? 0) - (currentGroup.rotation ?? 0)
+  const deltaRotationRad = (deltaRotationDeg * Math.PI) / 180
+
+  const dx = (currentCenterX - currentGroupCenterX) * scaleX
+  const dy = (currentCenterY - currentGroupCenterY) * scaleY
+  const rotatedDx = dx * Math.cos(deltaRotationRad) - dy * Math.sin(deltaRotationRad)
+  const rotatedDy = dx * Math.sin(deltaRotationRad) + dy * Math.cos(deltaRotationRad)
+
+  const nextWidth = Math.max(20, current.width * scaleX)
+  const nextHeight = Math.max(20, current.height * scaleY)
+  const nextCenterX = nextGroupCenterX + rotatedDx
+  const nextCenterY = nextGroupCenterY + rotatedDy
+
+  return {
+    x: nextCenterX - nextWidth / 2,
+    y: nextCenterY - nextHeight / 2,
+    width: nextWidth,
+    height: nextHeight,
+    rotation: (current.rotation ?? 0) + deltaRotationDeg,
+  }
+}
+
+// ===============================================
 
 function formatTimecode(seconds: number): string {
   seconds = Math.max(0, isFinite(seconds) ? seconds : 0)
@@ -67,9 +142,19 @@ export function PreviewPlayer() {
   const playhead = useEditorStore(s => s.playhead)
   const isPlaying = useEditorStore(s => s.isPlaying)
   const selectedClipId = useEditorStore(s => s.selectedClipId)
+  const selectedClipIds = useEditorStore(s => s.selectedClipIds)
+  const groupEditGroupId = useEditorStore(s => s.groupEditGroupId)
   const updateClipTransform = useEditorStore(s => s.updateClipTransform)
+  const updateClipTransformsBatch = useEditorStore(s => s.updateClipTransformsBatch)
   const commitTransform = useEditorStore(s => s.commitTransform)
+  const commitTransformsBatch = useEditorStore(s => s.commitTransformsBatch)
   const setSelectedClip = useEditorStore(s => s.setSelectedClip)
+  const toggleClipSelection = useEditorStore(s => s.toggleClipSelection)
+  const setSelectedClips = useEditorStore(s => s.setSelectedClips)
+  const clearClipSelection = useEditorStore(s => s.clearClipSelection)
+  const enterGroupEditMode = useEditorStore(s => s.enterGroupEditMode)
+  const updateTextClip = useEditorStore(s => s.updateTextClip)
+  const pushHistory = useEditorStore(s => s.pushHistory)
   const { play, pause, seek, onFrameRef, playheadRef, seekFlagResetRef } = usePlayer()
   const tracks = project.tracks
   const duration = getProjectDuration(tracks)
@@ -77,6 +162,18 @@ export function PreviewPlayer() {
   const innerCanvasRef = useRef<HTMLDivElement>(null)
   const [isMuted, setIsMuted] = useState(false)
   const [volume, setVolume] = useState(1)
+  const [editingTextClipId, setEditingTextClipId] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState("")
+  const [editingOriginalContent, setEditingOriginalContent] = useState("")
+  const editingDoneRef = useRef(false)
+  // Stable ref callback: only focus+select when a new edit session starts (editingTextClipId changes).
+  // An inline arrow ref would be a new function every render, causing el.select() to fire on every
+  // store-triggered re-render and replacing typed text with the next keystroke.
+  const editTextareaRef = useCallback((el: HTMLTextAreaElement | null) => {
+    if (el) { el.focus(); el.select() }
+  }, [editingTextClipId])
+  const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null)
+  const marqueeJustCompletedRef = useRef(false)
 
   const secondaryVideoElemsRef = useRef<Map<string, HTMLVideoElement>>(new Map())
   const secondaryClipsRef = useRef<VideoClip[]>([])
@@ -121,6 +218,32 @@ export function PreviewPlayer() {
     [activeClips],
   )
 
+  const selectedIdSet = useMemo(() => {
+    const ids = new Set(selectedClipIds)
+    if (selectedClipId) ids.add(selectedClipId)
+    return ids
+  }, [selectedClipId, selectedClipIds])
+
+  const selectedCanvasClips = useMemo(
+    () => activeClips.filter((clip): clip is VideoClip | ImageClip | TextClip => clip.type !== "audio" && selectedIdSet.has(clip.id)),
+    [activeClips, selectedIdSet],
+  )
+
+  const selectedCanvasTransforms = useMemo(
+    () => selectedCanvasClips.map(clip => ({ clipId: clip.id, transform: clip.transform })),
+    [selectedCanvasClips],
+  )
+
+  const groupTransform = useMemo(() => {
+    if (selectedCanvasTransforms.length < 2) return null
+    return getGroupBounds(selectedCanvasTransforms.map(entry => entry.transform))
+  }, [selectedCanvasTransforms])
+
+  const selectedGroupId = useMemo(() => {
+    if (!selectedClipId) return undefined
+    return (project.clipGroups ?? []).find(group => group.memberClipIds.includes(selectedClipId))?.id
+  }, [project.clipGroups, selectedClipId])
+
   const trackOrderMap = useMemo(
     () => new Map(project.tracks.map(t => [t.id, t.order])),
     [project.tracks],
@@ -142,6 +265,42 @@ export function PreviewPlayer() {
       (c): c is VideoClip => c.type === "video" && c.id !== primaryId,
     )
   }, [activeClips, primaryVideoClip])
+
+
+  // ======================================================
+  // REMOVE: This is a playground for testing out the preview player and related features. It's not currently used in the app, but it can be useful for development and experimentation.
+  // ======================================================
+
+  const activeTransitionDebug = useMemo<ActiveTransitionDebugView | null>(() => {
+    const compiled = compileUnifiedTransitions(project)
+    const active = compiled.transitions
+      .filter(transition => playhead >= transition.startTimeS - CLIP_EPSILON && playhead <= transition.endTimeS + CLIP_EPSILON)
+      .sort((a, b) => {
+        const boundaryDiff = a.boundaryTimeS - b.boundaryTimeS
+        if (Math.abs(boundaryDiff) > CLIP_EPSILON) return boundaryDiff
+        return a.transitionId.localeCompare(b.transitionId)
+      })[0]
+
+    if (!active) return null
+
+    const rawProgress = active.durationS <= CLIP_EPSILON
+      ? 1
+      : (playhead - active.startTimeS) / active.durationS
+    const progress = Math.max(0, Math.min(1, rawProgress))
+
+    return {
+      transitionId: active.transitionId,
+      sourceA: active.clipARef.clipId ?? active.clipARef.synthetic?.kind ?? "none",
+      sourceB: active.clipBRef.clipId ?? active.clipBRef.synthetic?.kind ?? "none",
+      startTimeS: active.startTimeS,
+      endTimeS: active.endTimeS,
+      boundaryTimeS: active.boundaryTimeS,
+      canonicalType: active.typeCanonical,
+      progress,
+    }
+  }, [project, playhead])
+
+  // =======================================================
 
   // Keep a ref copy of secondary clips but do the assignment in an effect
   // to avoid updating refs during render (eslint: react-hooks/refs).
@@ -179,7 +338,131 @@ export function PreviewPlayer() {
     }
   }, [secondaryVideoClips])
 
+  function commitTextEdit() {
+    if (editingDoneRef.current) return
+    editingDoneRef.current = true
+    pushHistory("Edit text content")
+    setEditingTextClipId(null)
+  }
+
+  function cancelTextEdit() {
+    if (editingDoneRef.current || !editingTextClipId) return
+    editingDoneRef.current = true
+    updateTextClip(editingTextClipId, { content: editingOriginalContent })
+    setEditingTextClipId(null)
+  }
+
+  function handleCanvasDoubleClick(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = canvasContainerRef.current!.getBoundingClientRect()
+    const canvasX = (e.clientX - rect.left) / (rect.width / 1280)
+    const canvasY = (e.clientY - rect.top) / (rect.height / 720)
+
+    const hit = [...activeClips].reverse().find(clip => {
+      if (clip.type !== "text") return false
+      const t = clip.transform
+      return canvasX >= t.x && canvasX <= t.x + t.width
+        && canvasY >= t.y && canvasY <= t.y + t.height
+    }) as TextClip | undefined
+
+    if (hit && selectedGroupId && groupEditGroupId !== selectedGroupId) {
+      enterGroupEditMode(selectedGroupId)
+      return
+    }
+
+    if (hit) {
+      editingDoneRef.current = false
+      setEditingTextClipId(hit.id)
+      setEditingContent(hit.content)
+      setEditingOriginalContent(hit.content)
+      setSelectedClip(hit.id)
+      pause()
+    }
+  }
+
+  useEffect(() => {
+    if (!marquee) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMarquee(null)
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [marquee])
+
+  function toCanvasCoordinates(clientX: number, clientY: number): { x: number; y: number } {
+    const rect = canvasContainerRef.current!.getBoundingClientRect()
+    return {
+      x: (clientX - rect.left) / (rect.width / 1280),
+      y: (clientY - rect.top) / (rect.height / 720),
+    }
+  }
+
+  function handleCanvasMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    if (e.button !== 0) return
+    marqueeJustCompletedRef.current = false
+    const toggle = e.ctrlKey || e.metaKey
+    const { x: canvasX, y: canvasY } = toCanvasCoordinates(e.clientX, e.clientY)
+
+    const hit = [...activeClips].reverse().find(clip => {
+      if (clip.type === "audio") return false
+      const t = clip.transform
+      return canvasX >= t.x && canvasX <= t.x + t.width
+        && canvasY >= t.y && canvasY <= t.y + t.height
+    })
+
+    if (hit) {
+      if (toggle) toggleClipSelection(hit.id)
+      else setSelectedClip(hit.id)
+      return
+    }
+
+    const start = { x1: canvasX, y1: canvasY, x2: canvasX, y2: canvasY }
+    setMarquee(start)
+
+    const onMove = (ev: MouseEvent) => {
+      const next = toCanvasCoordinates(ev.clientX, ev.clientY)
+      setMarquee(curr => (curr ? { ...curr, x2: next.x, y2: next.y } : null))
+    }
+
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove)
+      document.removeEventListener("mouseup", onUp)
+      marqueeJustCompletedRef.current = true
+      setMarquee(curr => {
+        if (!curr) return null
+        const x1 = Math.min(curr.x1, curr.x2)
+        const x2 = Math.max(curr.x1, curr.x2)
+        const y1 = Math.min(curr.y1, curr.y2)
+        const y2 = Math.max(curr.y1, curr.y2)
+        const selected = activeClips
+          .filter((clip): clip is VideoClip | ImageClip | TextClip => clip.type !== "audio")
+          .filter(clip => {
+            const t = clip.transform
+            const cx1 = t.x
+            const cx2 = t.x + t.width
+            const cy1 = t.y
+            const cy2 = t.y + t.height
+            return cx1 < x2 && cx2 > x1 && cy1 < y2 && cy2 > y1
+          })
+          .map(clip => clip.id)
+
+        if (selected.length === 0) clearClipSelection()
+        else setSelectedClips(selected)
+        return null
+      })
+    }
+
+    document.addEventListener("mousemove", onMove)
+    document.addEventListener("mouseup", onUp)
+  }
+
   function handleCanvasClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (marquee) return
+    if (marqueeJustCompletedRef.current) {
+      marqueeJustCompletedRef.current = false
+      return
+    }
     const rect = canvasContainerRef.current!.getBoundingClientRect()
     const canvasX = (e.clientX - rect.left) / (rect.width / 1280)
     const canvasY = (e.clientY - rect.top) / (rect.height / 720)
@@ -193,13 +476,25 @@ export function PreviewPlayer() {
     setSelectedClip(hit ? hit.id : undefined)
   }
 
+  function handleGroupTransformUpdate(next: Partial<Transform>) {
+    if (!groupTransform || selectedCanvasTransforms.length < 2) return
+    const nextGroup = { ...groupTransform, ...next }
+    const updates = selectedCanvasTransforms.map(entry => ({
+      clipId: entry.clipId,
+      transform: applyGroupTransformToChild(entry.transform, groupTransform, nextGroup),
+    }))
+    updateClipTransformsBatch(updates)
+  }
+
   return (
     <div className="flex flex-col min-h-0 h-full w-full items-center justify-center">
       {/* Canvas area */}
       <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden my-2">
         <div
           ref={canvasContainerRef}
+          onMouseDown={handleCanvasMouseDown}
           onClick={handleCanvasClick}
+          onDoubleClick={handleCanvasDoubleClick}
           className="relative bg-(--color-background-base) overflow-hidden cursor-default aspect-video h-full max-w-full w-auto border-2 border-white/7 border-b-glass"
         >
           <div
@@ -230,7 +525,7 @@ export function PreviewPlayer() {
                   else secondaryVideoElemsRef.current.delete(clip.id)
                 }}
                 src={getPlaybackUrl(clip.mediaId)}
-                style={{ ...applyTransform(clip.transform), filter: buildCssFilter(clip.colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId), pointerEvents: "none" }}
+                style={{ ...applyTransform(clip.transform), filter: buildCssFilter(clip.colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId), pointerEvents: "none", outline: selectedIdSet.has(clip.id) ? "2px solid rgba(192,57,43,0.75)" : undefined }}
                 muted
                 preload="auto"
                 playsInline
@@ -240,10 +535,44 @@ export function PreviewPlayer() {
 
             {staticElements.map(clip => {
               if (clip.type === "image") {
-                return <img key={clip.id} src={getObjectUrl(clip.mediaId)} style={{ ...applyTransform(clip.transform), filter: buildCssFilter((clip as ImageClip).colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId) }} alt="" />
+                return <img key={clip.id} src={getObjectUrl(clip.mediaId)} style={{ ...applyTransform(clip.transform), filter: buildCssFilter((clip as ImageClip).colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId), outline: selectedIdSet.has(clip.id) ? "2px solid rgba(192,57,43,0.75)" : undefined }} alt="" />
               }
               if (clip.type === "text") {
-                return <div key={clip.id} style={{ ...applyTransform(clip.transform), zIndex: zIndex(clip.trackId) }}>{clip.content}</div>
+                if (clip.id === editingTextClipId) return null
+                const s = clip.style ?? DEFAULT_TEXT_STYLE
+                const justifyContent =
+                  s.textAlign === "center" ? "center"
+                  : s.textAlign === "right" ? "flex-end"
+                  : "flex-start"
+                return (
+                  <div
+                    key={clip.id}
+                    style={{
+                      ...applyTransform(clip.transform),
+                      zIndex: zIndex(clip.trackId),
+                      fontFamily: s.fontFamily,
+                      fontSize: s.fontSize,
+                      color: s.color,
+                      backgroundColor: s.backgroundColor ?? "transparent",
+                      textAlign: s.textAlign,
+                      opacity: s.opacity,
+                      fontWeight: s.bold ? "bold" : "normal",
+                      fontStyle: s.italic ? "italic" : "normal",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      overflow: "hidden",
+                      pointerEvents: "none",
+                      userSelect: "none",
+                      lineHeight: 1.25,
+                      outline: selectedIdSet.has(clip.id) ? "2px solid rgba(192,57,43,0.75)" : undefined,
+                    }}
+                  >
+                    {clip.content}
+                  </div>
+                )
               }
               return null
             })}
@@ -251,6 +580,20 @@ export function PreviewPlayer() {
 
           {/* Transform overlay */}
           {(() => {
+            if (!!editingTextClipId) return null
+
+            if (groupTransform && selectedCanvasTransforms.length > 1) {
+              return (
+                <TransformOverlay
+                  clip={{ ...selectedCanvasClips[0], transform: groupTransform }}
+                  previewWidth={previewSize.width}
+                  previewHeight={previewSize.height}
+                  onUpdate={handleGroupTransformUpdate}
+                  onCommit={commitTransformsBatch}
+                />
+              )
+            }
+
             if (!selectedClipId) return null
             let selectedClip: VideoClip | ImageClip | TextClip | undefined
             for (const track of project.tracks) {
@@ -271,6 +614,105 @@ export function PreviewPlayer() {
               />
             )
           })()}
+
+          {marquee && (
+            <div
+              className="absolute z-30 border-2 border-accent-red/70 bg-accent-red/15 pointer-events-none"
+              style={{
+                left: Math.min(marquee.x1, marquee.x2) * (previewSize.width / 1280),
+                top: Math.min(marquee.y1, marquee.y2) * (previewSize.height / 720),
+                width: Math.abs(marquee.x2 - marquee.x1) * (previewSize.width / 1280),
+                height: Math.abs(marquee.y2 - marquee.y1) * (previewSize.height / 720),
+              }}
+            />
+          )}
+
+
+          {/* Inline text editor overlay */}
+          {editingTextClipId && (() => {
+            let editClip: TextClip | undefined
+            for (const track of project.tracks) {
+              const found = track.clips.find(c => c.id === editingTextClipId)
+              if (found?.type === "text") { editClip = found as TextClip; break }
+            }
+            if (!editClip) return null
+            const s = editClip.style ?? DEFAULT_TEXT_STYLE
+            const scaleX = previewSize.width / 1280
+            const scaleY = previewSize.height / 720
+            const t = editClip.transform
+            // Approximate vertical centering in textarea via top padding
+            const singleLineH = s.fontSize * scaleY * 1.25
+            const topPad = Math.max(4, (t.height * scaleY - singleLineH) / 2)
+            return (
+              <textarea
+                key={editingTextClipId}
+                ref={editTextareaRef}
+                value={editingContent}
+                onChange={e => {
+                  const newContent = e.target.value
+                  setEditingContent(newContent)
+                  updateTextClip(editingTextClipId, { content: newContent })
+                }}
+                onKeyDown={e => {
+                  if (e.key === "Escape") { e.preventDefault(); cancelTextEdit() }
+                  else if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitTextEdit() }
+                }}
+                onBlur={commitTextEdit}
+                onClick={e => e.stopPropagation()}
+                onDoubleClick={e => e.stopPropagation()}
+                style={{
+                  position: "absolute",
+                  left: t.x * scaleX,
+                  top: t.y * scaleY,
+                  width: t.width * scaleX,
+                  height: t.height * scaleY,
+                  transform: `rotate(${t.rotation}deg)`,
+                  transformOrigin: "top left",
+                  zIndex: 100,
+                  fontFamily: s.fontFamily,
+                  fontSize: s.fontSize * scaleY,
+                  color: s.color,
+                  backgroundColor: s.backgroundColor ?? "rgba(0,0,0,0.65)",
+                  textAlign: s.textAlign,
+                  opacity: s.opacity,
+                  fontWeight: s.bold ? "bold" : "normal",
+                  fontStyle: s.italic ? "italic" : "normal",
+                  lineHeight: 1.25,
+                  resize: "none",
+                  outline: "2px solid var(--color-accent-red)",
+                  outlineOffset: "-2px",
+                  border: "none",
+                  padding: `${topPad}px 4px 4px`,
+                  margin: 0,
+                  overflow: "hidden",
+                  boxSizing: "border-box",
+                  cursor: "text",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              />
+            )
+          })()}
+
+          {/* // ======================================================
+          // REMOVE: This is a playground for testing out the preview player and related features. It's not currently used in the app, but it can be useful for development and experimentation.
+          // ====================================================== */}
+
+          {activeTransitionDebug && (
+            <div className="absolute left-2 top-2 z-20 min-w-68 rounded-md border border-white/20 bg-black/62 px-2.5 py-2 text-[11px] text-white/86 backdrop-blur-sm">
+              <div className="mb-1 font-semibold uppercase tracking-[0.06em] text-white/70">Transition Debug</div>
+              <div>ID: {activeTransitionDebug.transitionId}</div>
+              <div>A: {activeTransitionDebug.sourceA}</div>
+              <div>B: {activeTransitionDebug.sourceB}</div>
+              <div>startTimeS: {activeTransitionDebug.startTimeS.toFixed(3)}</div>
+              <div>endTimeS: {activeTransitionDebug.endTimeS.toFixed(3)}</div>
+              <div>boundaryTimeS: {activeTransitionDebug.boundaryTimeS.toFixed(3)}</div>
+              <div>progress: {activeTransitionDebug.progress.toFixed(3)}</div>
+              <div>canonicalType: {activeTransitionDebug.canonicalType}</div>
+            </div>
+          )}
+
+          {/* ============================================================== */}
         </div>
       </div>
 

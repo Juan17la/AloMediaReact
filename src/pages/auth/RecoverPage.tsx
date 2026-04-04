@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import { Lock, Loader2, ShieldX, ShieldCheck, AlertCircle } from "lucide-react";
 import { validateRecoverToken, recoverReset } from "../../services/authService";
 import { ApiError } from "../../api/errors";
+import { hashPassword } from "../../utils/passwordHash";
 
 export default function RecoverPage() {
   const [searchParams] = useSearchParams();
@@ -44,7 +45,11 @@ export default function RecoverPage() {
     setFormError(null);
     setIsPending(true);
     try {
-      await recoverReset({ token, newPassword, confirmPassword });
+      await recoverReset({
+        token,
+        newPassword: hashPassword(newPassword),
+        confirmPassword: hashPassword(confirmPassword)
+      });
       setResetDone(true);
     } catch (err) {
       setFormError(err instanceof Error ? err : new Error(String(err)));

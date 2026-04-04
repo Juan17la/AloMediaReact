@@ -4,6 +4,7 @@ import { Mail, Lock, Eye, EyeOff, Chrome, Github, AlertCircle } from "lucide-rea
 import { signIn } from "../../services/authService";
 import { ApiError } from "../../api/errors";
 import { useAuth } from "../../hooks/useAuth";
+import { hashPassword } from "../../utils/passwordHash";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export default function LoginPage() {
     setError(null);
     setIsPending(true);
     try {
-      const res = await signIn({ email, password });
+      const res = await signIn({ email, password: hashPassword(password) });
       login({ id: res.id, firstName: res.firstName, lastName: res.lastName, email: res.email, role: res.role });
       navigate("/dashboard", { replace: true });
     } catch (err) {

@@ -59,6 +59,17 @@ export function AiToolsPanel({ selectedMedia }: AiToolsPanelProps) {
     )
   }
 
+  if (selectedMedia.type === "subtitles") {
+    return (
+      <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
+        <AlertCircle size={22} className="text-white/25" />
+        <p className="text-[11px] text-muted leading-relaxed">
+          Subtitle files can be imported into the timeline, but AI tools are not available for them.
+        </p>
+      </div>
+    )
+  }
+
   // ── Audio file ───────────────────────────────────────────────────────────────
   const file = fileMap.get(selectedMedia.id)
 

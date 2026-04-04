@@ -11,6 +11,7 @@ import { triggerFileInputRef } from "../../utils/fileInputTrigger";
 import { DEFAULT_COLOR_ADJUSTMENTS } from "../../constants/colorAdjustments";
 import { DEFAULT_SPEED } from "../../constants/speed";
 import { toMs, toSeconds } from "../../utils/time";
+import { parseSrtFile } from "../../utils/srtParser.ts";
 
 interface PendingMedia {
   tempId: string;
@@ -32,6 +33,7 @@ type LibraryTab = "library" | "ai-tools";
 
 export function MediaLibrary() {
   const addMedia = useEditorStore((s) => s.addMedia);
+  const importSubtitlesAsGroup = useEditorStore((s) => s.importSubtitlesAsGroup);
   const setProxyState = useEditorStore((s) => s.setProxyState);
   const proxyMap = useEditorStore((s) => s.proxyMap);
   const idbResolvedMediaIds = useEditorStore((s) => s.idbResolvedMediaIds);
@@ -47,6 +49,7 @@ export function MediaLibrary() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<LibraryTab>("library");
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
+  const [subtitleImportingIds, setSubtitleImportingIds] = useState<Set<string>>(new Set());
   const dropZoneRef = useRef<HTMLDivElement>(null);
   // One object URL per mediaId, revoked on unmount
   const objectUrlsRef = useRef<Map<string, string>>(new Map());
@@ -81,6 +84,16 @@ export function MediaLibrary() {
       setSelectedMediaId(null);
     }
   }, [media, selectedMediaId]);
+
+  function isSubtitleFile(file: File): boolean {
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    const mime = file.type.toLowerCase();
+    return ext === "srt" || mime === "application/x-subrip" || mime === "application/srt" || mime === "text/srt" || mime === "text/x-srt";
+  }
+
+  function isSubtitleMedia(mediaItem: Media): boolean {
+    return mediaItem.type === "subtitles";
+  }
 
   async function handleFiles(files: FileList | null) {
     if (!files) return;
@@ -150,7 +163,8 @@ export function MediaLibrary() {
         if (
           file.type.startsWith("video/") ||
           file.type.startsWith("audio/") ||
-          file.type.startsWith("image/")
+          file.type.startsWith("image/") ||
+          isSubtitleFile(file)
         ) {
           accepted.push(file);
         } else {
@@ -176,6 +190,8 @@ export function MediaLibrary() {
   );
 
   function insertMediaAtPlayhead(item: Media) {
+    if (isSubtitleMedia(item)) return;
+
     const trackType = item.type === "audio" ? "audio" : "video";
     const roundedPlayhead = toSeconds(toMs(playhead));
     const duration = item.duration ?? 5;
@@ -239,6 +255,37 @@ export function MediaLibrary() {
             };
 
     addClip(newClip);
+  }
+
+  async function handleSubtitleImport(item: Media) {
+    if (!isSubtitleMedia(item)) return;
+
+    const source = fileMap.get(item.id);
+    if (!source) {
+      window.alert("Subtitle source file is no longer available.");
+      return;
+    }
+
+    const content = await source.text();
+    const parsed = parseSrtFile(content);
+    if (parsed.length === 0) {
+      window.alert("No valid subtitles were found in the file.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Import ${parsed.length} subtitle clips from ${item.name}?`);
+    if (!confirmed) return;
+
+    setSubtitleImportingIds(prev => new Set(prev).add(item.id));
+    try {
+      await importSubtitlesAsGroup(item.name.replace(/\.srt$/i, ""), source);
+    } finally {
+      setSubtitleImportingIds(prev => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
   }
 
   const hasItems = media.length > 0 || pending.length > 0;
@@ -339,7 +386,7 @@ export function MediaLibrary() {
       <input
         ref={inputRef}
         type="file"
-        accept="video/*,audio/*,image/*"
+        accept="video/*,audio/*,image/*,.srt,text/plain,text/srt,text/x-srt,application/x-subrip"
         multiple
         className="hidden"
         onChange={(e) => {
@@ -392,6 +439,8 @@ export function MediaLibrary() {
                       objectUrl={getObjectUrl(item.id)}
                       proxyStatus={proxyMap[item.id]?.status}
                       onInsertAtPlayhead={() => insertMediaAtPlayhead(item)}
+                      onImportSubtitles={() => void handleSubtitleImport(item)}
+                      isImportingSubtitles={subtitleImportingIds.has(item.id)}
                     />
                     {idbResolvedMediaIds.has(item.id) && (
                       <div

@@ -1,4 +1,4 @@
-export type MediaType = "video" | "audio" | "image"
+export type MediaType = "video" | "audio" | "image" | "subtitles"
 export type TrackType = "video" | "audio"
 
 export interface Media {

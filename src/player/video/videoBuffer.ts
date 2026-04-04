@@ -161,8 +161,10 @@ export class VideoBufferManager {
     // For transition carry, force exact clip start to avoid showing preroll frame.
     if (inTransitionWindow) {
       seekEl(incomingEl, nextClip.mediaStart)
-    } else if (!wasPrebuffered) {
-      // Skip seek when prebuffered outside transitions — decoder is already positioned.
+    } else {
+      // Always seek to the exact media time for deterministic frame alignment.
+      // Relying on prebuffered decoder position can leave the frame near clip start
+      // after timeline edits that reshuffle active/buffered clip state.
       const mediaTime = nextClip.mediaStart + (ph - nextClip.timelineStart) * clipSpeed
       seekEl(incomingEl, Math.max(nextClip.mediaStart, mediaTime))
     }
@@ -185,7 +187,7 @@ export class VideoBufferManager {
         incomingEl.play().catch(() => { })
       }
       this.activeBuffer = this.activeBuffer === "A" ? "B" : "A"
-      this.clipPlayStartPh.set(nextClip.id, ph)
+      this.clipPlayStartPh.set(nextClip.id, nextClip.timelineStart)
       if (outgoingClipId) this.clipPlayStartPh.delete(outgoingClipId)
       this.state.activeClipId = nextClip.id
       this.state.activeMediaId = nextClip.mediaId

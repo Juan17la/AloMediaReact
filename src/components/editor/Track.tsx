@@ -162,6 +162,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
   }, [project, selectedTransitionClipId, setSelectedTransitionClip, track.clips])
 
   function isCompatibleDrop(mediaType: MediaType, trackType: TrackType): boolean {
+    if (mediaType === "subtitles") return false
     if (mediaType === "audio") return trackType === "audio"
     return trackType === "video"
   }

@@ -3,9 +3,11 @@ import { generateId } from "../../utils/id"
 import { getMediaBackedClipMaxTimelineEnd, toMs, toSeconds } from "../../utils/time"
 import { getInsertionIndex } from "../../utils/tracks"
 import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig"
+import { DEFAULT_TEXT_STYLE, DEFAULT_TEXT_TRANSFORM } from "../../constants/textStyle"
 import { DEFAULT_SPEED, MAX_SPEED, MIN_SPEED } from "../../constants/speed"
 import { renderSingleFrame, resetPlayer, resumePlayer } from "../../hooks/usePlayer"
 import { hashFile } from "../../utils/fileHash"
+import { parseSrtFile } from "../../utils/srtParser.ts"
 import { getFileFromCache } from "../../services/fileCacheService"
 import { generateProxy } from "../../engine/proxyEngine"
 import { applyCanonicalTransitionEdit, ensureCanonicalTransitionEdges } from "../../project/transitionEdges"
@@ -17,11 +19,13 @@ import type {
   Media,
   MediaType,
   Project,
+  TextClip,
   TextStyle,
   Track,
   TrackType,
   Transform,
 } from "../../project/projectTypes"
+import type { SubtitleEntry } from "../../utils/srtParser.ts"
 import type { EditorStore } from "../editorStore"
 
 // Module-level file registry. Not part of reactive Zustand state — Map mutations
@@ -33,6 +37,7 @@ export interface ProjectSlice {
   missingMediaIds: Set<string>
   idbResolvedMediaIds: Set<string>
   addMedia: (file: File) => Promise<Media>
+  importSubtitlesAsGroup: (groupName: string, file: File) => Promise<{ trackId: string; groupId: string; clipCount: number }>
   addClip: (clip: Clip) => void
   removeClip: (clipId: string) => void
   moveClip: (clipId: string, newStart: number, trackId: string) => void
@@ -77,7 +82,7 @@ function deepClone<T>(value: T): T {
 }
 
 function getMediaDuration(file: File, type: MediaType): Promise<number | null> {
-  if (type === "image") return Promise.resolve(null)
+  if (type === "image" || type === "subtitles") return Promise.resolve(null)
 
   return new Promise((resolve) => {
     const element =
@@ -99,8 +104,23 @@ function getMediaDuration(file: File, type: MediaType): Promise<number | null> {
 
 const AUDIO_EXTENSIONS = new Set(["wav", "mp3", "ogg", "flac", "m4a", "aac", "opus"])
 const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm", "avi", "mkv", "m4v"])
+const SUBTITLE_EXTENSIONS = new Set(["srt"])
+const SUBTITLE_MIME_TYPES = new Set([
+  "application/x-subrip",
+  "application/srt",
+  "text/srt",
+  "text/x-srt",
+  "text/plain",
+])
+
+function isSubtitleFile(file: File): boolean {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? ""
+  const mime = file.type.toLowerCase()
+  return SUBTITLE_EXTENSIONS.has(ext) || SUBTITLE_MIME_TYPES.has(mime)
+}
 
 function detectMediaType(file: File): MediaType {
+  if (isSubtitleFile(file)) return "subtitles"
   if (file.type.startsWith("video/")) return "video"
   if (file.type.startsWith("audio/")) return "audio"
   const ext = file.name.split(".").pop()?.toLowerCase() ?? ""
@@ -247,14 +267,16 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
   },
 
   async addMedia(file) {
-    const hash = await hashFile(file)
+    const type = detectMediaType(file)
+    const hash = type === "subtitles"
+      ? `${file.name}:${file.size}:${file.lastModified}`
+      : await hashFile(file)
 
     const existing = get().project.media.find(m => m.hash === hash)
     if (existing) return existing
 
-    const type = detectMediaType(file)
     const duration = await getMediaDuration(file, type)
-    const format = file.type
+    const format = file.type || (type === "subtitles" ? "application/x-subrip" : "")
 
     const media: Media = {
       id: generateId(),
@@ -275,6 +297,74 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
 
     fileMap.set(media.id, file)
     return media
+  },
+
+  async importSubtitlesAsGroup(groupName, file) {
+    const media = await get().addMedia(file)
+    if (media.type !== "subtitles") {
+      throw new Error("Selected file is not an SRT subtitle file")
+    }
+
+    const content = await file.text()
+    const entries = parseSrtFile(content)
+    if (entries.length === 0) {
+      throw new Error("No valid subtitle entries were found in the SRT file")
+    }
+
+    const sorted = get().project.tracks.slice().sort((a, b) => a.order - b.order)
+    const insertIdx = getInsertionIndex(sorted, "video")
+    const subtitleTrackId = generateId()
+    const subtitleTrack: Track = {
+      id: subtitleTrackId,
+      type: "video",
+      order: insertIdx,
+      clips: [],
+    }
+
+    const clips: TextClip[] = entries.map((entry: SubtitleEntry) => ({
+      id: generateId(),
+      trackId: subtitleTrackId,
+      type: "text",
+      timelineStart: toSeconds(toMs(entry.startTime)),
+      timelineEnd: toSeconds(toMs(entry.endTime)),
+      content: entry.text,
+      transform: { ...DEFAULT_TEXT_TRANSFORM },
+      style: { ...DEFAULT_TEXT_STYLE },
+    }))
+
+    const nextTracks = [
+      ...sorted.slice(0, insertIdx),
+      { ...subtitleTrack, clips },
+      ...sorted.slice(insertIdx),
+    ].map((track, index) => ({ ...track, order: index }))
+
+    const groupId = generateId()
+    const memberClipIds = clips.map(clip => clip.id)
+    const normalizedName = groupName.trim() || file.name
+
+    get().pushHistory("Import subtitles")
+    resetPlayer()
+    set(state => ({
+      project: {
+        ...state.project,
+        tracks: nextTracks,
+        clipGroups: [
+          ...(state.project.clipGroups ?? []),
+          {
+            id: groupId,
+            name: `Subtitles - ${normalizedName}`,
+            memberClipIds,
+            locked: false,
+            visible: true,
+            createdAt: Date.now(),
+          },
+        ],
+      },
+      selectedClipId: memberClipIds[0],
+      selectedClipIds: memberClipIds,
+    }))
+
+    return { trackId: subtitleTrackId, groupId, clipCount: clips.length }
   },
 
   addClip(clip) {

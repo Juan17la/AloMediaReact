@@ -37,6 +37,78 @@ export interface AudioConfig {
   balance: number          // -1.0 (full left) to 1.0 (full right), default 0 (center)
 }
 
+export type XfadeTransitionType =
+  | "fade"
+  | "wipeleft"
+  | "wiperight"
+  | "slideleft"
+  | "slideright"
+  | "circlecrop"
+  | "distance"
+  | (string & {})
+
+export interface ClipTransition {
+  type: XfadeTransitionType
+  duration: number // seconds
+}
+
+export type TransitionSourceReason =
+  | "legacyOut"
+  | "legacyIn"
+  | "synthesizedStart"
+  | "synthesizedEnd"
+  | "conflictResolved"
+
+export interface SyntheticTransitionEndpoint {
+  kind: "black_silence"
+}
+
+export interface TransitionEdge {
+  edgeId: string
+  trackId: string
+  clipAId?: string
+  clipBId?: string
+  syntheticA?: SyntheticTransitionEndpoint
+  syntheticB?: SyntheticTransitionEndpoint
+  boundaryTimeS: number
+  startTimeS: number
+  endTimeS: number
+  durationS: number
+  transitionTypeCanonical: string
+  params: Record<string, unknown>
+  sourceReason: TransitionSourceReason
+}
+
+export interface TransitionClipRef {
+  clipId?: string
+  synthetic?: SyntheticTransitionEndpoint
+}
+
+export type TransitionAudioCurveType = "equal_power"
+
+export interface CompiledTransition {
+  transitionId: string
+  trackId: string
+  clipARef: TransitionClipRef
+  clipBRef: TransitionClipRef
+  startTimeS: number
+  endTimeS: number
+  boundaryTimeS: number
+  durationS: number
+  typeCanonical: string
+  normalizedParams: Record<string, unknown>
+  audioCurveType: TransitionAudioCurveType
+  debugFields: {
+    edgeId: string
+    sourceReason: TransitionSourceReason
+    requestedDurationS: number
+    clampedDurationS: number
+    requestedType: string
+    normalizedType: boolean
+    fallbackReason: string
+  }
+}
+
 export interface BaseClip {
   id: string
   trackId: string
@@ -56,6 +128,8 @@ export interface VideoClip extends BaseClip {
   transform: Transform
   colorAdjustments?: ColorAdjustments
   audioConfig?: AudioConfig
+  transitionIn?: ClipTransition   // transition at the START of this clip
+  transitionOut?: ClipTransition  // transition at the END of this clip
 }
 
 export interface ImageClip extends BaseClip {
@@ -65,10 +139,22 @@ export interface ImageClip extends BaseClip {
   colorAdjustments?: ColorAdjustments
 }
 
+export interface TextStyle {
+  fontSize: number                          // px in canvas space, default 48
+  fontFamily: string                        // CSS font-family value, default "Inter, sans-serif"
+  color: string                             // CSS color, default "#ffffff"
+  backgroundColor?: string                  // CSS color, undefined = transparent
+  textAlign: "left" | "center" | "right"   // default "center"
+  opacity: number                           // 0.0 to 1.0, default 1
+  bold: boolean                             // default false
+  italic: boolean                           // default false
+}
+
 export interface TextClip extends BaseClip {
   type: "text"
   content: string
   transform: Transform
+  style: TextStyle
 }
 
 export interface AudioClip extends BaseClip {
@@ -95,6 +181,7 @@ export interface Project {
   name: string
   media: Media[]
   tracks: Track[]
+  transitionEdges?: TransitionEdge[]
 }
 
 // Project.duration is always derived — never stored.
@@ -108,6 +195,7 @@ export interface HistoryEntry {
 export interface EditorState {
   project: Project
   selectedClipId?: string
+  selectedTransitionClipId?: string
   selectedTrackId?: string
   playhead: number
   timelineScale: number // px per second, default 50
@@ -123,7 +211,15 @@ export interface SavedProject {
   updatedAt: number
 }
 
+export interface ResolvedTransition {
+  type: XfadeTransitionType
+  duration: number          // seconds
+  overlapStartS: number     // seconds, absolute timeline position
+  kind: 'crossfade' | 'fade_to_black' | 'fade_from_black'
+}
+
 export interface RenderSegment {
+  clipId: string
   mediaId: string
   mediaStart: number
   mediaEnd: number
@@ -138,6 +234,12 @@ export interface RenderSegment {
   volume?: number
   colorAdjustments?: ColorAdjustments
   audioConfig?: AudioConfig
+  content?: string
+  style?: TextStyle
+  transitionIn?: ClipTransition
+  transitionOut?: ClipTransition
+  resolvedTransitionIn?: ResolvedTransition
+  resolvedTransitionOut?: ResolvedTransition
 }
 
 export type ExportOutputFormat = "mp4" | "mov" | "mkv" | "avi"
@@ -145,6 +247,7 @@ export type ExportVideoCodec = "h264" | "vp9" | "av1"
 
 export interface RenderJob {
   segments: RenderSegment[]
+  transitions: CompiledTransition[]
   outputFormat: ExportOutputFormat
   codec?: ExportVideoCodec
   resolution: { width: number; height: number }

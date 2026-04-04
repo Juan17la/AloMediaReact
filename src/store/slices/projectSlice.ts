@@ -8,13 +8,16 @@ import { renderSingleFrame, resetPlayer, resumePlayer } from "../../hooks/usePla
 import { hashFile } from "../../utils/fileHash"
 import { getFileFromCache } from "../../services/fileCacheService"
 import { generateProxy } from "../../engine/proxyEngine"
+import { applyCanonicalTransitionEdit, ensureCanonicalTransitionEdges } from "../../project/transitionEdges"
 import type {
   AudioConfig,
   Clip,
+  ClipTransition,
   ColorAdjustments,
   Media,
   MediaType,
   Project,
+  TextStyle,
   Track,
   TrackType,
   Transform,
@@ -42,7 +45,10 @@ export interface ProjectSlice {
   commitTransform: (clipId: string) => void
   updateClipColorAdjustments: (clipId: string, adjustments: ColorAdjustments) => void
   updateClipAudioConfig: (clipId: string, config: Partial<AudioConfig>) => void
+  setClipTransitionIn: (clipId: string, transition: ClipTransition | undefined) => void
+  setClipTransitionOut: (clipId: string, transition: ClipTransition | undefined) => void
   setClipSpeed: (clipId: string, speed: number) => void
+  updateTextClip: (clipId: string, updates: { content?: string; style?: Partial<TextStyle> }) => void
   extractAudioFromClip: (clipId: string) => void
   removeMedia: (mediaId: string) => void
   setMissingMediaIds: (ids: Set<string>) => void
@@ -87,9 +93,15 @@ function getMediaDuration(file: File, type: MediaType): Promise<number | null> {
   })
 }
 
+const AUDIO_EXTENSIONS = new Set(["wav", "mp3", "ogg", "flac", "m4a", "aac", "opus"])
+const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm", "avi", "mkv", "m4v"])
+
 function detectMediaType(file: File): MediaType {
   if (file.type.startsWith("video/")) return "video"
   if (file.type.startsWith("audio/")) return "audio"
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? ""
+  if (AUDIO_EXTENSIONS.has(ext)) return "audio"
+  if (VIDEO_EXTENSIONS.has(ext)) return "video"
   return "image"
 }
 
@@ -119,6 +131,8 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
       historyIndex: -1,
       playhead: 0,
       isPlaying: false,
+      selectedClipId: undefined,
+      selectedTransitionClipId: undefined,
       missingMediaIds: new Set(),
       idbResolvedMediaIds: new Set(),
     })
@@ -223,6 +237,9 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
           ...track,
           clips: track.clips.filter(c => c.id !== clipId),
         })),
+        transitionEdges: (state.project.transitionEdges ?? []).filter(
+          edge => edge.clipAId !== clipId && edge.clipBId !== clipId,
+        ),
       },
     }))
   },
@@ -254,15 +271,17 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
         timelineEnd: toSeconds(toMs(roundedStart + duration)),
       }
 
+      const updatedProject = {
+        ...state.project,
+        tracks: tracksWithout.map(track =>
+          track.id === trackId
+            ? { ...track, clips: [...track.clips, updatedClip] }
+            : track
+        ),
+      }
+
       return {
-        project: {
-          ...state.project,
-          tracks: tracksWithout.map(track =>
-            track.id === trackId
-              ? { ...track, clips: [...track.clips, updatedClip] }
-              : track
-          ),
-        },
+        project: ensureCanonicalTransitionEdges(updatedProject).project,
       }
     })
   },
@@ -303,6 +322,9 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
       project: {
         ...state.project,
         tracks: state.project.tracks.filter(t => t.id !== trackId),
+        transitionEdges: (state.project.transitionEdges ?? []).filter(
+          edge => edge.trackId !== trackId,
+        ),
       },
     }))
   },
@@ -371,6 +393,26 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     if (wasPlaying) resumePlayer()
   },
 
+  updateTextClip(clipId, updates) {
+    set(state => ({
+      project: {
+        ...state.project,
+        tracks: state.project.tracks.map(track => ({
+          ...track,
+          clips: track.clips.map(clip => {
+            if (clip.id !== clipId || clip.type !== "text") return clip
+            return {
+              ...clip,
+              ...(updates.content !== undefined ? { content: updates.content } : {}),
+              ...(updates.style !== undefined ? { style: { ...(clip.style ?? {}), ...updates.style } } : {}),
+            }
+          }),
+        })),
+      },
+    }))
+    renderSingleFrame()
+  },
+
   updateClipColorAdjustments(clipId, adjustments) {
     const wasPlaying = get().pushHistory("Color adjustment")
     set(state => ({
@@ -410,6 +452,64 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     }))
     // Resume playback so audio setting changes feel live.
     if (wasPlaying) resumePlayer()
+  },
+
+  setClipTransitionIn(clipId, transition) {
+    get().pushHistory(transition ? "Set transition in" : "Remove transition in")
+    resetPlayer()
+    set(state => {
+      const withLegacyUpdated = {
+        ...state.project,
+        tracks: state.project.tracks.map(track => ({
+          ...track,
+          clips: track.clips.map(clip => {
+            if (clip.id !== clipId) return clip
+            if (clip.type !== "video") return clip
+            if (transition) {
+              return { ...clip, transitionIn: { ...transition } }
+            }
+            const { transitionIn: _removed, ...rest } = clip
+            void _removed
+            return rest
+          }),
+        })),
+      }
+
+      return {
+        project: applyCanonicalTransitionEdit(withLegacyUpdated, clipId, "in", transition),
+      }
+    })
+  },
+
+  setClipTransitionOut(clipId, transition) {
+    get().pushHistory(transition ? "Set transition out" : "Remove transition out")
+    resetPlayer()
+    set(state => ({
+      selectedTransitionClipId: !transition && state.selectedTransitionClipId === clipId
+        ? undefined
+        : state.selectedTransitionClipId,
+      project: applyCanonicalTransitionEdit(
+        {
+          ...state.project,
+          tracks: state.project.tracks.map(track => ({
+            ...track,
+            clips: track.clips.map(clip => {
+              if (clip.id !== clipId) return clip
+              if (clip.type !== "video") return clip
+              if (transition) {
+                return { ...clip, transitionOut: { ...transition } }
+              }
+              const { transitionOut: _removed, ...rest } = clip
+              void _removed
+              return rest
+            }),
+          })),
+        },
+        clipId,
+        "out",
+        transition,
+      ),
+    }))
   },
 
   setClipSpeed(clipId, speed) {
@@ -520,6 +620,13 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     set(state => {
       const { [mediaId]: removed, ...restProxy } = state.proxyMap
       void removed
+      const removedClipIds = new Set(
+        state.project.tracks.flatMap(track =>
+          track.clips
+            .filter(c => "mediaId" in c && c.mediaId === mediaId)
+            .map(c => c.id),
+        ),
+      )
       return {
         proxyMap: restProxy,
         project: {
@@ -529,6 +636,11 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
             ...track,
             clips: track.clips.filter(c => !("mediaId" in c) || c.mediaId !== mediaId),
           })),
+          transitionEdges: (state.project.transitionEdges ?? []).filter(
+            edge =>
+              (edge.clipAId === undefined || !removedClipIds.has(edge.clipAId)) &&
+              (edge.clipBId === undefined || !removedClipIds.has(edge.clipBId)),
+          ),
         },
       }
     })
@@ -593,6 +705,7 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
       missingMediaIds: new Set(),
       idbResolvedMediaIds: new Set(),
       selectedClipId: undefined,
+      selectedTransitionClipId: undefined,
       selectedTrackId: undefined,
     })
     resetPlayer()

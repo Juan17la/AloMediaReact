@@ -11,6 +11,8 @@ import { syncAudioElements } from "../audio/audioSync"
 import { syncAudioPool, destroyAudioPool } from "../audio/audioPool"
 import { syncSecondaryVideoTracks } from "../video/secondaryVideoSync"
 import { DEFAULT_SPEED } from "../../constants/speed"
+import { compileUnifiedTransitions } from "../../engine/transitionCompiler"
+import type { ResolvedTransition } from "../../project/projectTypes"
 
 interface UseMediaSyncParams {
   onFrameRef: { current: ((ph: number) => void) | null }
@@ -93,9 +95,76 @@ export function useMediaSync({
 
   // Pool covers ALL tracks (video + audio) so VideoClip audio is not lost.
   const allTrackIds = useMemo(
-    () => tracks.map(t => t.id),
+    () => tracks
+      .flatMap(t => t.clips)
+      .filter((clip): clip is AudioClip | VideoClip => clip.type === "audio" || clip.type === "video")
+      .map(clip => clip.id),
     [tracks],
   )
+
+  const audioClipById = useMemo(() => {
+    const byId = new Map<string, AudioClip | VideoClip>()
+    for (const track of project.tracks) {
+      for (const clip of track.clips) {
+        if (clip.type !== "audio" && clip.type !== "video") continue
+        byId.set(clip.id, clip)
+      }
+    }
+    return byId
+  }, [project])
+
+  const resolvedTransitions = useMemo(() => {
+    const transitionInByClipId = new Map<string, ResolvedTransition>()
+    const transitionOutByClipId = new Map<string, ResolvedTransition>()
+
+    const compiled = compileUnifiedTransitions(project)
+
+    for (const warning of compiled.warnings) {
+      console.warn(warning)
+    }
+
+    for (const transition of compiled.transitions) {
+      const hasClipA = !!transition.clipARef.clipId
+      const hasClipB = !!transition.clipBRef.clipId
+
+      if (hasClipA && hasClipB) {
+        transitionOutByClipId.set(transition.clipARef.clipId!, {
+          type: transition.typeCanonical,
+          duration: transition.durationS,
+          overlapStartS: transition.startTimeS,
+          kind: "crossfade",
+        })
+        transitionInByClipId.set(transition.clipBRef.clipId!, {
+          type: transition.typeCanonical,
+          duration: transition.durationS,
+          overlapStartS: transition.startTimeS,
+          kind: "crossfade",
+        })
+        continue
+      }
+
+      if (hasClipA) {
+        transitionOutByClipId.set(transition.clipARef.clipId!, {
+          type: transition.typeCanonical,
+          duration: transition.durationS,
+          overlapStartS: transition.startTimeS,
+          kind: "fade_to_black",
+        })
+        continue
+      }
+
+      if (hasClipB) {
+        transitionInByClipId.set(transition.clipBRef.clipId!, {
+          type: transition.typeCanonical,
+          duration: transition.durationS,
+          overlapStartS: transition.startTimeS,
+          kind: "fade_from_black",
+        })
+      }
+    }
+
+    return { transitionInByClipId, transitionOutByClipId }
+  }, [project])
 
   useEffect(() => { syncAudioPool(audioElementsRef.current, allTrackIds) }, [allTrackIds])
   useEffect(() => () => { destroyAudioPool(audioElementsRef.current) }, [])
@@ -106,13 +175,24 @@ export function useMediaSync({
   useEffect(() => {
     const impl = (ph: number) => {
       const p = useEditorStore.getState().project
+      const activeVideoClip = getActiveVideoClip(p.tracks, ph)
       // Use raw file URL (not proxy) for the primary buffer so audio is preserved.
       // Proxies are generated with -an (no audio). Secondary elements are muted and
       // can keep using the proxy URL for smooth scrubbing.
       const getUrl = (id: string) => registryRef.current.getObjectUrl(id)
       const getIsPlaying = () => isPlayingRef.current
+      const outgoing = activeVideoClip ? resolvedTransitions.transitionOutByClipId.get(activeVideoClip.id) : undefined
+      const outgoingCrossfade = outgoing?.kind === "crossfade" ? outgoing : undefined
 
-      managerRef.current?.syncVideo(ph, p.tracks, getUrl, getIsPlaying)
+      managerRef.current?.syncVideo(
+        ph,
+        p.tracks,
+        getUrl,
+        getIsPlaying,
+        outgoingCrossfade,
+        resolvedTransitions.transitionInByClipId,
+        resolvedTransitions.transitionOutByClipId,
+      )
 
       syncSecondaryVideoTracks({
         clips: secondaryClipsRef.current,
@@ -125,9 +205,11 @@ export function useMediaSync({
         ph,
         isPlayingRef.current,
         clipIndexRef.current,
+        audioClipById,
         audioElementsRef.current,
         prevActiveAudioIdsRef.current,
         id => registryRef.current.getObjectUrl(id),
+        resolvedTransitions,
         isMutedRef.current,
         volumeRef.current,
       )
@@ -135,7 +217,7 @@ export function useMediaSync({
 
     syncMediaElements.current = impl
     return () => { syncMediaElements.current = null }
-  }, [secondaryClipsRef, secondaryVideoElemsRef])
+  }, [secondaryClipsRef, secondaryVideoElemsRef, resolvedTransitions, audioClipById])
 
   useEffect(() => {
     onFrameRef.current = ph => { if (syncMediaElements.current) syncMediaElements.current(ph) }
@@ -156,7 +238,7 @@ export function useMediaSync({
 
     for (const [, el] of secondaryVideoElemsRef.current) {
       if (isPlaying) {
-        el.play().catch(() => {})
+        el.play().catch(() => { })
       } else {
         el.pause()
       }
@@ -167,7 +249,7 @@ export function useMediaSync({
       .filter((c): c is AudioClip | VideoClip => c.type === "audio" || c.type === "video")
 
     for (const clip of activeAudioClips) {
-      const el = audioElementsRef.current.get(clip.trackId)
+      const el = audioElementsRef.current.get(clip.id)
       if (!el) continue
       el.playbackRate = clip.speed ?? DEFAULT_SPEED
       if (isPlaying) {

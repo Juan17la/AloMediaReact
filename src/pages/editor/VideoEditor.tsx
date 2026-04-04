@@ -90,7 +90,7 @@ export default function VideoEditor() {
 
   // Evict stale IDB cache entries once on mount
   useEffect(() => {
-    evictExpiredEntries().catch(() => {})
+    evictExpiredEntries().catch(() => { })
   }, [])
 
   const { startExport, cancelExport, resetExportState, progress, isExporting } = useExport()
@@ -104,8 +104,13 @@ export default function VideoEditor() {
     }
     return null
   })
+  const selectedTransitionClipId = useEditorStore(s => s.selectedTransitionClipId)
   const showInspector =
-    selectedClip?.type === "video" || selectedClip?.type === "image" || selectedClip?.type === "audio"
+    !!selectedTransitionClipId ||
+    selectedClip?.type === "video" ||
+    selectedClip?.type === "image" ||
+    selectedClip?.type === "audio" ||
+    selectedClip?.type === "text"
 
   function handleLoadFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -153,7 +158,7 @@ export default function VideoEditor() {
         // Background: persist files to IDB cache so they survive reload
         currentProject.media.forEach(m => {
           const file = fileMap.get(m.id)
-          if (file) saveFileToCache(m.hash, file).catch(() => {})
+          if (file) saveFileToCache(m.hash, file).catch(() => { })
         })
       })
       .catch(err => {
@@ -183,7 +188,7 @@ export default function VideoEditor() {
       // Background: persist files to IDB cache so they survive reload
       useEditorStore.getState().project.media.forEach(m => {
         const file = fileMap.get(m.id)
-        if (file) saveFileToCache(m.hash, file).catch(() => {})
+        if (file) saveFileToCache(m.hash, file).catch(() => { })
       })
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Failed to save project.'
@@ -224,7 +229,7 @@ export default function VideoEditor() {
       {/* Atmospheric glow 1 — bottom-left
       <div className="absolute bottom-1/2 left-2/5 w-175 h-175 rounded-full bg-[rgba(180,20,20,0.15)] blur-[160px] pointer-events-none" />
       {/* Atmospheric glow 2 — top-right */}
-      {/* <div className="absolute top-1/2 right-2/7 w-175 h-175 rounded-full bg-[rgba(180,20,20,0.15)] blur-[160px] pointer-events-none" /> */} 
+      {/* <div className="absolute top-1/2 right-2/7 w-175 h-175 rounded-full bg-[rgba(180,20,20,0.15)] blur-[160px] pointer-events-none" /> */}
 
       {/* ── Topbar ── */}
       <header
@@ -283,7 +288,7 @@ export default function VideoEditor() {
       <EditorErrorBoundary onReset={resetProject}>
         <div className="flex flex-1 min-h-0 overflow-hidden gap-0">
           <aside
-            className="shrink-0 flex flex-col overflow-hidden border-r border-white/10 w-70"
+            className="shrink-0 flex flex-col overflow-hidden border-r border-white/10 w-80"
           >
             <MediaLibrary />
           </aside>
@@ -294,8 +299,8 @@ export default function VideoEditor() {
             <PreviewPlayer />
           </div>
 
-          {showInspector && selectedClip ? (
-            <InspectorPanel clip={selectedClip} />
+          {showInspector ? (
+            <InspectorPanel />
           ) : null}
         </div>
 

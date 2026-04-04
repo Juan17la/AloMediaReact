@@ -1,9 +1,11 @@
 import type { AudioClip, VideoClip, AudioConfig } from "../../project/projectTypes"
+import type { ResolvedTransition } from "../../project/projectTypes"
 import type { ClipIndex } from "../timeline/clipLookup"
 import { lookupActiveClips } from "../timeline/clipLookup"
 import { DRIFT_CORRECTION_THRESHOLD_S } from "../../constants/timeline"
 import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig"
 import { DEFAULT_SPEED } from "../../constants/speed"
+import { CLIP_EPSILON } from "../../utils/time"
 
 declare global {
   interface Window {
@@ -18,6 +20,44 @@ const audioContexts = new Map<string, AudioContext>()
 const mediaElementSources = new Map<string, MediaElementAudioSourceNode>()
 const gainNodes = new Map<string, GainNode>()
 const pannerNodes = new Map<string, StereoPannerNode>()
+
+interface SyncAudioTransitions {
+  transitionInByClipId: Map<string, ResolvedTransition>
+  transitionOutByClipId: Map<string, ResolvedTransition>
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value))
+}
+
+export function computeEqualPowerGains(progress: number): { gainA: number; gainB: number } {
+  const clamped = clamp01(progress)
+  return {
+    gainA: Math.cos(clamped * Math.PI * 0.5),
+    gainB: Math.sin(clamped * Math.PI * 0.5),
+  }
+}
+
+export function computeTransitionProgress(ph: number, transition: ResolvedTransition): number {
+  if (transition.duration <= CLIP_EPSILON) return 1
+  return clamp01((ph - transition.overlapStartS) / transition.duration)
+}
+
+function getCrossfadeGain(ph: number, clip: AudioBearingClip, transitions: SyncAudioTransitions): number {
+  const inTransition = transitions.transitionInByClipId.get(clip.id)
+  if (inTransition?.kind === "crossfade") {
+    const progress = computeTransitionProgress(ph, inTransition)
+    return computeEqualPowerGains(progress).gainB
+  }
+
+  const outTransition = transitions.transitionOutByClipId.get(clip.id)
+  if (outTransition?.kind === "crossfade") {
+    const progress = computeTransitionProgress(ph, outTransition)
+    return computeEqualPowerGains(progress).gainA
+  }
+
+  return 1
+}
 
 /**
  * Synchronises audio elements to the playhead. Called once per RAF frame.
@@ -36,48 +76,66 @@ export function syncAudioElements(
   ph: number,
   playing: boolean,
   clipIndex: ClipIndex,
+  clipById: Map<string, AudioBearingClip>,
   audioElements: Map<string, HTMLAudioElement>,
   prevActiveIds: Set<string>,
   getObjectUrl: (mediaId: string) => string | undefined,
+  transitions: SyncAudioTransitions,
   isMuted = false,
   volume = 1,
 ): Set<string> {
   const activeAudioClips = lookupActiveClips(clipIndex, ph).filter(
     (c): c is AudioBearingClip => c.type === "audio" || c.type === "video",
   )
-  const activeTrackIds = new Set(activeAudioClips.map(c => c.trackId))
+
+  const activeById = new Map<string, AudioBearingClip>()
+  for (const clip of activeAudioClips) {
+    activeById.set(clip.id, clip)
+  }
+
+  for (const [clipId, transition] of transitions.transitionInByClipId) {
+    if (transition.kind !== "crossfade") continue
+    if (ph < transition.overlapStartS - CLIP_EPSILON) continue
+    if (ph > transition.overlapStartS + transition.duration + CLIP_EPSILON) continue
+    const clip = clipById.get(clipId)
+    if (!clip) continue
+    activeById.set(clipId, clip)
+  }
+
+  const allActiveClips = Array.from(activeById.values())
+  const activeClipIds = new Set(allActiveClips.map(c => c.id))
 
   // Phase 1 batch DOM reads
   const currentTimes = new Map<string, number>()
-  for (const [trackId, el] of audioElements) {
-    currentTimes.set(trackId, el.currentTime)
+  for (const [clipId, el] of audioElements) {
+    currentTimes.set(clipId, el.currentTime)
   }
 
   // Phase 2 pause inactive and clean up Web Audio nodes
-  for (const [trackId, el] of audioElements) {
-    if (!activeTrackIds.has(trackId)) {
+  for (const [clipId, el] of audioElements) {
+    if (!activeClipIds.has(clipId)) {
       el.pause()
       // Disconnect Web Audio nodes
-      const ctx = audioContexts.get(trackId)
-      const gainNode = gainNodes.get(trackId)
-      const pannerNode = pannerNodes.get(trackId)
+      const ctx = audioContexts.get(clipId)
+      const gainNode = gainNodes.get(clipId)
+      const pannerNode = pannerNodes.get(clipId)
       if (gainNode && ctx) {
         gainNode.disconnect()
-        gainNodes.delete(trackId)
+        gainNodes.delete(clipId)
       }
       if (pannerNode && ctx) {
         pannerNode.disconnect()
-        pannerNodes.delete(trackId)
+        pannerNodes.delete(clipId)
       }
     }
   }
 
-  const activeIds = new Set(activeAudioClips.map(c => c.id))
+  const activeIds = new Set(allActiveClips.map(c => c.id))
   const newlyActive = new Set([...activeIds].filter(id => !prevActiveIds.has(id)))
 
   // Phase 3 sync active clips
-  for (const clip of activeAudioClips) {
-    const el = audioElements.get(clip.trackId)
+  for (const clip of allActiveClips) {
+    const el = audioElements.get(clip.id)
     if (!el) continue
     const url = getObjectUrl(clip.mediaId)
     if (url && el.src !== url) el.src = url
@@ -86,22 +144,24 @@ export function syncAudioElements(
     const mediaTime = clip.mediaStart + (ph - clip.timelineStart) * clipSpeed
     const clipConfig = clip.audioConfig ?? DEFAULT_AUDIO_CONFIG
 
+    const crossfadeGain = getCrossfadeGain(ph, clip, transitions)
+
     if (newlyActive.has(clip.id)) {
       el.currentTime = Math.max(0, mediaTime)
       if (playing) {
         // Apply audio config + global settings
-        applyAudioConfig(el, clipConfig, isMuted, volume, clip.trackId)
+        applyAudioConfig(el, clipConfig, isMuted, volume * crossfadeGain, clip.id)
         el.play().catch(() => { })
       }
     } else if (!playing) {
       if (el.readyState >= 1) el.currentTime = mediaTime
     } else {
-      const current = currentTimes.get(clip.trackId) ?? 0
+      const current = currentTimes.get(clip.id) ?? 0
       if (Math.abs(current - mediaTime) > DRIFT_CORRECTION_THRESHOLD_S) {
         el.currentTime = mediaTime
       }
       // Reapply audio config during playback (handles changes via store updates)
-      applyAudioConfig(el, clipConfig, isMuted, volume, clip.trackId)
+      applyAudioConfig(el, clipConfig, isMuted, volume * crossfadeGain, clip.id)
     }
   }
 
@@ -343,7 +403,7 @@ export function disconnectAll(): void {
       if (source && ctx && ctx.state !== "closed") {
         source.connect(ctx.destination)
       }
-    } catch (_e) { 
+    } catch (_e) {
       // Silently ignore errors during cleanup (e.g. context already closed)
     }
   }

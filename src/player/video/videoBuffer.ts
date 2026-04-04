@@ -1,8 +1,10 @@
-import type { Track, VideoClip } from "../../project/projectTypes"
+import type { ResolvedTransition, Track, VideoClip } from "../../project/projectTypes"
 import { PRELOAD_LOOKAHEAD_MS, DRIFT_CORRECTION_THRESHOLD_S } from "../../constants/timeline"
 import { getActiveVideoClip, getNextVideoClip } from "../timeline/activeClipResolver"
 import { applyTransformToEl, applyColorAdjustmentsToEl } from "../render/transformUtils"
 import { DEFAULT_SPEED } from "../../constants/speed"
+import { CLIP_EPSILON } from "../../utils/time"
+import { runTransitionApproximation, type TransitionSwapMetadata } from "./videoTransitions"
 
 export interface BufferState {
   activeClipId: string | null
@@ -13,6 +15,12 @@ export interface BufferState {
 
 type UrlResolver = (mediaId: string) => string | undefined
 
+interface TransitionCarryState {
+  outgoingClipId: string
+  incomingClipId: string
+  boundaryTime: number
+}
+
 const activeManagers = new Set<VideoBufferManager>()
 
 function seekEl(el: HTMLVideoElement, time: number): void {
@@ -21,6 +29,16 @@ function seekEl(el: HTMLVideoElement, time: number): void {
   } else {
     el.currentTime = time
   }
+}
+
+function findVideoClipById(tracks: Track[], clipId: string): VideoClip | null {
+  for (const track of tracks) {
+    if (track.type !== "video") continue
+    for (const clip of track.clips) {
+      if (clip.type === "video" && clip.id === clipId) return clip
+    }
+  }
+  return null
 }
 
 /**
@@ -43,6 +61,9 @@ export class VideoBufferManager {
   private bufferReady = false
   swapPending = false
   private swapGen = 0
+  private transitionCarry: TransitionCarryState | null = null
+  private transitionCleanupTimeout: ReturnType<typeof setTimeout> | null = null
+  private clipPlayStartPh = new Map<string, number>()
   clipSeekDone: string | null = null
 
   constructor(elA: HTMLVideoElement, elB: HTMLVideoElement) {
@@ -112,7 +133,14 @@ export class VideoBufferManager {
 
   //Buffer swap
 
-  private swapBuffers(nextClip: VideoClip, ph: number, getUrl: UrlResolver, getIsPlaying: () => boolean): void {
+
+  private swapBuffers(
+    nextClip: VideoClip,
+    ph: number,
+    getUrl: UrlResolver,
+    getIsPlaying: () => boolean,
+    transition: TransitionSwapMetadata | undefined,
+  ): void {
     const outgoingEl = this.getActiveEl()
     const incomingEl = this.getBufferEl()
     const targetSrc = getUrl(nextClip.mediaId) ?? ""
@@ -125,11 +153,17 @@ export class VideoBufferManager {
       incomingEl.src = targetSrc
       this.state.bufferedMediaId = nextClip.mediaId
     }
-    incomingEl.playbackRate = nextClip.speed ?? DEFAULT_SPEED
+    const clipSpeed = nextClip.speed ?? DEFAULT_SPEED
+    incomingEl.playbackRate = clipSpeed
 
-    // Skip seek when prebuffered — the decoder is already positioned
-    if (!wasPrebuffered) {
-      const mediaTime = nextClip.mediaStart + (ph - nextClip.timelineStart)
+    const inTransitionWindow = !!transition && transition.duration > CLIP_EPSILON && ph + CLIP_EPSILON < nextClip.timelineStart
+
+    // For transition carry, force exact clip start to avoid showing preroll frame.
+    if (inTransitionWindow) {
+      seekEl(incomingEl, nextClip.mediaStart)
+    } else if (!wasPrebuffered) {
+      // Skip seek when prebuffered outside transitions — decoder is already positioned.
+      const mediaTime = nextClip.mediaStart + (ph - nextClip.timelineStart) * clipSpeed
       seekEl(incomingEl, Math.max(nextClip.mediaStart, mediaTime))
     }
 
@@ -138,19 +172,37 @@ export class VideoBufferManager {
 
     const doSwap = () => {
       if (this.swapGen !== gen) return
+      const outgoingClipId = this.state.activeClipId
       outgoingEl.pause()
-      outgoingEl.style.opacity = "0"
-      incomingEl.style.opacity = "1"
+      this.transitionCleanupTimeout = runTransitionApproximation({
+        outgoingEl,
+        incomingEl,
+        nextClip,
+        transition,
+        existingCleanupTimeout: this.transitionCleanupTimeout,
+      })
       if (getIsPlaying()) {
-        incomingEl.play().catch(() => {})
+        incomingEl.play().catch(() => { })
       }
       this.activeBuffer = this.activeBuffer === "A" ? "B" : "A"
+      this.clipPlayStartPh.set(nextClip.id, ph)
+      if (outgoingClipId) this.clipPlayStartPh.delete(outgoingClipId)
       this.state.activeClipId = nextClip.id
       this.state.activeMediaId = nextClip.mediaId
       this.state.bufferedClipId = null
       this.state.bufferedMediaId = null
       this.bufferReady = false
       this.swapPending = false
+
+      if (transition) {
+        this.transitionCarry = {
+          outgoingClipId: outgoingClipId ?? nextClip.id,
+          incomingClipId: nextClip.id,
+          boundaryTime: nextClip.timelineStart,
+        }
+      } else {
+        this.transitionCarry = null
+      }
     }
 
     if (this.bufferReady || incomingEl.readyState >= 3) {
@@ -163,37 +215,147 @@ export class VideoBufferManager {
 
   //Per-frame sync (called from RAF)
 
-  syncVideo(ph: number, tracks: Track[], getUrl: UrlResolver, getIsPlaying: () => boolean): void {
-    const playing = getIsPlaying()
-    const activeVideoClip = getActiveVideoClip(tracks, ph)
+  /**
+   * Computes the opacity for fade-in from black (transitionIn without previous clip).
+   * Returns 1 when no fade-in applies.
+   */
+  private getFadeInOpacity(ph: number, transitionIn: ResolvedTransition | undefined): number {
+    if (!transitionIn || transitionIn.kind !== "fade_from_black" || transitionIn.duration <= CLIP_EPSILON) return 1
+    const elapsed = ph - transitionIn.overlapStartS
+    if (elapsed < 0) return 0
+    if (elapsed >= transitionIn.duration) return 1
+    return Math.min(1, Math.max(0, elapsed / transitionIn.duration))
+  }
 
-    if (activeVideoClip) {
-      if (activeVideoClip.id !== this.state.activeClipId && !this.swapPending) {
-        this.swapBuffers(activeVideoClip, ph, getUrl, getIsPlaying)
-        this.clipSeekDone = activeVideoClip.id
+  /**
+   * Computes the opacity for fade-out to black (transitionOut without next clip).
+   * Returns 1 when no fade-out applies.
+   */
+  private getFadeOutOpacity(ph: number, transitionOut: ResolvedTransition | undefined): number {
+    if (!transitionOut || transitionOut.kind !== "fade_to_black" || transitionOut.duration <= CLIP_EPSILON) return 1
+    const fadeStart = transitionOut.overlapStartS
+    if (ph < fadeStart) return 1
+    const progress = (ph - fadeStart) / transitionOut.duration
+    return 1 - Math.min(1, Math.max(0, progress))
+  }
+
+  syncVideo(
+    ph: number,
+    tracks: Track[],
+    getUrl: UrlResolver,
+    getIsPlaying: () => boolean,
+    activeOutgoingTransition?: ResolvedTransition,
+    transitionInByClipId?: Map<string, ResolvedTransition>,
+    transitionOutByClipId?: Map<string, ResolvedTransition>,
+  ): void {
+    const playing = getIsPlaying()
+    const timelineActiveClip = getActiveVideoClip(tracks, ph)
+
+    if (
+      this.transitionCarry &&
+      ph >= this.transitionCarry.boundaryTime + CLIP_EPSILON
+    ) {
+      this.transitionCarry = null
+    }
+
+    const carry = this.transitionCarry
+    const carryApplies =
+      !!carry &&
+      !!timelineActiveClip &&
+      timelineActiveClip.id === carry.outgoingClipId &&
+      this.state.activeClipId === carry.incomingClipId &&
+      ph < carry.boundaryTime + CLIP_EPSILON
+
+    const playbackClip = carryApplies && carry
+      ? findVideoClipById(tracks, carry.incomingClipId)
+      : timelineActiveClip
+
+    if (timelineActiveClip) {
+      if (
+        playing &&
+        !this.swapPending &&
+        timelineActiveClip.id === this.state.activeClipId &&
+        activeOutgoingTransition &&
+        activeOutgoingTransition.kind === "crossfade" &&
+        activeOutgoingTransition.duration > CLIP_EPSILON
+      ) {
+        const transitionStart = activeOutgoingTransition.overlapStartS
+        if (ph >= transitionStart - CLIP_EPSILON) {
+          const nextClip = getNextVideoClip(tracks, timelineActiveClip)
+          if (nextClip && nextClip.id !== timelineActiveClip.id) {
+            this.swapBuffers(nextClip, ph, getUrl, getIsPlaying, {
+              type: activeOutgoingTransition.type,
+              duration: activeOutgoingTransition.duration,
+            })
+            this.clipSeekDone = nextClip.id
+          }
+        }
+      }
+
+      const isTransitioning =
+        activeOutgoingTransition &&
+        activeOutgoingTransition.kind === "crossfade" &&
+        activeOutgoingTransition.duration > CLIP_EPSILON &&
+        ph >= (activeOutgoingTransition.overlapStartS - CLIP_EPSILON)
+
+
+      if (
+        timelineActiveClip.id !== this.state.activeClipId &&
+        !this.swapPending &&
+        !carryApplies &&
+        !isTransitioning // <-- prevent overwrite
+      ) {
+        this.swapBuffers(timelineActiveClip, ph, getUrl, getIsPlaying, undefined)
+        this.clipSeekDone = timelineActiveClip.id
       } else if (playing) {
-        const clipSpeed = activeVideoClip.speed ?? DEFAULT_SPEED
+        if (!playbackClip) return
+        const clipSpeed = playbackClip.speed ?? DEFAULT_SPEED
         const activeEl = this.getActiveEl()
         activeEl.playbackRate = clipSpeed
-        if (this.clipSeekDone !== activeVideoClip.id) {
-          this.clipSeekDone = activeVideoClip.id
-          const mediaTime = activeVideoClip.mediaStart + (ph - activeVideoClip.timelineStart) * clipSpeed
-          seekEl(activeEl, mediaTime)
+        const clipStartPh = this.clipPlayStartPh.get(playbackClip.id) ?? playbackClip.timelineStart
+        const playbackTransitionIn = transitionInByClipId?.get(playbackClip.id)
+        const playbackTransitionOut = transitionOutByClipId?.get(playbackClip.id)
+
+        // Apply fade-in/out opacity for non-crossfade transitions
+        const fadeIn = this.getFadeInOpacity(ph, playbackTransitionIn)
+        const fadeOut = this.getFadeOutOpacity(ph, playbackTransitionOut)
+        const combinedOpacity = Math.min(fadeIn, fadeOut)
+        if (combinedOpacity < 1) {
+          activeEl.style.opacity = String(combinedOpacity)
+        } else if (!this.transitionCarry) {
+          activeEl.style.opacity = "1"
+        }
+
+        if (this.clipSeekDone !== playbackClip.id) {
+          this.clipSeekDone = playbackClip.id
+          const mediaTime = playbackClip.mediaStart + (ph - clipStartPh) * clipSpeed
+          seekEl(activeEl, Math.max(playbackClip.mediaStart, mediaTime))
         } else {
-          const expected = activeVideoClip.mediaStart + (ph - activeVideoClip.timelineStart) * clipSpeed
+          const expected = Math.max(
+            playbackClip.mediaStart,
+            playbackClip.mediaStart + (ph - clipStartPh) * clipSpeed,
+          )
           if (Math.abs(activeEl.currentTime - expected) > DRIFT_CORRECTION_THRESHOLD_S) {
             seekEl(activeEl, expected)
           }
         }
-        this.prepareBuffer(ph, activeVideoClip, tracks, getUrl)
+        this.prepareBuffer(ph, timelineActiveClip, tracks, getUrl)
       } else {
         // Paused / scrubbing — always sync exactly
         const el = this.getActiveEl()
-        const clipSpeed = activeVideoClip.speed ?? DEFAULT_SPEED
+        const clipSpeed = timelineActiveClip.speed ?? DEFAULT_SPEED
         el.playbackRate = clipSpeed
-        el.currentTime = activeVideoClip.mediaStart + (ph - activeVideoClip.timelineStart) * clipSpeed
-        applyTransformToEl(el, activeVideoClip.transform)
-        applyColorAdjustmentsToEl(el, activeVideoClip.colorAdjustments)
+        el.currentTime = timelineActiveClip.mediaStart + (ph - timelineActiveClip.timelineStart) * clipSpeed
+        applyTransformToEl(el, timelineActiveClip.transform)
+        applyColorAdjustmentsToEl(el, timelineActiveClip.colorAdjustments)
+        const activeTransitionIn = transitionInByClipId?.get(timelineActiveClip.id)
+        const activeTransitionOut = transitionOutByClipId?.get(timelineActiveClip.id)
+
+        // Show fade-in/out opacity even when paused/scrubbing
+        const fadeIn = this.getFadeInOpacity(ph, activeTransitionIn)
+        const fadeOut = this.getFadeOutOpacity(ph, activeTransitionOut)
+        el.style.opacity = String(Math.min(fadeIn, fadeOut))
+
         this.clipSeekDone = null
       }
     } else if (this.state.activeClipId !== null) {
@@ -211,6 +373,8 @@ export class VideoBufferManager {
   resetSeekFlags(): void {
     this.clipSeekDone = null
     this.swapPending = false
+    this.transitionCarry = null
+    this.clipPlayStartPh.clear()
   }
 
   setVolume(_muted: boolean, _vol: number): void {
@@ -221,7 +385,7 @@ export class VideoBufferManager {
   }
 
   playActive(): void {
-    if (this.state.activeClipId) this.getActiveEl().play().catch(() => {})
+    if (this.state.activeClipId) this.getActiveEl().play().catch(() => { })
   }
 
   pauseActive(): void {
@@ -229,6 +393,10 @@ export class VideoBufferManager {
   }
 
   releaseBuffers(): void {
+    if (this.transitionCleanupTimeout) {
+      clearTimeout(this.transitionCleanupTimeout)
+      this.transitionCleanupTimeout = null
+    }
     this.elA.pause()
     this.elB.pause()
     this.elA.removeAttribute("src")
@@ -245,6 +413,8 @@ export class VideoBufferManager {
     }
     this.clipSeekDone = null
     this.swapPending = false
+    this.transitionCarry = null
+    this.clipPlayStartPh.clear()
   }
 }
 

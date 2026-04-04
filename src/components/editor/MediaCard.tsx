@@ -1,10 +1,11 @@
 import { useState } from "react"
-import { Plus } from "lucide-react"
+import { FileText, Plus } from "lucide-react"
 import type { Media } from "../../project/projectTypes"
 import { MediaContextMenu } from "./MediaContextMenu"
 
 function formatDuration(media: Media): string {
   if (media.type === "image") return "IMG"
+  if (media.type === "subtitles") return "SRT"
 
   const secs = Math.round(media.duration ?? 0)
 
@@ -26,12 +27,14 @@ function formatDuration(media: Media): string {
 function getTypeBadgeClass(type: Media["type"]): string {
   if (type === "video") return "bg-[#1a3a5c]"
   if (type === "audio") return "bg-[#1a3d1a]"
+  if (type === "subtitles") return "bg-[#35351b]"
   return "bg-[#3d2a1a]"
 }
 
 function getTypeBadgeLabel(type: Media["type"]): string {
   if (type === "video") return "VIDEO"
   if (type === "audio") return "AUDIO"
+  if (type === "subtitles") return "SUB"
   return "IMG"
 }
 
@@ -48,6 +51,14 @@ function MediaThumbnail({ media, objectUrl }: { media: Media; objectUrl: string 
   }
   if (media.type === "image") {
     return <img src={objectUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+  }
+  if (media.type === "subtitles") {
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[linear-gradient(135deg,#1f1f14,#2b2b1d)]">
+        <FileText size={20} className="text-[#d8d189]" />
+        <span className="text-[9px] font-semibold tracking-[0.08em] text-[#e6df9b]">SUBTITLE FILE</span>
+      </div>
+    )
   }
   // audio: centered waveform bars
   return (
@@ -67,10 +78,20 @@ interface MediaCardProps {
   objectUrl: string | undefined
   proxyStatus?: 'pending' | 'ready' | 'error'
   onInsertAtPlayhead: () => void
+  onImportSubtitles?: () => void
+  isImportingSubtitles?: boolean
 }
 
-export function MediaCard({ media, objectUrl, proxyStatus, onInsertAtPlayhead }: MediaCardProps) {
+export function MediaCard({
+  media,
+  objectUrl,
+  proxyStatus,
+  onInsertAtPlayhead,
+  onImportSubtitles,
+  isImportingSubtitles,
+}: MediaCardProps) {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  const isSubtitles = media.type === "subtitles"
 
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault()
@@ -88,9 +109,13 @@ export function MediaCard({ media, objectUrl, proxyStatus, onInsertAtPlayhead }:
   return (
     <>
       <div
-        draggable
+        draggable={!isSubtitles}
         onContextMenu={handleContextMenu}
         onDragStart={e => {
+          if (isSubtitles) {
+            e.preventDefault()
+            return
+          }
           const durationSeconds = media.duration ?? 5
           e.dataTransfer.setData("mediaId", media.id)
           e.dataTransfer.setData("clipDuration", String(durationSeconds))
@@ -121,9 +146,15 @@ export function MediaCard({ media, objectUrl, proxyStatus, onInsertAtPlayhead }:
           {/* Hover overlay with Plus icon */}
           <div
             className="absolute inset-0 bg-[rgba(192,57,43,0.15)] flex items-center justify-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-120"
-            onClick={onInsertAtPlayhead}
+            onClick={isSubtitles ? onImportSubtitles : onInsertAtPlayhead}
           >
-            <Plus size={20} className="text-white" />
+            {isSubtitles ? (
+              <span className="text-[10px] font-semibold tracking-[0.08em] text-white">
+                {isImportingSubtitles ? "Importing..." : "Import"}
+              </span>
+            ) : (
+              <Plus size={20} className="text-white" />
+            )}
           </div>
         </div>
 
@@ -146,10 +177,13 @@ export function MediaCard({ media, objectUrl, proxyStatus, onInsertAtPlayhead }:
       {menu && (
         <MediaContextMenu
           mediaId={media.id}
+          mediaType={media.type}
           x={menu.x}
           y={menu.y}
           onClose={() => setMenu(null)}
           onInsertAtPlayhead={onInsertAtPlayhead}
+          onImportSubtitles={onImportSubtitles}
+          isImportingSubtitles={isImportingSubtitles}
         />
       )}
     </>

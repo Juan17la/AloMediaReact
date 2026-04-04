@@ -81,8 +81,10 @@ function TrackControlBtn({
 
 export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDrop, onClipDrop, resolveDropPosition }: TrackProps) {
   const selectedClipId = useEditorStore(s => s.selectedClipId)
+  const selectedClipIds = useEditorStore(s => s.selectedClipIds)
   const selectedTransitionClipId = useEditorStore(s => s.selectedTransitionClipId)
   const setSelectedClip = useEditorStore(s => s.setSelectedClip)
+  const toggleClipSelection = useEditorStore(s => s.toggleClipSelection)
   const setSelectedTransitionClip = useEditorStore(s => s.setSelectedTransitionClip)
   const scale = useEditorStore(s => s.timelineScale)
   const removeTrack = useEditorStore(s => s.removeTrack)
@@ -220,6 +222,24 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
     const offsetX = e.clientX - rect.left
     e.dataTransfer.setData("clipId", clipId)
     e.dataTransfer.setData("clipOffsetX", String(offsetX))
+
+    const dragSelection = selectedClipIds.includes(clipId)
+      ? selectedClipIds
+      : [clipId]
+    const dragMembers = allTracks.flatMap(t =>
+      t.clips
+        .filter(c => dragSelection.includes(c.id))
+        .map(c => ({ clipId: c.id, timelineStart: c.timelineStart, trackId: c.trackId })),
+    )
+    e.dataTransfer.setData("clipDragSelection", JSON.stringify(dragMembers))
+  }
+
+  function handleClipSelect(clipId: string, options?: { toggle?: boolean }) {
+    if (options?.toggle) {
+      toggleClipSelection(clipId)
+      return
+    }
+    setSelectedClip(clipId)
   }
 
   const TypeIcon = track.type === "video" ? Film : Music
@@ -315,8 +335,8 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
             key={clip.id}
             clip={clip}
             scale={scale}
-            isSelected={selectedClipId === clip.id}
-            onSelect={setSelectedClip}
+            isSelected={selectedClipIds.includes(clip.id) || selectedClipId === clip.id}
+            onSelect={handleClipSelect}
             onDragStart={handleClipDragStart}
             onDragEnd={() => setSnapIndicatorX(null)}
           />

@@ -176,12 +176,22 @@ export interface Track {
   clips: Clip[]
 }
 
+export interface ClipGroup {
+  id: string
+  name?: string
+  memberClipIds: string[]
+  locked: boolean
+  visible: boolean
+  createdAt: number
+}
+
 export interface Project {
   id: string
   name: string
   media: Media[]
   tracks: Track[]
   transitionEdges?: TransitionEdge[]
+  clipGroups?: ClipGroup[]
 }
 
 // Project.duration is always derived — never stored.
@@ -195,6 +205,9 @@ export interface HistoryEntry {
 export interface EditorState {
   project: Project
   selectedClipId?: string
+  selectedClipIds?: string[]
+  activeGroupId?: string
+  groupEditGroupId?: string
   selectedTransitionClipId?: string
   selectedTrackId?: string
   playhead: number

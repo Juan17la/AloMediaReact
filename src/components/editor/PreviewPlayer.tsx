@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { SkipBack, Rewind, Play, Pause, FastForward, SkipForward, Volume2, VolumeX } from "lucide-react"
-import type { VideoClip, ImageClip, TextClip } from "../../project/projectTypes"
+import type { VideoClip, ImageClip, TextClip, Transform } from "../../project/projectTypes"
 import { useEditorStore } from "../../store/editorStore"
 import { usePlayer } from "../../hooks/usePlayer"
 import { getProjectDuration, CLIP_EPSILON } from "../../utils/time"
@@ -30,6 +30,61 @@ interface ActiveTransitionDebugView {
   boundaryTimeS: number
   canonicalType: string
   progress: number
+}
+
+interface RectLike {
+  x: number
+  y: number
+  width: number
+  height: number
+  rotation: number
+}
+
+function getGroupBounds(transforms: Transform[]): Transform {
+  const minX = Math.min(...transforms.map(t => t.x))
+  const minY = Math.min(...transforms.map(t => t.y))
+  const maxX = Math.max(...transforms.map(t => t.x + t.width))
+  const maxY = Math.max(...transforms.map(t => t.y + t.height))
+  const avgRotation = transforms.reduce((sum, t) => sum + (t.rotation ?? 0), 0) / transforms.length
+  return {
+    x: minX,
+    y: minY,
+    width: Math.max(20, maxX - minX),
+    height: Math.max(20, maxY - minY),
+    rotation: avgRotation,
+  }
+}
+
+function applyGroupTransformToChild(current: RectLike, currentGroup: RectLike, nextGroup: RectLike): Transform {
+  const currentCenterX = current.x + current.width / 2
+  const currentCenterY = current.y + current.height / 2
+  const currentGroupCenterX = currentGroup.x + currentGroup.width / 2
+  const currentGroupCenterY = currentGroup.y + currentGroup.height / 2
+  const nextGroupCenterX = nextGroup.x + nextGroup.width / 2
+  const nextGroupCenterY = nextGroup.y + nextGroup.height / 2
+
+  const scaleX = currentGroup.width === 0 ? 1 : nextGroup.width / currentGroup.width
+  const scaleY = currentGroup.height === 0 ? 1 : nextGroup.height / currentGroup.height
+  const deltaRotationDeg = (nextGroup.rotation ?? 0) - (currentGroup.rotation ?? 0)
+  const deltaRotationRad = (deltaRotationDeg * Math.PI) / 180
+
+  const dx = (currentCenterX - currentGroupCenterX) * scaleX
+  const dy = (currentCenterY - currentGroupCenterY) * scaleY
+  const rotatedDx = dx * Math.cos(deltaRotationRad) - dy * Math.sin(deltaRotationRad)
+  const rotatedDy = dx * Math.sin(deltaRotationRad) + dy * Math.cos(deltaRotationRad)
+
+  const nextWidth = Math.max(20, current.width * scaleX)
+  const nextHeight = Math.max(20, current.height * scaleY)
+  const nextCenterX = nextGroupCenterX + rotatedDx
+  const nextCenterY = nextGroupCenterY + rotatedDy
+
+  return {
+    x: nextCenterX - nextWidth / 2,
+    y: nextCenterY - nextHeight / 2,
+    width: nextWidth,
+    height: nextHeight,
+    rotation: (current.rotation ?? 0) + deltaRotationDeg,
+  }
 }
 
 // ===============================================
@@ -87,9 +142,17 @@ export function PreviewPlayer() {
   const playhead = useEditorStore(s => s.playhead)
   const isPlaying = useEditorStore(s => s.isPlaying)
   const selectedClipId = useEditorStore(s => s.selectedClipId)
+  const selectedClipIds = useEditorStore(s => s.selectedClipIds)
+  const groupEditGroupId = useEditorStore(s => s.groupEditGroupId)
   const updateClipTransform = useEditorStore(s => s.updateClipTransform)
+  const updateClipTransformsBatch = useEditorStore(s => s.updateClipTransformsBatch)
   const commitTransform = useEditorStore(s => s.commitTransform)
+  const commitTransformsBatch = useEditorStore(s => s.commitTransformsBatch)
   const setSelectedClip = useEditorStore(s => s.setSelectedClip)
+  const toggleClipSelection = useEditorStore(s => s.toggleClipSelection)
+  const setSelectedClips = useEditorStore(s => s.setSelectedClips)
+  const clearClipSelection = useEditorStore(s => s.clearClipSelection)
+  const enterGroupEditMode = useEditorStore(s => s.enterGroupEditMode)
   const updateTextClip = useEditorStore(s => s.updateTextClip)
   const pushHistory = useEditorStore(s => s.pushHistory)
   const { play, pause, seek, onFrameRef, playheadRef, seekFlagResetRef } = usePlayer()
@@ -109,6 +172,8 @@ export function PreviewPlayer() {
   const editTextareaRef = useCallback((el: HTMLTextAreaElement | null) => {
     if (el) { el.focus(); el.select() }
   }, [editingTextClipId])
+  const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null)
+  const marqueeJustCompletedRef = useRef(false)
 
   const secondaryVideoElemsRef = useRef<Map<string, HTMLVideoElement>>(new Map())
   const secondaryClipsRef = useRef<VideoClip[]>([])
@@ -152,6 +217,32 @@ export function PreviewPlayer() {
     () => activeClips.filter(c => c.type === "image" || c.type === "text"),
     [activeClips],
   )
+
+  const selectedIdSet = useMemo(() => {
+    const ids = new Set(selectedClipIds)
+    if (selectedClipId) ids.add(selectedClipId)
+    return ids
+  }, [selectedClipId, selectedClipIds])
+
+  const selectedCanvasClips = useMemo(
+    () => activeClips.filter((clip): clip is VideoClip | ImageClip | TextClip => clip.type !== "audio" && selectedIdSet.has(clip.id)),
+    [activeClips, selectedIdSet],
+  )
+
+  const selectedCanvasTransforms = useMemo(
+    () => selectedCanvasClips.map(clip => ({ clipId: clip.id, transform: clip.transform })),
+    [selectedCanvasClips],
+  )
+
+  const groupTransform = useMemo(() => {
+    if (selectedCanvasTransforms.length < 2) return null
+    return getGroupBounds(selectedCanvasTransforms.map(entry => entry.transform))
+  }, [selectedCanvasTransforms])
+
+  const selectedGroupId = useMemo(() => {
+    if (!selectedClipId) return undefined
+    return (project.clipGroups ?? []).find(group => group.memberClipIds.includes(selectedClipId))?.id
+  }, [project.clipGroups, selectedClipId])
 
   const trackOrderMap = useMemo(
     () => new Map(project.tracks.map(t => [t.id, t.order])),
@@ -273,6 +364,11 @@ export function PreviewPlayer() {
         && canvasY >= t.y && canvasY <= t.y + t.height
     }) as TextClip | undefined
 
+    if (hit && selectedGroupId && groupEditGroupId !== selectedGroupId) {
+      enterGroupEditMode(selectedGroupId)
+      return
+    }
+
     if (hit) {
       editingDoneRef.current = false
       setEditingTextClipId(hit.id)
@@ -283,7 +379,90 @@ export function PreviewPlayer() {
     }
   }
 
+  useEffect(() => {
+    if (!marquee) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMarquee(null)
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [marquee])
+
+  function toCanvasCoordinates(clientX: number, clientY: number): { x: number; y: number } {
+    const rect = canvasContainerRef.current!.getBoundingClientRect()
+    return {
+      x: (clientX - rect.left) / (rect.width / 1280),
+      y: (clientY - rect.top) / (rect.height / 720),
+    }
+  }
+
+  function handleCanvasMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    if (e.button !== 0) return
+    marqueeJustCompletedRef.current = false
+    const toggle = e.ctrlKey || e.metaKey
+    const { x: canvasX, y: canvasY } = toCanvasCoordinates(e.clientX, e.clientY)
+
+    const hit = [...activeClips].reverse().find(clip => {
+      if (clip.type === "audio") return false
+      const t = clip.transform
+      return canvasX >= t.x && canvasX <= t.x + t.width
+        && canvasY >= t.y && canvasY <= t.y + t.height
+    })
+
+    if (hit) {
+      if (toggle) toggleClipSelection(hit.id)
+      else setSelectedClip(hit.id)
+      return
+    }
+
+    const start = { x1: canvasX, y1: canvasY, x2: canvasX, y2: canvasY }
+    setMarquee(start)
+
+    const onMove = (ev: MouseEvent) => {
+      const next = toCanvasCoordinates(ev.clientX, ev.clientY)
+      setMarquee(curr => (curr ? { ...curr, x2: next.x, y2: next.y } : null))
+    }
+
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove)
+      document.removeEventListener("mouseup", onUp)
+      marqueeJustCompletedRef.current = true
+      setMarquee(curr => {
+        if (!curr) return null
+        const x1 = Math.min(curr.x1, curr.x2)
+        const x2 = Math.max(curr.x1, curr.x2)
+        const y1 = Math.min(curr.y1, curr.y2)
+        const y2 = Math.max(curr.y1, curr.y2)
+        const selected = activeClips
+          .filter((clip): clip is VideoClip | ImageClip | TextClip => clip.type !== "audio")
+          .filter(clip => {
+            const t = clip.transform
+            const cx1 = t.x
+            const cx2 = t.x + t.width
+            const cy1 = t.y
+            const cy2 = t.y + t.height
+            return cx1 < x2 && cx2 > x1 && cy1 < y2 && cy2 > y1
+          })
+          .map(clip => clip.id)
+
+        if (selected.length === 0) clearClipSelection()
+        else setSelectedClips(selected)
+        return null
+      })
+    }
+
+    document.addEventListener("mousemove", onMove)
+    document.addEventListener("mouseup", onUp)
+  }
+
   function handleCanvasClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (marquee) return
+    if (marqueeJustCompletedRef.current) {
+      marqueeJustCompletedRef.current = false
+      return
+    }
     const rect = canvasContainerRef.current!.getBoundingClientRect()
     const canvasX = (e.clientX - rect.left) / (rect.width / 1280)
     const canvasY = (e.clientY - rect.top) / (rect.height / 720)
@@ -297,12 +476,23 @@ export function PreviewPlayer() {
     setSelectedClip(hit ? hit.id : undefined)
   }
 
+  function handleGroupTransformUpdate(next: Partial<Transform>) {
+    if (!groupTransform || selectedCanvasTransforms.length < 2) return
+    const nextGroup = { ...groupTransform, ...next }
+    const updates = selectedCanvasTransforms.map(entry => ({
+      clipId: entry.clipId,
+      transform: applyGroupTransformToChild(entry.transform, groupTransform, nextGroup),
+    }))
+    updateClipTransformsBatch(updates)
+  }
+
   return (
     <div className="flex flex-col min-h-0 h-full w-full items-center justify-center">
       {/* Canvas area */}
       <div className="flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden my-2">
         <div
           ref={canvasContainerRef}
+          onMouseDown={handleCanvasMouseDown}
           onClick={handleCanvasClick}
           onDoubleClick={handleCanvasDoubleClick}
           className="relative bg-(--color-background-base) overflow-hidden cursor-default aspect-video h-full max-w-full w-auto border-2 border-white/7 border-b-glass"
@@ -335,7 +525,7 @@ export function PreviewPlayer() {
                   else secondaryVideoElemsRef.current.delete(clip.id)
                 }}
                 src={getPlaybackUrl(clip.mediaId)}
-                style={{ ...applyTransform(clip.transform), filter: buildCssFilter(clip.colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId), pointerEvents: "none" }}
+                style={{ ...applyTransform(clip.transform), filter: buildCssFilter(clip.colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId), pointerEvents: "none", outline: selectedIdSet.has(clip.id) ? "2px solid rgba(192,57,43,0.75)" : undefined }}
                 muted
                 preload="auto"
                 playsInline
@@ -345,7 +535,7 @@ export function PreviewPlayer() {
 
             {staticElements.map(clip => {
               if (clip.type === "image") {
-                return <img key={clip.id} src={getObjectUrl(clip.mediaId)} style={{ ...applyTransform(clip.transform), filter: buildCssFilter((clip as ImageClip).colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId) }} alt="" />
+                return <img key={clip.id} src={getObjectUrl(clip.mediaId)} style={{ ...applyTransform(clip.transform), filter: buildCssFilter((clip as ImageClip).colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId), outline: selectedIdSet.has(clip.id) ? "2px solid rgba(192,57,43,0.75)" : undefined }} alt="" />
               }
               if (clip.type === "text") {
                 if (clip.id === editingTextClipId) return null
@@ -377,6 +567,7 @@ export function PreviewPlayer() {
                       pointerEvents: "none",
                       userSelect: "none",
                       lineHeight: 1.25,
+                      outline: selectedIdSet.has(clip.id) ? "2px solid rgba(192,57,43,0.75)" : undefined,
                     }}
                   >
                     {clip.content}
@@ -389,7 +580,21 @@ export function PreviewPlayer() {
 
           {/* Transform overlay */}
           {(() => {
-            if (!selectedClipId || !!editingTextClipId) return null
+            if (!!editingTextClipId) return null
+
+            if (groupTransform && selectedCanvasTransforms.length > 1) {
+              return (
+                <TransformOverlay
+                  clip={{ ...selectedCanvasClips[0], transform: groupTransform }}
+                  previewWidth={previewSize.width}
+                  previewHeight={previewSize.height}
+                  onUpdate={handleGroupTransformUpdate}
+                  onCommit={commitTransformsBatch}
+                />
+              )
+            }
+
+            if (!selectedClipId) return null
             let selectedClip: VideoClip | ImageClip | TextClip | undefined
             for (const track of project.tracks) {
               const found = track.clips.find(c => c.id === selectedClipId)
@@ -409,6 +614,18 @@ export function PreviewPlayer() {
               />
             )
           })()}
+
+          {marquee && (
+            <div
+              className="absolute z-30 border-2 border-accent-red/70 bg-accent-red/15 pointer-events-none"
+              style={{
+                left: Math.min(marquee.x1, marquee.x2) * (previewSize.width / 1280),
+                top: Math.min(marquee.y1, marquee.y2) * (previewSize.height / 720),
+                width: Math.abs(marquee.x2 - marquee.x1) * (previewSize.width / 1280),
+                height: Math.abs(marquee.y2 - marquee.y1) * (previewSize.height / 720),
+              }}
+            />
+          )}
 
 
           {/* Inline text editor overlay */}

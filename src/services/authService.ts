@@ -9,6 +9,11 @@ import type {
   RecoverResetPayload
 } from "../types/authTypes"
 
+function getAuthHeader(): Record<string, string> {
+  const token = Cookies.get("token")
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 export async function signIn(payload: LoginPayload): Promise<AuthResponse> {
   const data = await http<AuthResponse>("/auth/login", {
     method: "POST",
@@ -29,14 +34,16 @@ export async function signUp(payload: RegisterPayload): Promise<AuthResponse> {
 
 export function me() {
   return http<MeResponse>("/auth/me", {
-    method: "GET"
+    method: "GET",
+    headers: getAuthHeader()
   })
 }
 
 export async function signout(): Promise<void> {
   await http<void>("/auth/logout", {
     method: "POST",
-    parse: false
+    parse: false,
+    headers: getAuthHeader()
   })
   Cookies.remove("token")
 }

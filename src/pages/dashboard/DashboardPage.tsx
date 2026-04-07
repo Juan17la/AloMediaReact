@@ -1,131 +1,210 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { Plus, Film, Search, ChevronRight, Clock, Users, Sparkles } from "lucide-react";
-import Navbar from "../../components/Navbar";
-import PrimaryButton from "../../components/PrimaryButton";
-import ActionCard from "../../components/ActionCard";
-import { OwnProjectsList } from "../../components/projects/OwnProjectsList";
-import { SharedProjectsList } from "../../components/projects/SharedProjectsList";
+import { ChevronDown, Plus, Sparkles } from "lucide-react";
+import DashboardProjects from "../../components/dashboard/DashboardProjects";
+import DashboardSidebar from "../../components/dashboard/DashboardSidebar";
+import UserMenuModal from "../../components/UserMenuModal";
+import { useAuth } from "../../hooks/useAuth";
+import { useProjectListStore } from "../../store/projectListStore";
+import type { ApiProject } from "../../types/projectApiTypes";
 
-const QUICK_ACTIONS = [
-  { icon: Film, label: "Import Media", desc: "Upload video, audio or images" },
-  { icon: Sparkles, label: "Templates", desc: "Start from a pre-made template" },
-  { icon: Search, label: "Browse Stock", desc: "Find royalty-free assets" },
-];
+const EMPTY_PROJECTS: ApiProject[] = [];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [workspace, setWorkspace] = useState("AloMedia Team");
+  const ongoingSectionRef = useRef<HTMLDivElement>(null);
+  const sharedSectionRef = useRef<HTMLDivElement>(null);
+
+  const ownProjects = useProjectListStore(s => s.ownCache[0]?.content ?? EMPTY_PROJECTS);
+  const sharedProjects = useProjectListStore(s => s.sharedCache[0]?.content ?? EMPTY_PROJECTS);
+  const ownLoading = useProjectListStore(s => s.isLoadingOwn);
+  const sharedLoading = useProjectListStore(s => s.isLoadingShared);
+  const ownError = useProjectListStore(s => s.ownError);
+  const sharedError = useProjectListStore(s => s.sharedError);
+
+  useEffect(() => {
+    const { fetchOwn, fetchShared } = useProjectListStore.getState();
+    fetchOwn(0);
+    fetchShared(0);
+  }, []);
+
+  const userInitials = useMemo(() => {
+    if (!user) return "AL";
+    return `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase() || "AL";
+  }, [user]);
+
+  async function handleLogout() {
+    await logout();
+    navigate("/auth/login");
+  }
+
+  function refreshProjects() {
+    const { fetchOwn, fetchShared } = useProjectListStore.getState();
+    fetchOwn(0);
+    fetchShared(0);
+  }
+
+  function handleOpenProject(id: number) {
+    navigate(`/editor/${id}`);
+  }
+
+  function handleAdminDashboard() {
+    setAccountOpen(false);
+    navigate("/admin");
+  }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans relative">
-      {/* Background layers */}
-      <div className="fixed inset-0 bg-dark" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(122,26,26,0.12)_0%,transparent_60%)]" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(45,10,20,0.15)_0%,transparent_50%)]" />
-      {/* Atmospheric accent glow — upper-right edge */}
-      <div className="fixed -top-[10%] -right-[5%] w-130 h-130 rounded-full bg-blood-red/8 blur-[120px] pointer-events-none" />
-      {/* Secondary glow — lower-left edge */}
-      <div className="fixed -bottom-[8%] -left-[5%] w-105 h-105 rounded-full bg-burgundy/10 blur-[100px] pointer-events-none" />
+    <div className="relative min-h-screen overflow-hidden bg-[#080a0d] text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(122,26,26,0.18)_0%,transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(45,10,20,0.26)_0%,transparent_55%)]" />
 
-      <Navbar />
+      <DashboardSidebar
+        onNewProject={() => navigate("/editor/new")}
+        onConfig={() => setAccountOpen(true)}
+        onScrollOngoing={() => ongoingSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        onScrollShared={() => sharedSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        onMobileMenu={() => setMobileMenuOpen(true)}
+      />
 
-      {/* Main Content */}
-      <main className="relative z-10 flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-6 sm:px-10 py-8 space-y-10">
-
-          {/* Hero / Create Section */}
-          <section className="animate-fade-in">
-            <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-burgundy-deep via-blood-red/40 to-dark-surface border border-dark-border/50 p-8 sm:p-12 z-10">
-              <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-blood-red/15 blur-[100px] pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-60 h-60 rounded-full bg-burgundy/20 blur-[80px] pointer-events-none" />
-
-              <div className="relative flex flex-col md:flex-row items-center gap-8">
-                <div className="flex-1 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-accent-red" />
-                    <span className="text-accent-red text-sm font-semibold uppercase tracking-widest">
-                      Create
-                    </span>
-                  </div>
-                  <h2 className="text-3xl sm:text-4xl font-bold text-accent-white leading-tight">
-                    Start Your Next
-                    <br />
-                    <span className="text-gradient-red">Masterpiece</span>
-                  </h2>
-                  <p className="text-muted-light text-sm leading-relaxed max-w-md">
-                    Import your footage, apply effects, and export stunning videos — all from your browser.
-                  </p>
-                  <PrimaryButton
-                    icon={Plus}
-                    size="lg"
-                    onClick={() => navigate("/editor/new")}
-                    className="shadow-lg shadow-blood-red/25 active:scale-[0.99]"
-                  >
-                    New Project
-                  </PrimaryButton>
-                </div>
-
-                {/* Decorative card */}
-                <div className="hidden md:flex items-center justify-center w-64 h-44">
-                  <div className="w-full h-full bg-dark-card/60 border border-glass-border rounded-2xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm">
-                    <div className="w-14 h-14 rounded-2xl bg-dark-elevated/80 flex items-center justify-center">
-                      <Film className="w-7 h-7 text-blood-red" />
-                    </div>
-                    <span className="text-muted text-xs font-medium">Drag & drop or click to start</span>
-                  </div>
-                </div>
+      {mobileMenuOpen ? (
+        <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
+          <div
+            className="auth-glass-card absolute left-0 top-0 h-full w-72 border-r border-white/10 p-4"
+            style={{ borderRadius: 0 }}
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between border-b border-white/8 pb-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/40">Dashboard</p>
+                <h2 className="mt-1 text-base font-semibold text-white/90">Menu</h2>
               </div>
-            </div>
-          </section>
-
-          {/* My Projects */}
-          <section className="animate-slide-up [animation-delay:0.1s]">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <Clock className="w-5 h-5 text-accent-red" />
-                <h2 className="text-xl font-bold text-accent-white tracking-wide">
-                  My Projects
-                </h2>
-              </div>
-              <a
-                href="#"
-                className="flex items-center gap-1 text-muted hover:text-accent-white text-sm font-medium transition-colors duration-200 group"
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-sm border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70"
               >
-                View All
-                <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </a>
+                Close
+              </button>
             </div>
-            <OwnProjectsList />
-          </section>
 
-          {/* Shared With Me */}
-          <section className="animate-slide-up [animation-delay:0.15s]">
-            <div className="flex items-center gap-3 mb-6">
-              <Users className="w-5 h-5 text-accent-red" />
-              <h2 className="text-xl font-bold text-accent-white tracking-wide">
-                Shared With Me
-              </h2>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate("/editor/new");
+                }}
+                className="w-full rounded-sm border border-white/8 bg-white/5 px-3 py-3 text-left text-sm text-white/85"
+              >
+                New project
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  ongoingSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="w-full rounded-sm border border-white/8 bg-white/5 px-3 py-3 text-left text-sm text-white/85"
+              >
+                Ongoing projects
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  sharedSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="w-full rounded-sm border border-white/8 bg-white/5 px-3 py-3 text-left text-sm text-white/85"
+              >
+                Shared with me
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setAccountOpen(true);
+                }}
+                className="w-full rounded-sm border border-white/8 bg-white/5 px-3 py-3 text-left text-sm text-white/85"
+              >
+                Account
+              </button>
             </div>
-            <SharedProjectsList />
-          </section>
+          </div>
+        </div>
+      ) : null}
 
-          {/* Quick Actions */}
-          <section className="animate-slide-up pb-8 [animation-delay:0.2s]">
-            <h2 className="text-xl font-bold text-accent-white tracking-wide mb-6">
-              Quick Actions
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              {QUICK_ACTIONS.map((action) => (
-                <ActionCard
-                  key={action.label}
-                  icon={action.icon}
-                  label={action.label}
-                  description={action.desc}
+      <main className="relative z-10 px-4 pb-10 pt-16 lg:pl-16 lg:pr-6 lg:pt-4">
+        <div className="mx-auto max-w-7xl space-y-5">
+          <header className="flex items-center justify-between border-b border-white/8 pb-3">
+            <div>
+              <h2 className="text-lg font-semibold text-white/90 sm:text-xl">Creative Studio Dashboard</h2>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-3">
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setAccountOpen(prev => !prev)}
+                  className="flex h-9 w-9 items-center justify-center rounded-sm border border-white/10 bg-white/5 text-sm font-bold text-white"
+                  aria-label="Open account menu"
+                >
+                  {userInitials}
+                </button>
+
+                <UserMenuModal
+                  isOpen={accountOpen}
+                  user={user}
+                  onClose={() => setAccountOpen(false)}
+                  onLogout={handleLogout}
+                  onAdminDashboard={handleAdminDashboard}
                 />
-              ))}
+              </div>
             </div>
+          </header>
+
+          <section className="auth-glass-card rounded-md px-5 py-5 sm:px-6 sm:py-6">
+            <div className="flex items-center gap-2 text-accent-red">
+              <Sparkles className="h-4 w-4" />
+              <span className="text-xs font-semibold uppercase tracking-[0.16em]">Create faster</span>
+            </div>
+            <h1 className="mt-3 text-2xl font-extrabold tracking-[-0.02em] text-gradient-red sm:text-3xl">
+              Simply edit your videos and export with confidence.
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-white/55">
+              Start a new project in one click and continue your ongoing work from the lists below.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => navigate("/editor/new")}
+              className="auth-btn-primary mt-5 inline-flex items-center gap-2 rounded-md bg-linear-to-r from-blood-red to-crimson px-4 py-2.5 text-sm font-semibold text-white"
+            >
+              <Plus className="h-4 w-4" />
+              New Project
+            </button>
           </section>
+
+          <DashboardProjects
+            ownProjects={ownProjects}
+            sharedProjects={sharedProjects}
+            ownLoading={ownLoading}
+            sharedLoading={sharedLoading}
+            ownError={ownError}
+            sharedError={sharedError}
+            onOpenProject={handleOpenProject}
+            onRefresh={refreshProjects}
+            userId={user?.id}
+            ongoingRef={ongoingSectionRef}
+            sharedRef={sharedSectionRef}
+          />
         </div>
       </main>
+
     </div>
   );
 }

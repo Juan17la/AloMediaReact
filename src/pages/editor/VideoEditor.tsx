@@ -22,6 +22,7 @@ import { ApiError } from "../../api/errors"
 import { MediaRelinkDialog } from "../../components/editor/MediaRelinkDialog"
 import { saveFileToCache, evictExpiredEntries } from "../../services/fileCacheService"
 import { EditorErrorBoundary } from "../../components/editor/EditorErrorBoundary"
+import AloMediaLogo from "../../assets/AloMediaLogo.webp"
 
 export default function VideoEditor() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -240,12 +241,12 @@ export default function VideoEditor() {
         }}
       >
         {/* Logo */}
-        <div className="flex items-center shrink-0 px-3 h-full border-r border-r-dark-border">
+        <div className="flex items-center shrink-0 px-3 w-32 h-full border-r border-r-dark-border">
           <a
             href="/"
             className="font-bold text-[13px] tracking-[0.15em] text-accent-red"
           >
-            ALO
+            <img src={AloMediaLogo} alt="alomedialogo" className="w-full h-full"/>
           </a>
         </div>
 

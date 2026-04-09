@@ -1,0 +1,231 @@
+import { useMemo, type Ref } from "react";
+import { ArrowRight, Film, RefreshCw, CalendarDays, Play } from "lucide-react";
+import type { ApiProject } from "../../types/projectApiTypes";
+
+interface DashboardProjectsProps {
+  ownProjects: ApiProject[];
+  sharedProjects: ApiProject[];
+  ownLoading: boolean;
+  sharedLoading: boolean;
+  ownError: string | null;
+  sharedError: string | null;
+  onOpenProject: (id: number) => void;
+  onRefresh: () => void;
+  userId?: number;
+  ongoingRef?: Ref<HTMLDivElement>;
+  sharedRef?: Ref<HTMLDivElement>;
+}
+
+const CARD_TONES = [
+  "from-blood-red/45 via-dark-card to-dark-elevated",
+  "from-dark-elevated via-burgundy/55 to-dark-card",
+  "from-crimson/45 via-dark-card to-dark-elevated",
+];
+
+function formatDate(value: string): string {
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatRelative(value: string): string {
+  const diff = Date.now() - new Date(value).getTime();
+  const days = Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)));
+  if (days === 0) return "Updated today";
+  if (days === 1) return "Updated 1 day ago";
+  return `Updated ${days} days ago`;
+}
+
+function progressFromProject(project: ApiProject, index: number): string {
+  const seed = project.id * 29 + index * 11 + project.updatedAt.length;
+  const value = 18 + (seed % 68);
+  return `${Math.min(value, 92)}%`;
+}
+
+function ProjectStripCard({
+  project,
+  index,
+  onOpenProject,
+}: {
+  project: ApiProject;
+  index: number;
+  onOpenProject: (id: number) => void;
+}) {
+  const tone = CARD_TONES[index % CARD_TONES.length];
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenProject(project.id)}
+      className="group flex w-64 shrink-0 flex-col overflow-hidden rounded-md border border-white/8 bg-white/4 text-left transition-colors duration-200 hover:border-blood-red/30 hover:bg-white/6 sm:w-72 lg:w-80"
+    >
+      <div className="relative aspect-16/10 overflow-hidden border-b border-white/8 bg-linear-to-br">
+        <div className={["absolute inset-0 bg-linear-to-br", tone].join(" ")} />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex h-12 w-12 items-center justify-center border border-white/10 bg-black/25 text-white/90 transition-transform duration-200 group-hover:scale-105">
+            <Play className="ml-0.5 h-5 w-5" />
+          </div>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent p-3">
+          <p className="truncate text-sm font-semibold text-white">{project.name}</p>
+          <p className="mt-1 text-[11px] text-white/60">{formatRelative(project.updatedAt)}</p>
+        </div>
+      </div>
+
+      <div className="space-y-2 px-3 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="truncate text-sm font-semibold text-white/90">{project.name}</span>
+        </div>
+        <div className="flex items-center justify-between text-xs text-white/50">
+          <span>{formatDate(project.updatedAt)}</span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function SharedRow({
+  project,
+  index,
+  onOpenProject,
+  userId,
+}: {
+  project: ApiProject;
+  index: number;
+  onOpenProject: (id: number) => void;
+  userId?: number;
+}) {
+  const progress = progressFromProject(project, index);
+  const owner = userId != null && project.ownerId === userId ? "You" : `Owner #${project.ownerId}`;
+  const tone = CARD_TONES[(index + 1) % CARD_TONES.length];
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenProject(project.id)}
+      className="group flex w-full items-center gap-4 rounded-sm border border-white/8 bg-white/4 px-3 py-3 text-left transition-colors duration-200 hover:border-blood-red/30 hover:bg-white/6"
+    >
+      <div className={["h-12 w-18 shrink-0 border border-white/8 bg-linear-to-br", tone].join(" ")}>
+        <div className="flex h-full items-center justify-center">
+          <Film className="h-4.5 w-4.5 text-white/90" />
+        </div>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white/95">{project.name}</p>
+            <p className="mt-0.5 text-xs text-white/50">{owner}</p>
+          </div>
+          <div className="hidden items-center gap-2 text-xs text-white/45 md:flex">
+            <CalendarDays className="h-3.5 w-3.5" />
+            {formatDate(project.updatedAt)}
+          </div>
+        </div>
+        <div className="mt-2 h-1 overflow-hidden bg-white/8">
+          <div className="h-full bg-blood-red/80" style={{ width: progress }} />
+        </div>
+      </div>
+
+      <ArrowRight className="h-4 w-4 text-white/35" />
+    </button>
+  );
+}
+
+export default function DashboardProjects({
+  ownProjects,
+  sharedProjects,
+  ownLoading,
+  sharedLoading,
+  ownError,
+  sharedError,
+  onOpenProject,
+  onRefresh,
+  userId,
+  ongoingRef,
+  sharedRef,
+}: DashboardProjectsProps) {
+  const ownSkeletons = useMemo(() => Array.from({ length: 3 }), []);
+  const sharedSkeletons = useMemo(() => Array.from({ length: 3 }), []);
+
+  return (
+    <div className="space-y-8">
+      <section ref={ongoingRef} className="space-y-3">
+        <div className="flex items-center justify-between gap-3 border-b border-white/8 pb-2">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">Ongoing projects</p>
+            <h2 className="mt-1 text-lg font-semibold text-white/90">Continue working</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="flex items-center gap-2 rounded-sm border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75 transition-colors duration-200 hover:border-blood-red/30 hover:bg-white/8"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </button>
+        </div>
+
+        {ownLoading && ownProjects.length === 0 ? (
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {ownSkeletons.map((_, index) => (
+              <div key={index} className="w-64 shrink-0 rounded-md border border-white/8 bg-white/4 sm:w-72 lg:w-80">
+                <div className="aspect-16/10 bg-white/5" />
+                <div className="space-y-2 px-3 py-3">
+                  <div className="h-3 w-2/3 bg-white/8" />
+                  <div className="h-1 bg-white/8" />
+                  <div className="h-2 w-1/3 bg-white/8" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : ownError && ownProjects.length === 0 ? (
+          <p className="rounded-sm border border-white/8 bg-white/4 px-3 py-3 text-sm text-red-300">{ownError}</p>
+        ) : ownProjects.length === 0 ? (
+          <p className="px-1 py-2 text-sm text-white/50">No ongoing projects yet.</p>
+        ) : (
+          <div className="overflow-x-auto pb-2">
+            <div className="flex gap-3 pr-1">
+              {ownProjects.map((project, index) => (
+                <ProjectStripCard key={project.id} project={project} index={index} onOpenProject={onOpenProject} />
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section ref={sharedRef} className="space-y-3">
+        <div className="border-b border-white/8 pb-2">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">Shared with me</p>
+          <h2 className="mt-1 text-lg font-semibold text-white/90">Collaborative work</h2>
+        </div>
+
+        {sharedLoading && sharedProjects.length === 0 ? (
+          <div className="space-y-2">
+            {sharedSkeletons.map((_, index) => (
+              <div key={index} className="flex items-center gap-3 rounded-sm border border-white/8 bg-white/4 px-3 py-3">
+                <div className="h-12 w-18 bg-white/5" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="h-3 w-1/2 bg-white/8" />
+                  <div className="h-1 bg-white/8" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : sharedError && sharedProjects.length === 0 ? (
+          <p className="rounded-sm border border-white/8 bg-white/4 px-3 py-3 text-sm text-red-300">{sharedError}</p>
+        ) : sharedProjects.length === 0 ? (
+          <p className="px-1 py-2 text-sm text-white/50">Nothing has been shared with you yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {sharedProjects.map((project, index) => (
+              <SharedRow key={project.id} project={project} index={index} onOpenProject={onOpenProject} userId={userId} />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}

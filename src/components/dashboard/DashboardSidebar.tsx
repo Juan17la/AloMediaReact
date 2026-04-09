@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import favicon from "../../../public/favicon.webp";
+import favicon from "/favicon.webp";
 import { FolderKanban, Menu, Plus, Users } from "lucide-react";
 
 export interface DashboardSidebarProps {

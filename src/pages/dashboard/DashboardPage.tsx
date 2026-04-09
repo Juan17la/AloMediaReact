@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { ChevronDown, Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import DashboardProjects from "../../components/dashboard/DashboardProjects";
 import DashboardSidebar from "../../components/dashboard/DashboardSidebar";
 import UserMenuModal from "../../components/UserMenuModal";
 import { useAuth } from "../../hooks/useAuth";
 import { useProjectListStore } from "../../store/projectListStore";
 import type { ApiProject } from "../../types/projectApiTypes";
+import AloMediaLogo from "../../assets/AloMediaLogo.webp";
 
 const EMPTY_PROJECTS: ApiProject[] = [];
 
@@ -15,7 +16,6 @@ export default function DashboardPage() {
   const { user, logout } = useAuth();
   const [accountOpen, setAccountOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [workspace, setWorkspace] = useState("AloMedia Team");
   const ongoingSectionRef = useRef<HTMLDivElement>(null);
   const sharedSectionRef = useRef<HTMLDivElement>(null);
 
@@ -64,7 +64,6 @@ export default function DashboardPage() {
 
       <DashboardSidebar
         onNewProject={() => navigate("/editor/new")}
-        onConfig={() => setAccountOpen(true)}
         onScrollOngoing={() => ongoingSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
         onScrollShared={() => sharedSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
         onMobileMenu={() => setMobileMenuOpen(true)}
@@ -140,8 +139,9 @@ export default function DashboardPage() {
       <main className="relative z-10 px-4 pb-10 pt-16 lg:pl-16 lg:pr-6 lg:pt-4">
         <div className="mx-auto max-w-7xl space-y-5">
           <header className="flex items-center justify-between border-b border-white/8 pb-3">
-            <div>
-              <h2 className="text-lg font-semibold text-white/90 sm:text-xl">Creative Studio Dashboard</h2>
+            <div className="flex items-center">
+              <img src={AloMediaLogo} alt="alomedialogo" className="h-15 mr-3"/>
+              <h2 className="text-2xl font-semibold text-white/90 sm:text-2xl">Dashboard</h2>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">

@@ -20,7 +20,7 @@ const NAV_LINKS: NavLink[] = [
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   async function handleLogout() {
@@ -86,6 +86,7 @@ export default function Navbar() {
                 isOpen={userMenuOpen}
                 onClose={() => setUserMenuOpen(false)}
                 onLogout={handleLogout}
+                user={user}
               />
             </div>
           </div>

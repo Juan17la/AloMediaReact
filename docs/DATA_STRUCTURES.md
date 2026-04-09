@@ -1,184 +1,161 @@
-# Data Structures Catalogue
+# Data Structures Guide
 
-## Objetivo
+This document describes the important structures in AloMedia using classic data-structure names from standard CS books: arrays, lists, stacks, dictionaries, sets, and indexes. It also notes where the code does not use a true linked list, tree, or queue.
 
-Documentar estructuras de datos implementadas, su responsabilidad y su lugar dentro del sistema.
+## Page 1. Arrays and Lists
 
-## Criterio de clasificacion
+These are the most common structures in the codebase. They store ordered editor data.
 
-1. Estructuras de dominio.
-2. Estructuras de estado.
-3. Estructuras de ejecucion.
-4. Estructuras de integracion.
+- Project tracks
+  - File: [src/project/projectTypes.ts](../src/project/projectTypes.ts), [src/store/slices/projectSlice.ts](../src/store/slices/projectSlice.ts)
+  - Classic data structure: array / list
+  - Explanation: `Project.tracks` is an ordered array of track objects.
 
-## Estructuras de dominio
+- Track clips
+  - File: [src/project/projectTypes.ts](../src/project/projectTypes.ts), [src/store/slices/projectSlice.ts](../src/store/slices/projectSlice.ts)
+  - Classic data structure: array / list
+  - Explanation: `Track.clips` is an ordered array of clip objects.
 
-1. MediaType
-- Rol: taxonomia de archivos importados.
-- Dominio: multimedia.
+- Project media
+  - File: [src/project/projectTypes.ts](../src/project/projectTypes.ts), [src/store/slices/projectSlice.ts](../src/store/slices/projectSlice.ts)
+  - Classic data structure: array / list
+  - Explanation: `Project.media` stores imported assets in a plain list.
 
-2. TrackType
-- Rol: clasificacion de pistas de timeline.
-- Dominio: composicion temporal.
+- Clip groups
+  - File: [src/project/projectTypes.ts](../src/project/projectTypes.ts), [src/store/slices/uiSlice.ts](../src/store/slices/uiSlice.ts)
+  - Classic data structure: list of IDs
+  - Explanation: `ClipGroup.memberClipIds` is an array that stores the members of a group.
 
-3. Media
-- Rol: metadata de asset.
-- Dominio: catalogo de medios del proyecto.
+- Selection lists
+  - File: [src/store/slices/uiSlice.ts](../src/store/slices/uiSlice.ts)
+  - Classic data structure: list
+  - Explanation: `selectedClipIds` is the multi-selection list used by the editor.
 
-4. Transform
-- Rol: geometria visual por clip.
-- Dominio: composicion en canvas.
+- Render segments
+  - File: [src/project/projectTypes.ts](../src/project/projectTypes.ts), [src/engine/renderPipeline.ts](../src/engine/renderPipeline.ts)
+  - Classic data structure: array / list
+  - Explanation: `RenderJob.segments` is a sequential list of export items.
 
-5. ColorAdjustments
-- Rol: ajustes de color por clip.
-- Dominio: postproceso visual.
+## Page 2. Stacks
 
-6. AudioConfig
-- Rol: parametros de mezcla y balance por clip.
-- Dominio: audio por segmento.
+The code uses a stack pattern for undo and redo.
 
-7. BaseClip
-- Rol: contrato temporal comun.
-- Dominio: timeline.
+- History stack
+  - File: [src/store/slices/historySlice.ts](../src/store/slices/historySlice.ts)
+  - Classic data structure: stack
+  - Explanation: `history: HistoryEntry[]` stores snapshots, and `historyIndex` acts like a stack cursor.
 
-8. VideoClip
-- Rol: segmento audiovisual con transform y color.
-- Dominio: composicion visual y sonora.
+- Undo / redo snapshots
+  - File: [src/project/projectTypes.ts](../src/project/projectTypes.ts), [src/store/slices/historySlice.ts](../src/store/slices/historySlice.ts)
+  - Classic data structure: stack of snapshots
+  - Explanation: Each `HistoryEntry` is a saved project state that can be restored.
 
-9. AudioClip
-- Rol: segmento sonoro puro.
-- Dominio: timeline de audio.
+## Page 3. Dictionaries and Maps
 
-10. ImageClip
-- Rol: segmento visual estatico con duracion en timeline.
-- Dominio: composicion de imagen.
+These structures are used when the code needs fast lookup by ID.
 
-11. TextClip
-- Rol: segmento de contenido textual.
-- Dominio: overlays de texto.
+- fileMap
+  - File: [src/store/slices/projectSlice.ts](../src/store/slices/projectSlice.ts)
+  - Classic data structure: dictionary / map
+  - Explanation: It maps a media ID to the corresponding File object.
 
-12. Clip (union discriminada)
-- Rol: unificar operaciones comunes y variantes por tipo.
-- Dominio: modelo central del editor.
+- Proxy state map
+  - File: [src/store/slices/proxySlice.ts](../src/store/slices/proxySlice.ts)
+  - Classic data structure: dictionary / map
+  - Explanation: `proxyMap` stores proxy status by media ID.
 
-13. Track
-- Rol: contenedor ordenado de clips.
-- Dominio: timeline multipista.
+- Clip lookup by ID
+  - File: [src/store/slices/uiSlice.ts](../src/store/slices/uiSlice.ts), [src/store/slices/projectSlice.ts](../src/store/slices/projectSlice.ts)
+  - Classic data structure: dictionary-like search over arrays
+  - Explanation: The code usually searches clips in arrays by `clip.id` rather than using a dedicated hash table.
 
-14. Project
-- Rol: agregado raiz serializable.
-- Dominio: edicion completa.
+## Page 4. Sets
 
-15. SavedProject
-- Rol: envelope de persistencia con versionado y timestamps.
-- Dominio: import/export de proyecto.
+Sets are used when uniqueness matters more than order.
 
-16. HistoryEntry
-- Rol: snapshot con descripcion de accion.
-- Dominio: undo/redo.
+- Unique clip IDs during selection cleanup
+  - File: [src/store/slices/uiSlice.ts](../src/store/slices/uiSlice.ts)
+  - Classic data structure: set
+  - Explanation: The code uses `Set<string>` to remove duplicate clip IDs and validate membership.
 
-17. RenderSegment
-- Rol: unidad normalizada para motor de render.
-- Dominio: exportacion.
+- Unique media IDs or existing IDs during validation
+  - File: [src/store/slices/projectSlice.ts](../src/store/slices/projectSlice.ts)
+  - Classic data structure: set
+  - Explanation: Sets are used to test whether an ID exists without duplicating entries.
 
-18. RenderJob
-- Rol: contrato total de export.
-- Dominio: orquestacion FFmpeg.
+## Page 5. Sorted Arrays and Indexes
 
-## Estructuras de estado
+These are used for fast time-based lookup.
 
-19. EditorStore
-- Rol: composicion de slices del editor.
-- Dominio: estado global reactivo.
+- ClipIndex boundaries
+  - File: [src/utils/clipIndex.ts](../src/utils/clipIndex.ts)
+  - Classic data structure: sorted array
+  - Explanation: `boundaries: number[]` stores sorted timeline points.
 
-20. ProjectSlice
-- Rol: mutaciones de media, clips, tracks y carga de proyecto.
-- Dominio: logica de negocio de edicion.
+- ClipIndex segments
+  - File: [src/utils/clipIndex.ts](../src/utils/clipIndex.ts)
+  - Classic data structure: indexed table / sparse map
+  - Explanation: `segments: Map<number, Clip[]>` stores the clips active between two boundaries.
 
-21. PlaybackSlice
-- Rol: playhead y estado de reproduccion.
-- Dominio: control temporal.
+- Active clip lookup
+  - File: [src/utils/clipIndex.ts](../src/utils/clipIndex.ts)
+  - Classic data structure: search index
+  - Explanation: `lookupActiveClips` uses binary search over the sorted boundary array.
 
-22. UiSlice
-- Rol: seleccion, zoom, clipboard y utilidades de interaccion.
-- Dominio: estado de interfaz.
+## Page 6. Trees, Linked Lists, and Queues
 
-23. HistorySlice
-- Rol: pila de estados para deshacer y rehacer.
-- Dominio: versionado in-memory.
+These are important textbook structures, but they are not explicitly implemented as custom structures in this codebase.
 
-24. ProxySlice y ProxyState
-- Rol: seguimiento de estado de proxies por media.
-- Dominio: preview optimizada.
+- Trees
+  - File: none as a dedicated custom structure
+  - Classic data structure: tree
+  - Explanation: The app does not model the timeline or project as a tree. It uses arrays, objects, and maps instead.
 
-## Estructuras de ejecucion
+- Linked lists
+  - File: none as a dedicated custom structure
+  - Classic data structure: linked list
+  - Explanation: There is no explicit linked-list implementation. Ordered data is stored in arrays.
 
-25. fileMap
-- Tipo: mapa mediaId a File.
-- Rol: asociar identidad logica con archivo binario real.
-- Dominio: puente editor-player-engine.
+- Queues
+  - File: none as a dedicated custom structure
+  - Classic data structure: queue
+  - Explanation: The code does not use a dedicated queue structure for the editor state.
 
-26. missingMediaIds
-- Tipo: conjunto.
-- Rol: registrar medios no resueltos al cargar proyecto.
-- Dominio: resiliencia de carga.
+## Page 7. Objects and Records
 
-27. idbResolvedMediaIds
-- Tipo: conjunto.
-- Rol: marcar medios recuperados desde cache local.
-- Dominio: diagnositico de recuperacion.
+Some structures are plain objects, which are also important in the code.
 
-28. ClipIndex
-- Tipo: fronteras temporales + segmentos.
-- Rol: acelerar busqueda de clips activos por playhead.
-- Dominio: sincronizacion de reproduccion.
+- Project object
+  - File: [src/project/projectTypes.ts](../src/project/projectTypes.ts)
+  - Classic data structure: record / object
+  - Explanation: `Project` is a plain object with named fields.
 
-29. Audio pool
-- Tipo: mapa trackId a elemento HTMLAudioElement.
-- Rol: administrar audio por pista de forma incremental.
-- Dominio: playback de audio.
+- Clip objects
+  - File: [src/project/projectTypes.ts](../src/project/projectTypes.ts)
+  - Classic data structure: record / object
+  - Explanation: Each clip variant is an object with fields, not a class with methods.
 
-30. VideoBufferManager
-- Tipo: gestor de estado de doble buffer.
-- Rol: controlar preload y swap de video.
-- Dominio: playback de video.
+- History entries
+  - File: [src/project/projectTypes.ts](../src/project/projectTypes.ts)
+  - Classic data structure: record / object
+  - Explanation: Each history item is a simple object with a project snapshot and description.
 
-31. RafLoopHandle
-- Tipo: controlador start/stop de loop temporal.
-- Rol: avance continuo de playhead.
-- Dominio: reloj del player.
+## Page 8. Important Rules
 
-## Estructuras de integracion
+These rules explain how the structures behave in practice.
 
-32. ApiError
-- Rol: error tipado con status y campos.
-- Dominio: capa de transporte HTTP.
+- Time values are normalized
+  - File: [src/utils/time.ts](../src/utils/time.ts), [src/project/projectTypes.ts](../src/project/projectTypes.ts)
+  - Explanation: The app rounds timeline values to millisecond precision.
 
-33. FieldError
-- Rol: error de validacion por campo.
-- Dominio: formularios y feedback de API.
+- Clip IDs are the real identity
+  - File: [src/project/projectTypes.ts](../src/project/projectTypes.ts), [src/components/editor/Clip.tsx](../src/components/editor/Clip.tsx)
+  - Explanation: Two clips can use the same media file, but they still need different clip IDs.
 
-34. CacheRecord
-- Rol: unidad persistida en IndexedDB para archivo por hash.
-- Dominio: cache local de medios.
+- Undo and redo use snapshots
+  - File: [src/store/slices/historySlice.ts](../src/store/slices/historySlice.ts)
+  - Explanation: The history system restores full project states instead of small diffs.
 
-35. ExportProgress
-- Rol: estado observable de avance de export por etapas.
-- Dominio: UX operativa de render.
-
-## Reglas temporales como estructura transversal
-
-36. Normalizacion a milisegundo
-- Rol: evitar drift por flotantes.
-- Dominio: timeline y playback.
-
-37. Epsilon temporal
-- Rol: tolerancia de comparacion en limites de clips.
-- Dominio: resolucion de clip activo y colisiones.
-
-## Como usar este catalogo al extender el sistema
-
-1. Si agregas una estructura de dominio, registra consumidores en store, player y engine.
-2. Si cambias contratos de export, valida impacto en filtros y progreso.
-3. Si agregas estado reactivo nuevo, confirma que no rompe rendimiento de playback.
-4. Si introduces nueva persistencia, define estrategia de migracion.
+- Transitions are normalized before export
+  - File: [src/project/transitionEdges.ts](../src/project/transitionEdges.ts), [src/project/projectSerializer.ts](../src/project/projectSerializer.ts)
+  - Explanation: Clip-level transitions are edited in the UI, but canonical transition edges are the durable form.

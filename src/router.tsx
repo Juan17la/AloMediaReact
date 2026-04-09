@@ -1,13 +1,15 @@
+import { lazy } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
-import AuthLayout from "./layouts/AuthLayout";
-import LoginPage from "./pages/auth/LoginPage";
-import RegisterPage from "./pages/auth/RegisterPage";
-import RecoverPage from "./pages/auth/RecoverPage";
-import RecoverRequestPage from "./pages/auth/RecoverRequestPage";
-import DashboardPage from "./pages/dashboard/DashboardPage";
 import PublicRoute from "./routes/PublicRoute";
 import PrivateRoute from "./routes/PrivateRoute";
-import VideoEditor from "./pages/editor/VideoEditor";
+
+const AuthLayout = lazy(() => import("./layouts/AuthLayout"));
+const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
+const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
+const RecoverPage = lazy(() => import("./pages/auth/RecoverPage"));
+const RecoverRequestPage = lazy(() => import("./pages/auth/RecoverRequestPage"));
+const DashboardPage = lazy(() => import("./pages/dashboard/DashboardPage"));
+const VideoEditor = lazy(() => import("./pages/editor/VideoEditor"));
 
 const router = createBrowserRouter([
   // Public-only routes (redirect to /dashboard if already logged in)

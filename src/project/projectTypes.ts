@@ -213,8 +213,11 @@ export interface EditorState {
   playhead: number
   timelineScale: number // px per second, default 50
   isPlaying: boolean
-  history: HistoryEntry[]
-  historyIndex: number
+  editHistory: {
+    past: HistoryEntry[]
+    present: HistoryEntry | null
+    future: HistoryEntry[]
+  }
 }
 
 export interface SavedProject {

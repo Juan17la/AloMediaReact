@@ -1,18 +1,17 @@
 import type { LucideIcon } from "lucide-react";
-import { FolderKanban, Menu, Plus, Settings, Users } from "lucide-react";
+import favicon from "../../../public/favicon.webp";
+import { FolderKanban, Menu, Plus, Users } from "lucide-react";
 
 export interface DashboardSidebarProps {
   onNewProject: () => void;
-  onConfig: () => void;
   onScrollOngoing: () => void;
   onScrollShared: () => void;
   onMobileMenu?: () => void;
 }
 
-type SidebarActionKey = "onConfig" | "onScrollShared" | "onScrollOngoing" | "onNewProject";
+type SidebarActionKey = "onScrollShared" | "onScrollOngoing" | "onNewProject";
 
 const ACTIONS: Array<{ icon: LucideIcon; label: string; onKey: SidebarActionKey }> = [
-  { icon: Settings, label: "Config", onKey: "onConfig" },
   { icon: FolderKanban, label: "My projects", onKey: "onScrollOngoing" },
   { icon: Users, label: "Shared", onKey: "onScrollShared" },
   { icon: Plus, label: "New project", onKey: "onNewProject" },
@@ -20,14 +19,12 @@ const ACTIONS: Array<{ icon: LucideIcon; label: string; onKey: SidebarActionKey 
 
 export default function DashboardSidebar({
   onNewProject,
-  onConfig,
   onScrollOngoing,
   onScrollShared,
   onMobileMenu,
 }: DashboardSidebarProps) {
   const actionMap = {
     onNewProject,
-    onConfig,
     onScrollOngoing,
     onScrollShared,
     onMobileMenu,
@@ -37,7 +34,9 @@ export default function DashboardSidebar({
     <>
       <aside className="fixed left-0 top-0 z-30 hidden h-screen w-16 border-r border-white/8 bg-black/30 backdrop-blur-2xl lg:flex">
         <div className="flex h-full w-full flex-col items-center py-4">
-          <div className="mb-3 h-10 w-10 rounded-sm border border-dashed border-white/15 bg-white/3" aria-hidden="true" />
+          <div className="mb-3 h-10 w-10 rounded-sm border border-dashed border-white/15 bg-white/3 p-1" aria-hidden="true">
+            <img src={favicon} alt="icon" />
+          </div>
 
           <div className="mt-2 flex flex-col items-center gap-2">
             {ACTIONS.map(({ icon: Icon, label, onKey }) => (

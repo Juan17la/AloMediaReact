@@ -11,6 +11,7 @@ import { parseSrtFile } from "../../utils/srtParser.ts"
 import { getFileFromCache } from "../../services/fileCacheService"
 import { generateProxy } from "../../engine/proxyEngine"
 import { applyCanonicalTransitionEdit, ensureCanonicalTransitionEdges } from "../../project/transitionEdges"
+import { createEditHistory } from "../../utils/editHistory"
 import type {
   AudioConfig,
   Clip,
@@ -221,8 +222,7 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     set({
       project: normalizedProject,
       proxyMap: {},
-      history: [],
-      historyIndex: -1,
+      editHistory: createEditHistory(),
       playhead: 0,
       isPlaying: false,
       selectedClipId: undefined,
@@ -995,8 +995,7 @@ export const createProjectSlice: StateCreator<EditorStore, [], [], ProjectSlice>
     set({
       project: makeInitialProject(),
       proxyMap: {},
-      history: [],
-      historyIndex: -1,
+      editHistory: createEditHistory(),
       playhead: 0,
       isPlaying: false,
       missingMediaIds: new Set(),

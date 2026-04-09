@@ -1,11 +1,16 @@
 import type { StateCreator } from "zustand"
 import { pausePlayer } from "../../hooks/usePlayer"
-import type { HistoryEntry } from "../../project/projectTypes"
 import type { EditorStore } from "../editorStore"
+import {
+  createEditHistory,
+  recordState,
+  undoHistory,
+  redoHistory,
+} from "../../utils/editHistory"
+import type { EditHistoryState } from "../../utils/editHistory"
 
 export interface HistorySlice {
-  history: HistoryEntry[]
-  historyIndex: number
+  editHistory: EditHistoryState
   /**
    * Deep-clones the current project snapshot onto the undo stack, discarding any
    * forward history. Also pauses the player as a side-effect and returns whether
@@ -21,31 +26,28 @@ function deepClone<T>(value: T): T {
 }
 
 export const createHistorySlice: StateCreator<EditorStore, [], [], HistorySlice> = (set, get) => ({
-  history: [],
-  historyIndex: -1,
+  editHistory: createEditHistory(),
 
   pushHistory(description) {
     // Stop playback loop without releasing buffers or audio graph.
     const wasPlaying = pausePlayer()
     const state = get()
-    const snapshot = deepClone(state.project)
-    const newHistory = state.history.slice(0, state.historyIndex + 1)
-    newHistory.push({ project: snapshot, description })
-    set({ history: newHistory, historyIndex: newHistory.length - 1 })
+    // Record: pushes current present onto past stack, clears future stack.
+    set({ editHistory: recordState(state.editHistory, state.project, description) })
     return wasPlaying
   },
 
   undo() {
-    const { history, historyIndex } = get()
-    if (historyIndex <= 0) return
-    const newIndex = historyIndex - 1
-    set({ project: deepClone(history[newIndex].project), historyIndex: newIndex })
+    const result = undoHistory(get().editHistory)
+    if (!result) return
+    // Pop from past stack → present; old present pushed onto future stack.
+    set({ editHistory: result, project: deepClone(result.present!.project) })
   },
 
   redo() {
-    const { history, historyIndex } = get()
-    if (historyIndex >= history.length - 1) return
-    const newIndex = historyIndex + 1
-    set({ project: deepClone(history[newIndex].project), historyIndex: newIndex })
+    const result = redoHistory(get().editHistory)
+    if (!result) return
+    // Pop from future stack → present; old present pushed onto past stack.
+    set({ editHistory: result, project: deepClone(result.present!.project) })
   },
 })

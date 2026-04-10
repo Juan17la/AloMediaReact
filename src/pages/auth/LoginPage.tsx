@@ -1,6 +1,7 @@
 import { useState, type SyntheticEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { Mail, Lock, Eye, EyeOff, Chrome, Github, AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { signIn } from "../../services/authService";
 import { ApiError } from "../../api/errors";
 import { useAuth } from "../../hooks/useAuth";
@@ -9,6 +10,7 @@ import { hashPassword } from "../../utils/passwordHash";
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t } = useTranslation("auth");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,10 +43,10 @@ export default function LoginPage() {
     <div className="auth-glass-card py-7 px-12 max-w-180 mx-auto w-full animate-slide-up">
       {/* Header */}
       <h1 className="text-3xl font-extrabold text-center mb-1 tracking-[-0.02em] text-gradient-red">
-        Welcome Back
+        {t("login.title")}
       </h1>
       <p className="text-[13px] text-white/40 text-center mb-8 tracking-wide">
-        Sign in to continue to AloMedia
+        {t("login.subtitle")}
       </p>
 
       <div className="flex flex-col sm:flex-row sm:items-stretch gap-8">
@@ -54,7 +56,7 @@ export default function LoginPage() {
           {/* Email */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="email" className="text-[13px] text-white/50 tracking-wide pl-1">
-              Email address
+              {t("login.emailLabel")}
             </label>
             <div className="relative group">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
@@ -82,7 +84,7 @@ export default function LoginPage() {
           {/* Password */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="password" className="text-[13px] text-white/50 tracking-wide pl-1">
-              Password
+              {t("login.passwordLabel")}
             </label>
             <div className="relative group">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150 pointer-events-none" />
@@ -102,7 +104,7 @@ export default function LoginPage() {
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setShowPassword((v) => !v)}
                 tabIndex={-1}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? t("common:aria.hidePassword") : t("common:aria.showPassword")}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors duration-150 cursor-pointer"
               >
                 {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -129,7 +131,7 @@ export default function LoginPage() {
             disabled={isPending}
             className="auth-btn-primary w-full bg-linear-to-r from-blood-red to-crimson text-accent-white font-semibold py-3.5 rounded-lg text-sm tracking-wide cursor-pointer"
           >
-            {isPending ? "Signing in\u2026" : "Sign In"}
+            {isPending ? t("login.submitting") : t("login.submit")}
           </button>
 
           <div className="flex items-center justify-between text-xs px-1">
@@ -137,13 +139,13 @@ export default function LoginPage() {
               to="/auth/recover/request"
               className="text-white/40 hover:text-white/60 font-bold transition-colors duration-150 underline underline-offset-2"
             >
-              Forgot Password?
+              {t("login.forgotPassword")}
             </Link>
             <a
               href="#"
               className="text-white/40 hover:text-white/60 font-bold transition-colors duration-150 underline underline-offset-2"
             >
-              Terms &amp; Conditions
+              {t("login.termsAndConditions")}
             </a>
           </div>
         </form>
@@ -156,7 +158,7 @@ export default function LoginPage() {
         {/* Right: OAuth */}
         <div className="flex flex-col gap-2.5 sm:flex-1 sm:justify-center">
           <span className="text-white/35 text-[11px] font-semibold uppercase tracking-[0.08em] text-center mb-1">
-            or continue with
+            {t("login.oauthContinue")}
           </span>
           <button
             type="button"
@@ -164,26 +166,26 @@ export default function LoginPage() {
             onClick={handleOAuthLoginGoogle}
           >
             <Chrome className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-150" />
-            Sign in with Google
+            {t("login.oauthGoogle")}
           </button>
           <button
             type="button"
             className="auth-btn-secondary flex items-center justify-center gap-3 w-full border border-dark-border text-accent-white font-semibold py-3.5 rounded-lg text-sm group cursor-pointer"
           >
             <Github className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-150" />
-            Sign in with GitHub
+            {t("login.oauthGithub")}
           </button>
         </div>
 
       </div>
 
       <p className="text-center text-white/45 text-sm mt-8">
-        Don't have an account?{" "}
+        {t("login.noAccount")}{" "}
         <Link
           to="/auth/register"
           className="text-accent-red hover:text-rose-muted font-bold transition-colors duration-150"
         >
-          Sign Up
+          {t("login.signUp")}
         </Link>
       </p>
     </div>

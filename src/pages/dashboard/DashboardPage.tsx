@@ -27,10 +27,12 @@ export default function DashboardPage() {
   const sharedError = useProjectListStore(s => s.sharedError);
 
   useEffect(() => {
-    const { fetchOwn, fetchShared } = useProjectListStore.getState();
+    const { setUserScope, fetchOwn, fetchShared } = useProjectListStore.getState();
+    setUserScope(user?.id ?? null);
+    if (!user?.id) return;
     fetchOwn(0);
     fetchShared(0);
-  }, []);
+  }, [user?.id]);
 
   const userInitials = useMemo(() => {
     if (!user) return "AL";
@@ -43,7 +45,9 @@ export default function DashboardPage() {
   }
 
   function refreshProjects() {
-    const { fetchOwn, fetchShared } = useProjectListStore.getState();
+    const { setUserScope, fetchOwn, fetchShared } = useProjectListStore.getState();
+    setUserScope(user?.id ?? null);
+    if (!user?.id) return;
     fetchOwn(0);
     fetchShared(0);
   }

@@ -1,26 +1,25 @@
 import { useNavigate } from "react-router";
 import { Plus, User, Home } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import UserMenuModal from "./UserMenuModal";
 import { useAuth } from "../hooks/useAuth";
 
 interface NavLink {
   icon: React.ComponentType<{ className?: string }>;
-  label: string;
+  labelKey: string;
   href: string;
   active?: boolean;
 }
 
-// Array of NavLink objects: each entry describes a navigation item (icon, label, href, active).
-// Iterated with .map() to render <a> elements; the active flag drives
-// conditional CSS class selection inside the loop (active vs inactive styles).
 const NAV_LINKS: NavLink[] = [
-  { icon: Home, label: "Home", href: "#", active: true },
+  { icon: Home, labelKey: "nav.home", href: "#", active: true },
 ];
 
 export default function Navbar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   async function handleLogout() {
@@ -46,7 +45,7 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-1">
               {NAV_LINKS.map((link) => (
                 <a
-                  key={link.label}
+                  key={link.labelKey}
                   href={link.href}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
                     link.active
@@ -55,7 +54,7 @@ export default function Navbar() {
                   }`}
                 >
                   <link.icon className="w-4 h-4" />
-                  {link.label}
+                  {t(link.labelKey)}
                 </a>
               ))}
             </div>
@@ -69,7 +68,7 @@ export default function Navbar() {
               className="flex items-center gap-2 bg-linear-to-r from-blood-red to-crimson hover:brightness-[0.85] active:scale-[0.97] active:brightness-[0.78] text-accent-white font-semibold text-sm py-2 px-4 rounded-xl transition-all duration-120 ease-out shadow-md shadow-blood-red/20 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New Project</span>
+              <span className="hidden sm:inline">{t("nav.newProject")}</span>
             </button>
 
             <div className="relative">

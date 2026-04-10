@@ -1,6 +1,7 @@
 import { useState, type SyntheticEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { Mail, Lock, User, Eye, EyeOff, Chrome, Github, AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { signUp } from "../../services/authService";
 import { ApiError } from "../../api/errors";
 import { useAuth } from "../../hooks/useAuth";
@@ -8,23 +9,24 @@ import { hashPassword } from "../../utils/passwordHash";
 
 function PasswordField({
   name,
-  placeholder,
+  label,
   value,
   onChange,
   hasError,
 }: {
   name: string;
-  placeholder: string;
+  label: string;
   value: string;
   onChange: (v: string) => void;
   hasError?: boolean;
 }) {
   const [show, setShow] = useState(false);
+  const { t } = useTranslation("common");
 
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={name} className="text-[13px] text-white/50 tracking-wide pl-1">
-        {placeholder}
+        {label}
       </label>
       <div className="relative group">
         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150 pointer-events-none" />
@@ -44,7 +46,7 @@ function PasswordField({
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => setShow((v) => !v)}
           tabIndex={-1}
-          aria-label={show ? "Hide password" : "Show password"}
+          aria-label={show ? t("aria.hidePassword") : t("aria.showPassword")}
           className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors duration-150 cursor-pointer"
         >
           {show ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -57,6 +59,7 @@ function PasswordField({
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t } = useTranslation("auth");
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -101,10 +104,10 @@ export default function RegisterPage() {
   return (
     <div className="auth-glass-card py-7 px-12 max-w-195 mx-auto w-full animate-slide-up">
       <h1 className="text-3xl font-extrabold text-center mb-1 tracking-[-0.02em] text-gradient-red">
-        Create Account
+        {t("register.title")}
       </h1>
       <p className="text-[13px] text-white/40 text-center mb-8 tracking-wide">
-        Join AloMedia and start creating
+        {t("register.subtitle")}
       </p>
 
       <div className="flex flex-col sm:flex-row sm:items-stretch gap-8">
@@ -114,7 +117,7 @@ export default function RegisterPage() {
           {/* Email */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="email" className="text-[13px] text-white/50 tracking-wide pl-1">
-              Email address
+              {t("register.emailLabel")}
             </label>
             <div className="relative group">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
@@ -143,7 +146,7 @@ export default function RegisterPage() {
           <div className="flex gap-3">
             <div className="flex flex-col gap-1.5 flex-1">
               <label htmlFor="firstName" className="text-[13px] text-white/50 tracking-wide pl-1">
-                First name
+                {t("register.firstNameLabel")}
               </label>
               <div className="relative group">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
@@ -169,7 +172,7 @@ export default function RegisterPage() {
 
             <div className="flex flex-col gap-1.5 flex-1">
               <label htmlFor="lastName" className="text-[13px] text-white/50 tracking-wide pl-1">
-                Last name
+                {t("register.lastNameLabel")}
               </label>
               <div className="relative group">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
@@ -198,7 +201,7 @@ export default function RegisterPage() {
           <div className="flex flex-col gap-1.5">
             <PasswordField
               name="password"
-              placeholder="Password"
+              label={t("register.passwordLabel")}
               value={password}
               onChange={(v) => { setPassword(v); setPasswordMismatch(false); }}
               hasError={!!apiError?.fieldMessage("password")}
@@ -215,7 +218,7 @@ export default function RegisterPage() {
           <div className="flex flex-col gap-1.5">
             <PasswordField
               name="confirmPassword"
-              placeholder="Confirm password"
+              label={t("register.confirmPasswordLabel")}
               value={confirmPassword}
               onChange={(v) => { setConfirmPassword(v); setPasswordMismatch(false); }}
               hasError={passwordMismatch}
@@ -223,7 +226,7 @@ export default function RegisterPage() {
             {passwordMismatch && (
               <div className="flex items-center gap-1.5 pl-1 animate-error-slide">
                 <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                <p className="text-xs text-red-400">Passwords do not match.</p>
+                <p className="text-xs text-red-400">{t("validation.passwordsMismatch")}</p>
               </div>
             )}
           </div>
@@ -241,7 +244,7 @@ export default function RegisterPage() {
             disabled={isPending}
             className="auth-btn-primary w-full bg-linear-to-r from-blood-red to-crimson text-accent-white font-semibold py-3.5 rounded-lg text-sm tracking-wide cursor-pointer"
           >
-            {isPending ? "Creating account\u2026" : "Create Account"}
+            {isPending ? t("register.submitting") : t("register.submit")}
           </button>
         </form>
 
@@ -253,7 +256,7 @@ export default function RegisterPage() {
         {/* Right: OAuth */}
         <div className="flex flex-col gap-2.5 sm:flex-1 sm:justify-center">
           <span className="text-white/35 text-[11px] font-semibold uppercase tracking-[0.08em] text-center mb-1">
-            or continue with
+            {t("register.oauthContinue")}
           </span>
           <button
             type="button"
@@ -261,26 +264,26 @@ export default function RegisterPage() {
             onClick={handleOAuthSignUpGoogle}
           >
             <Chrome className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-150" />
-            Sign up with Google
+            {t("register.oauthGoogle")}
           </button>
           <button
             type="button"
             className="auth-btn-secondary flex items-center justify-center gap-3 w-full border border-dark-border text-accent-white font-semibold py-3.5 rounded-lg text-sm group cursor-pointer"
           >
             <Github className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-150" />
-            Sign up with GitHub
+            {t("register.oauthGithub")}
           </button>
         </div>
 
       </div>
 
       <p className="text-center text-white/45 text-sm mt-8">
-        Already have an account?{" "}
+        {t("register.hasAccount")}{" "}
         <Link
           to="/auth/login"
           className="text-accent-red hover:text-rose-muted font-bold transition-colors duration-150"
         >
-          Sign In
+          {t("register.signIn")}
         </Link>
       </p>
     </div>

@@ -65,9 +65,30 @@ export default function VideoEditor() {
 
   // Load project from API when projectId is present
   useEffect(() => {
-    if (!projectId) return
-    const numericId = parseInt(projectId, 10)
-    if (isNaN(numericId)) return
+    if (!projectId || projectId === 'new') {
+      resetProject()
+      const freshProject = useEditorStore.getState().project
+      savedProjectRef.current = freshProject
+      setIsDirty(false)
+      setApiProject(null)
+      setLoadError(null)
+      setIsLoadingProject(false)
+      setTitleDraft(freshProject.name)
+      return
+    }
+
+    const numericId = Number(projectId)
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      resetProject()
+      const freshProject = useEditorStore.getState().project
+      savedProjectRef.current = freshProject
+      setIsDirty(false)
+      setApiProject(null)
+      setLoadError(null)
+      setIsLoadingProject(false)
+      setTitleDraft(freshProject.name)
+      return
+    }
 
     setIsLoadingProject(true)
     setLoadError(null)
@@ -75,9 +96,9 @@ export default function VideoEditor() {
     getProjectById(numericId)
       .then(async loaded => {
         const editorProject = deserializeTimeline(loaded.timelineData)
-        savedProjectRef.current = editorProject
-        setIsDirty(false)
         await useEditorStore.getState().loadProject(editorProject)
+        savedProjectRef.current = useEditorStore.getState().project
+        setIsDirty(false)
         setTitleDraft(editorProject.name)
         setApiProject(loaded)
       })
@@ -85,7 +106,7 @@ export default function VideoEditor() {
         setLoadError(err instanceof ApiError ? err.message : 'Failed to load project.')
       })
       .finally(() => setIsLoadingProject(false))
-  }, [projectId])
+  }, [projectId, resetProject])
 
   const missingMediaIds = useEditorStore(s => s.missingMediaIds)
 
@@ -93,6 +114,18 @@ export default function VideoEditor() {
   useEffect(() => {
     evictExpiredEntries().catch(() => { })
   }, [])
+
+  // Browser-level guard for tab close/reload/external navigation.
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isDirty) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isDirty])
 
   const { startExport, cancelExport, resetExportState, progress, isExporting } = useExport()
   useEditorKeyboardShortcuts()
@@ -120,9 +153,9 @@ export default function VideoEditor() {
     reader.onload = async ev => {
       try {
         const loaded = loadProject(ev.target?.result as string)
-        savedProjectRef.current = loaded
-        setIsDirty(false)
         await useEditorStore.getState().loadProject(loaded)
+        savedProjectRef.current = useEditorStore.getState().project
+        setIsDirty(false)
         setTitleDraft(loaded.name)
       } catch (err) {
         alert(String(err))
@@ -242,12 +275,13 @@ export default function VideoEditor() {
       >
         {/* Logo */}
         <div className="flex items-center shrink-0 px-3 w-32 h-full border-r border-r-dark-border">
-          <a
-            href="/"
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard')}
             className="font-bold text-[13px] tracking-[0.15em] text-accent-red"
           >
             <img src={AloMediaLogo} alt="alomedialogo" className="w-full h-full"/>
-          </a>
+          </button>
         </div>
 
         {/* Project title */}

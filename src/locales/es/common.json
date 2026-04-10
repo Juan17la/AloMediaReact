@@ -1,0 +1,66 @@
+{
+  "actions": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "refresh": "Actualizar",
+    "create": "Crear",
+    "open": "Abrir",
+    "undo": "Deshacer",
+    "redo": "Rehacer",
+    "copy": "Copiar",
+    "paste": "Pegar",
+    "duplicate": "Duplicar",
+    "rename": "Renombrar",
+    "share": "Compartir",
+    "export": "Exportar",
+    "import": "Importar",
+    "search": "Buscar",
+    "apply": "Aplicar",
+    "reset": "Restablecer",
+    "back": "Volver",
+    "next": "Siguiente",
+    "retry": "Reintentar"
+  },
+  "states": {
+    "loading": "Cargando\u2026",
+    "saving": "Guardando\u2026",
+    "error": "Ocurri\u00f3 un error",
+    "empty": "No hay nada aqu\u00ed a\u00fan",
+    "noResults": "Sin resultados"
+  },
+  "labels": {
+    "name": "Nombre",
+    "email": "Correo electr\u00f3nico",
+    "password": "Contrase\u00f1a",
+    "home": "Inicio",
+    "profile": "Perfil",
+    "logout": "Cerrar sesi\u00f3n",
+    "settings": "Configuraci\u00f3n",
+    "projects": "Proyectos",
+    "new": "Nuevo"
+  },
+  "nav": {
+    "home": "Inicio",
+    "newProject": "Nuevo Proyecto",
+    "adminDashboard": "Panel de Administraci\u00f3n"
+  },
+  "userMenu": {
+    "profile": "Perfil",
+    "logout": "Cerrar sesi\u00f3n",
+    "guestUser": "Usuario invitado",
+    "noActiveSession": "Sin sesi\u00f3n activa"
+  },
+  "placeholders": {
+    "search": "Buscar\u2026",
+    "email": "tu@ejemplo.com"
+  },
+  "aria": {
+    "openMenu": "Abrir men\u00fa",
+    "hidePassword": "Ocultar contrase\u00f1a",
+    "showPassword": "Mostrar contrase\u00f1a"
+  }
+}

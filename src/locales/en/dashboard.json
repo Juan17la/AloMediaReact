@@ -1,0 +1,22 @@
+{
+  "sidebar": {
+    "myProjects": "My projects",
+    "shared": "Shared",
+    "newProject": "New project"
+  },
+  "projects": {
+    "ongoingLabel": "Ongoing projects",
+    "continueWorking": "Continue working",
+    "sharedLabel": "Shared with me",
+    "collaborativeWork": "Collaborative work",
+    "noOngoing": "No ongoing projects yet.",
+    "noShared": "Nothing has been shared with you yet.",
+    "ownerYou": "You",
+    "ownerOther": "Owner #{{id}}"
+  },
+  "time": {
+    "updatedToday": "Updated today",
+    "updatedDaysAgo_one": "Updated {{count}} day ago",
+    "updatedDaysAgo_other": "Updated {{count}} days ago"
+  }
+}

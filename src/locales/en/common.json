@@ -1,0 +1,66 @@
+{
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "Confirm",
+    "refresh": "Refresh",
+    "create": "Create",
+    "open": "Open",
+    "undo": "Undo",
+    "redo": "Redo",
+    "copy": "Copy",
+    "paste": "Paste",
+    "duplicate": "Duplicate",
+    "rename": "Rename",
+    "share": "Share",
+    "export": "Export",
+    "import": "Import",
+    "search": "Search",
+    "apply": "Apply",
+    "reset": "Reset",
+    "back": "Back",
+    "next": "Next",
+    "retry": "Retry"
+  },
+  "states": {
+    "loading": "Loading\u2026",
+    "saving": "Saving\u2026",
+    "error": "An error occurred",
+    "empty": "Nothing here yet",
+    "noResults": "No results found"
+  },
+  "labels": {
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "home": "Home",
+    "profile": "Profile",
+    "logout": "Logout",
+    "settings": "Settings",
+    "projects": "Projects",
+    "new": "New"
+  },
+  "nav": {
+    "home": "Home",
+    "newProject": "New Project",
+    "adminDashboard": "Admin Dashboard"
+  },
+  "userMenu": {
+    "profile": "Profile",
+    "logout": "Logout",
+    "guestUser": "Guest user",
+    "noActiveSession": "No active session"
+  },
+  "placeholders": {
+    "search": "Search\u2026",
+    "email": "you@example.com"
+  },
+  "aria": {
+    "openMenu": "Open menu",
+    "hidePassword": "Hide password",
+    "showPassword": "Show password"
+  }
+}

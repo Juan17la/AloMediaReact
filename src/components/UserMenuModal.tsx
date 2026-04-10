@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { LogOut, Shield, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { User as AuthUser } from "../types/userTypes";
 
 interface UserMenuModalProps {
@@ -14,10 +15,11 @@ interface UserMenuModalProps {
 
 export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdminDashboard, children }: UserMenuModalProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
   const firstName = user?.firstName?.trim() ?? "";
   const lastName = user?.lastName?.trim() ?? "";
-  const fullName = `${firstName} ${lastName}`.trim() || "Guest user";
-  const userEmail = user?.email?.trim() || "No active session";
+  const fullName = `${firstName} ${lastName}`.trim() || t("userMenu.guestUser");
+  const userEmail = user?.email?.trim() || t("userMenu.noActiveSession");
   const initial = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "AL"
 
   // Close the modal when the user clicks outside of it
@@ -62,7 +64,7 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdmin
         className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer"
       >
         <User className="w-4 h-4" />
-        Profile
+        {t("userMenu.profile")}
       </button>
 
       {user?.role === "ADMIN" && onAdminDashboard ? (
@@ -72,7 +74,7 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdmin
           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer"
         >
           <Shield className="w-4 h-4" />
-          Admin Dashboard
+          {t("nav.adminDashboard")}
         </button>
       ) : null}
 
@@ -86,7 +88,7 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdmin
         className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded-md transition-colors cursor-pointer"
       >
         <LogOut className="w-4 h-4" />
-        Logout
+        {t("userMenu.logout")}
       </button>
     </div>
   );

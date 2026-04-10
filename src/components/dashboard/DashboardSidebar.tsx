@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import favicon from "/favicon.webp";
 import { FolderKanban, Menu, Plus, Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export interface DashboardSidebarProps {
   onNewProject: () => void;
@@ -11,10 +12,10 @@ export interface DashboardSidebarProps {
 
 type SidebarActionKey = "onScrollShared" | "onScrollOngoing" | "onNewProject";
 
-const ACTIONS: Array<{ icon: LucideIcon; label: string; onKey: SidebarActionKey }> = [
-  { icon: FolderKanban, label: "My projects", onKey: "onScrollOngoing" },
-  { icon: Users, label: "Shared", onKey: "onScrollShared" },
-  { icon: Plus, label: "New project", onKey: "onNewProject" },
+const ACTIONS: Array<{ icon: LucideIcon; labelKey: string; onKey: SidebarActionKey }> = [
+  { icon: FolderKanban, labelKey: "sidebar.myProjects", onKey: "onScrollOngoing" },
+  { icon: Users, labelKey: "sidebar.shared", onKey: "onScrollShared" },
+  { icon: Plus, labelKey: "sidebar.newProject", onKey: "onNewProject" },
 ];
 
 export default function DashboardSidebar({
@@ -23,6 +24,7 @@ export default function DashboardSidebar({
   onScrollShared,
   onMobileMenu,
 }: DashboardSidebarProps) {
+  const { t } = useTranslation("dashboard");
   const actionMap = {
     onNewProject,
     onScrollOngoing,
@@ -39,11 +41,11 @@ export default function DashboardSidebar({
           </div>
 
           <div className="mt-2 flex flex-col items-center gap-2">
-            {ACTIONS.map(({ icon: Icon, label, onKey }) => (
+            {ACTIONS.map(({ icon: Icon, labelKey, onKey }) => (
               <button
-                key={label}
+                key={labelKey}
                 type="button"
-                title={label}
+                title={t(labelKey)}
                 onClick={actionMap[onKey]}
                 className="flex h-10 w-10 items-center justify-center rounded-sm border border-white/8 bg-white/4 text-white/65 transition-colors duration-200 hover:border-blood-red/30 hover:bg-white/8 hover:text-white"
               >
@@ -59,7 +61,7 @@ export default function DashboardSidebar({
           type="button"
           onClick={onMobileMenu}
           className="flex h-9 w-9 items-center justify-center rounded-sm border border-white/10 bg-white/5 text-sm font-bold text-white"
-          aria-label="Open menu"
+          aria-label={t("common:aria.openMenu")}
         >
           <Menu className="h-4 w-4" />
         </button>
@@ -71,7 +73,7 @@ export default function DashboardSidebar({
             className="flex h-9 items-center gap-2 rounded-sm border border-white/10 bg-white/5 px-3 text-xs font-semibold text-white/75"
           >
             <Menu className="h-3.5 w-3.5" />
-            Projects
+            {t("common:labels.projects")}
           </button>
           <button
             type="button"
@@ -79,7 +81,7 @@ export default function DashboardSidebar({
             className="flex h-9 items-center gap-2 rounded-sm border border-blood-red/30 bg-blood-red/15 px-3 text-xs font-semibold text-white"
           >
             <Plus className="h-3.5 w-3.5" />
-            New
+            {t("common:labels.new")}
           </button>
         </div>
       </div>

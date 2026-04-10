@@ -1,5 +1,6 @@
 import { useMemo, type Ref } from "react";
 import { ArrowRight, Film, RefreshCw, CalendarDays, Play } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { ApiProject } from "../../types/projectApiTypes";
 
 interface DashboardProjectsProps {
@@ -22,20 +23,12 @@ const CARD_TONES = [
   "from-crimson/45 via-dark-card to-dark-elevated",
 ];
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString("en-US", {
+function formatDate(value: string, locale: string): string {
+  return new Date(value).toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
-}
-
-function formatRelative(value: string): string {
-  const diff = Date.now() - new Date(value).getTime();
-  const days = Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)));
-  if (days === 0) return "Updated today";
-  if (days === 1) return "Updated 1 day ago";
-  return `Updated ${days} days ago`;
 }
 
 function progressFromProject(project: ApiProject, index: number): string {
@@ -53,7 +46,12 @@ function ProjectStripCard({
   index: number;
   onOpenProject: (id: number) => void;
 }) {
+  const { t, i18n } = useTranslation("dashboard");
   const tone = CARD_TONES[index % CARD_TONES.length];
+
+  const diff = Date.now() - new Date(project.updatedAt).getTime();
+  const days = Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)));
+  const relative = days === 0 ? t("time.updatedToday") : t("time.updatedDaysAgo", { count: days });
 
   return (
     <button
@@ -70,7 +68,7 @@ function ProjectStripCard({
         </div>
         <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent p-3">
           <p className="truncate text-sm font-semibold text-white">{project.name}</p>
-          <p className="mt-1 text-[11px] text-white/60">{formatRelative(project.updatedAt)}</p>
+          <p className="mt-1 text-[11px] text-white/60">{relative}</p>
         </div>
       </div>
 
@@ -79,7 +77,7 @@ function ProjectStripCard({
           <span className="truncate text-sm font-semibold text-white/90">{project.name}</span>
         </div>
         <div className="flex items-center justify-between text-xs text-white/50">
-          <span>{formatDate(project.updatedAt)}</span>
+          <span>{formatDate(project.updatedAt, i18n.language)}</span>
         </div>
       </div>
     </button>
@@ -97,8 +95,11 @@ function SharedRow({
   onOpenProject: (id: number) => void;
   userId?: number;
 }) {
+  const { t, i18n } = useTranslation("dashboard");
   const progress = progressFromProject(project, index);
-  const owner = userId != null && project.ownerId === userId ? "You" : `Owner #${project.ownerId}`;
+  const owner = userId != null && project.ownerId === userId
+    ? t("projects.ownerYou")
+    : t("projects.ownerOther", { id: project.ownerId });
   const tone = CARD_TONES[(index + 1) % CARD_TONES.length];
 
   return (
@@ -121,7 +122,7 @@ function SharedRow({
           </div>
           <div className="hidden items-center gap-2 text-xs text-white/45 md:flex">
             <CalendarDays className="h-3.5 w-3.5" />
-            {formatDate(project.updatedAt)}
+            {formatDate(project.updatedAt, i18n.language)}
           </div>
         </div>
         <div className="mt-2 h-1 overflow-hidden bg-white/8">
@@ -147,6 +148,7 @@ export default function DashboardProjects({
   ongoingRef,
   sharedRef,
 }: DashboardProjectsProps) {
+  const { t } = useTranslation("dashboard");
   const ownSkeletons = useMemo(() => Array.from({ length: 3 }), []);
   const sharedSkeletons = useMemo(() => Array.from({ length: 3 }), []);
 
@@ -155,8 +157,8 @@ export default function DashboardProjects({
       <section ref={ongoingRef} className="space-y-3">
         <div className="flex items-center justify-between gap-3 border-b border-white/8 pb-2">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">Ongoing projects</p>
-            <h2 className="mt-1 text-lg font-semibold text-white/90">Continue working</h2>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">{t("projects.ongoingLabel")}</p>
+            <h2 className="mt-1 text-lg font-semibold text-white/90">{t("projects.continueWorking")}</h2>
           </div>
           <button
             type="button"
@@ -164,7 +166,7 @@ export default function DashboardProjects({
             className="flex items-center gap-2 rounded-sm border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75 transition-colors duration-200 hover:border-blood-red/30 hover:bg-white/8"
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            Refresh
+            {t("common:actions.refresh")}
           </button>
         </div>
 
@@ -184,7 +186,7 @@ export default function DashboardProjects({
         ) : ownError && ownProjects.length === 0 ? (
           <p className="rounded-sm border border-white/8 bg-white/4 px-3 py-3 text-sm text-red-300">{ownError}</p>
         ) : ownProjects.length === 0 ? (
-          <p className="px-1 py-2 text-sm text-white/50">No ongoing projects yet.</p>
+          <p className="px-1 py-2 text-sm text-white/50">{t("projects.noOngoing")}</p>
         ) : (
           <div className="overflow-x-auto pb-2">
             <div className="flex gap-3 pr-1">
@@ -198,8 +200,8 @@ export default function DashboardProjects({
 
       <section ref={sharedRef} className="space-y-3">
         <div className="border-b border-white/8 pb-2">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">Shared with me</p>
-          <h2 className="mt-1 text-lg font-semibold text-white/90">Collaborative work</h2>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">{t("projects.sharedLabel")}</p>
+          <h2 className="mt-1 text-lg font-semibold text-white/90">{t("projects.collaborativeWork")}</h2>
         </div>
 
         {sharedLoading && sharedProjects.length === 0 ? (
@@ -217,7 +219,7 @@ export default function DashboardProjects({
         ) : sharedError && sharedProjects.length === 0 ? (
           <p className="rounded-sm border border-white/8 bg-white/4 px-3 py-3 text-sm text-red-300">{sharedError}</p>
         ) : sharedProjects.length === 0 ? (
-          <p className="px-1 py-2 text-sm text-white/50">Nothing has been shared with you yet.</p>
+          <p className="px-1 py-2 text-sm text-white/50">{t("projects.noShared")}</p>
         ) : (
           <div className="space-y-2">
             {sharedProjects.map((project, index) => (

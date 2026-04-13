@@ -3,7 +3,6 @@ import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Shield, Users, FolderOpen, Sparkles, Pencil, Download, Share2, ArrowLeft, FileDown, AlertCircle } from "lucide-react";
 import Cookies from "js-cookie";
-import { useAuth } from "../../hooks/useAuth";
 import PageHeader from "../../components/common/PageHeader";
 import SectionCard from "../../components/common/SectionCard";
 import StatsCard from "../../components/admin/StatsCard";

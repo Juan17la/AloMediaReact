@@ -41,9 +41,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   /** Called after loginRequest / registerRequest succeeds. */
   const login = useCallback((u: User) => {
     setUser(u);
-    const { setUserScope, clearCache } = useProjectListStore.getState();
-    setUserScope(u.id);
-    clearCache();
+    useProjectListStore.setState({ ownData: {}, sharedData: {} });
   }, []);
 
   /** Logout: hit the backend then wipe local state. */
@@ -52,9 +50,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       await signout();
     } finally {
       setUser(null);
-      const { setUserScope, clearCache } = useProjectListStore.getState();
-      setUserScope(null);
-      clearCache();
+      useProjectListStore.setState({ ownData: {}, sharedData: {} });
     }
   }, []);
 

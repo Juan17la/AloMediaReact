@@ -10,7 +10,7 @@ function formatDate(iso: string): string {
 export function OwnProjectsList() {
   const [page, setPage] = useState(0)
   const fetchOwn = useProjectListStore(s => s.fetchOwn)
-  const data = useProjectListStore(s => s.ownCache[page])
+  const data = useProjectListStore(s => s.ownData[page])
   const isLoading = useProjectListStore(s => s.isLoadingOwn)
   const error = useProjectListStore(s => s.ownError)
 
@@ -47,7 +47,7 @@ export function OwnProjectsList() {
   return (
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {projects.map((project, idx) => (
+        {projects.map((project: typeof projects[number], idx: number) => (
           <ProjectCard
             key={project.id}
             id={String(project.id)}

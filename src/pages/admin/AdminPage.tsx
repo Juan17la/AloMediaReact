@@ -20,7 +20,6 @@ interface AdminStats {
 
 export default function AdminPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { t } = useTranslation("pages");
 
   const [stats, setStats] = useState<AdminStats | null>(null);

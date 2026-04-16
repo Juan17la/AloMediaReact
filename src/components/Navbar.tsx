@@ -34,9 +34,7 @@ export default function Navbar() {
           {/* Left: Logo + Nav */}
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-linear-to-br from-blood-red to-crimson flex items-center justify-center shadow-md shadow-blood-red/20">
-                <span className="text-accent-white font-bold text-sm">A</span>
-              </div>
+              <img src="/favicon.webp" alt="AloMedia" className="w-9 h-9 rounded-xl shadow-md shadow-blood-red/20" />
               <span className="text-accent-white font-bold text-lg tracking-wide hidden sm:block">
                 AloMedia
               </span>
@@ -86,6 +84,7 @@ export default function Navbar() {
                 onClose={() => setUserMenuOpen(false)}
                 onLogout={handleLogout}
                 user={user}
+                onAdminDashboard={user?.role === "ADMIN" ? () => { setUserMenuOpen(false); navigate("/admin"); } : undefined}
               />
             </div>
           </div>

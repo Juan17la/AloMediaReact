@@ -41,7 +41,10 @@
     "logout": "Logout",
     "settings": "Settings",
     "projects": "Projects",
-    "new": "New"
+    "new": "New",
+    "about": "About",
+    "help": "Help",
+    "contact": "Contact"
   },
   "nav": {
     "home": "Home",

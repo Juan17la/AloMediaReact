@@ -19,17 +19,16 @@ export default function DashboardPage() {
   const ongoingSectionRef = useRef<HTMLDivElement>(null);
   const sharedSectionRef = useRef<HTMLDivElement>(null);
 
-  const ownProjects = useProjectListStore(s => s.ownCache[0]?.content ?? EMPTY_PROJECTS);
-  const sharedProjects = useProjectListStore(s => s.sharedCache[0]?.content ?? EMPTY_PROJECTS);
+  const ownProjects = useProjectListStore(s => s.ownData[0]?.content ?? EMPTY_PROJECTS);
+  const sharedProjects = useProjectListStore(s => s.sharedData[0]?.content ?? EMPTY_PROJECTS);
   const ownLoading = useProjectListStore(s => s.isLoadingOwn);
   const sharedLoading = useProjectListStore(s => s.isLoadingShared);
   const ownError = useProjectListStore(s => s.ownError);
   const sharedError = useProjectListStore(s => s.sharedError);
 
   useEffect(() => {
-    const { setUserScope, fetchOwn, fetchShared } = useProjectListStore.getState();
-    setUserScope(user?.id ?? null);
     if (!user?.id) return;
+    const { fetchOwn, fetchShared } = useProjectListStore.getState();
     fetchOwn(0);
     fetchShared(0);
   }, [user?.id]);
@@ -45,9 +44,8 @@ export default function DashboardPage() {
   }
 
   function refreshProjects() {
-    const { setUserScope, fetchOwn, fetchShared } = useProjectListStore.getState();
-    setUserScope(user?.id ?? null);
     if (!user?.id) return;
+    const { fetchOwn, fetchShared } = useProjectListStore.getState();
     fetchOwn(0);
     fetchShared(0);
   }

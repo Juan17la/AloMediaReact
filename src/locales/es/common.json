@@ -41,7 +41,10 @@
     "logout": "Cerrar sesi\u00f3n",
     "settings": "Configuraci\u00f3n",
     "projects": "Proyectos",
-    "new": "Nuevo"
+    "new": "Nuevo",
+    "about": "Acerca de",
+    "help": "Ayuda",
+    "contact": "Contacto"
   },
   "nav": {
     "home": "Inicio",

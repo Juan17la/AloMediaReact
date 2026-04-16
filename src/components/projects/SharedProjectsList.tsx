@@ -10,7 +10,7 @@ function formatDate(iso: string): string {
 export function SharedProjectsList() {
   const [page, setPage] = useState(0)
   const fetchShared = useProjectListStore(s => s.fetchShared)
-  const data = useProjectListStore(s => s.sharedCache[page])
+  const data = useProjectListStore(s => s.sharedData[page])
   const isLoading = useProjectListStore(s => s.isLoadingShared)
   const error = useProjectListStore(s => s.sharedError)
 
@@ -48,7 +48,7 @@ export function SharedProjectsList() {
   return (
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {projects.map((project, idx) => (
+        {projects.map((project: typeof projects[number], idx: number) => (
           <ProjectCard
             key={project.id}
             id={String(project.id)}

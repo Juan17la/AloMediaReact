@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { LogOut, Shield, User } from "lucide-react";
+import { useNavigate } from "react-router";
+import { LogOut, Shield, User, Info, HelpCircle, Mail } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { User as AuthUser } from "../types/userTypes";
 
@@ -15,6 +16,7 @@ interface UserMenuModalProps {
 
 export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdminDashboard, children }: UserMenuModalProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const firstName = user?.firstName?.trim() ?? "";
   const lastName = user?.lastName?.trim() ?? "";
@@ -60,7 +62,7 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdmin
 
       <button
         type="button"
-        onClick={onClose}
+        onClick={() => { onClose(); navigate("/profile"); }}
         className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer"
       >
         <User className="w-4 h-4" />
@@ -79,6 +81,33 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdmin
       ) : null}
 
       {children}
+
+      <div className="border-t my-1 border-white/10" />
+
+      <button
+        type="button"
+        onClick={() => { onClose(); navigate("/about"); }}
+        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer"
+      >
+        <Info className="w-4 h-4" />
+        {t("labels.about", "About")}
+      </button>
+      <button
+        type="button"
+        onClick={() => { onClose(); navigate("/help"); }}
+        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer"
+      >
+        <HelpCircle className="w-4 h-4" />
+        {t("labels.help", "Help")}
+      </button>
+      <button
+        type="button"
+        onClick={() => { onClose(); navigate("/contact"); }}
+        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer"
+      >
+        <Mail className="w-4 h-4" />
+        {t("labels.contact", "Contact")}
+      </button>
 
       <div className="border-t my-1 border-white/10" />
 

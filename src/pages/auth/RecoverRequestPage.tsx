@@ -4,6 +4,7 @@ import { Mail, MailCheck, AlertCircle } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 import { recoverRequest } from "../../services/authService";
 import { ApiError } from "../../api/errors";
+import { AUTH_LIMITS } from "../../constants/authValidation";
 
 export default function RecoverRequestPage() {
   const { t } = useTranslation("auth");
@@ -16,10 +17,22 @@ export default function RecoverRequestPage() {
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
+      setError(new Error(t("validation.emailRequired")));
+      return;
+    }
+
+    if (normalizedEmail.length > AUTH_LIMITS.emailMaxLength) {
+      setError(new Error(t("validation.emailTooLong", { max: AUTH_LIMITS.emailMaxLength })));
+      return;
+    }
+
     setError(null);
     setIsPending(true);
     try {
-      await recoverRequest({ email });
+      await recoverRequest({ email: normalizedEmail });
       setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -73,6 +86,8 @@ export default function RecoverRequestPage() {
               name="email"
               placeholder="you@example.com"
               required
+              maxLength={AUTH_LIMITS.emailMaxLength}
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={`auth-input w-full rounded-lg py-3 pl-12 pr-4 text-accent-white placeholder-white/25 text-sm font-medium ${

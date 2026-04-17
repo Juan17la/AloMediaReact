@@ -6,6 +6,7 @@ import { signIn } from "../../services/authService";
 import { ApiError } from "../../api/errors";
 import { useAuth } from "../../hooks/useAuth";
 import { hashPassword } from "../../utils/passwordHash";
+import { AUTH_LIMITS } from "../../constants/authValidation";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -22,10 +23,27 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
+      setError(new Error(t("validation.emailRequired")));
+      return;
+    }
+
+    if (normalizedEmail.length > AUTH_LIMITS.emailMaxLength) {
+      setError(new Error(t("validation.emailTooLong", { max: AUTH_LIMITS.emailMaxLength })));
+      return;
+    }
+
+    if (password.length > AUTH_LIMITS.passwordMaxLength) {
+      setError(new Error(t("validation.passwordTooLong", { max: AUTH_LIMITS.passwordMaxLength })));
+      return;
+    }
+
     setError(null);
     setIsPending(true);
     try {
-      const res = await signIn({ email, password: hashPassword(password) });
+      const res = await signIn({ email: normalizedEmail, password: hashPassword(password) });
       login({ id: res.id, firstName: res.firstName, lastName: res.lastName, email: res.email, role: res.role });
       navigate("/dashboard", { replace: true });
     } catch (err) {
@@ -66,6 +84,8 @@ export default function LoginPage() {
                 name="email"
                 placeholder="you@example.com"
                 required
+                maxLength={AUTH_LIMITS.emailMaxLength}
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={`auth-input w-full rounded-lg py-3 pl-12 pr-4 text-accent-white placeholder-white/25 text-sm font-medium ${
@@ -92,7 +112,10 @@ export default function LoginPage() {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 name="password"
+                placeholder={t("login.passwordPlaceholder")}
                 required
+                maxLength={AUTH_LIMITS.passwordMaxLength}
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={`auth-input w-full rounded-lg py-3 pl-12 pr-12 text-accent-white text-sm font-medium [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden ${

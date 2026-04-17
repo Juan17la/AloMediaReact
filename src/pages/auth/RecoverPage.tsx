@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { validateRecoverToken, recoverReset } from "../../services/authService";
 import { ApiError } from "../../api/errors";
 import { hashPassword } from "../../utils/passwordHash";
+import { AUTH_LIMITS } from "../../constants/authValidation";
 
 export default function RecoverPage() {
   const [searchParams] = useSearchParams();
@@ -40,6 +41,17 @@ export default function RecoverPage() {
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (newPassword.length < AUTH_LIMITS.passwordMinLength) {
+      setFormError(new Error(t("validation.passwordTooShort", { min: AUTH_LIMITS.passwordMinLength })));
+      return;
+    }
+
+    if (newPassword.length > AUTH_LIMITS.passwordMaxLength) {
+      setFormError(new Error(t("validation.passwordTooLong", { max: AUTH_LIMITS.passwordMaxLength })));
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       setFormError(new Error(t("validation.passwordsMismatch")));
       return;
@@ -123,7 +135,11 @@ export default function RecoverPage() {
               id="newPassword"
               type="password"
               name="newPassword"
+              placeholder={t("reset.newPasswordPlaceholder")}
               required
+              minLength={AUTH_LIMITS.passwordMinLength}
+              maxLength={AUTH_LIMITS.passwordMaxLength}
+              autoComplete="new-password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className={`auth-input w-full rounded-lg py-3 pl-12 pr-4 text-accent-white text-sm font-medium [&::-ms-reveal]:hidden [&::-ms-clear]:hidden ${
@@ -149,7 +165,11 @@ export default function RecoverPage() {
               id="confirmPassword"
               type="password"
               name="confirmPassword"
+              placeholder={t("reset.confirmPasswordPlaceholder")}
               required
+              minLength={AUTH_LIMITS.passwordMinLength}
+              maxLength={AUTH_LIMITS.passwordMaxLength}
+              autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className={`auth-input w-full rounded-lg py-3 pl-12 pr-4 text-accent-white text-sm font-medium [&::-ms-reveal]:hidden [&::-ms-clear]:hidden ${

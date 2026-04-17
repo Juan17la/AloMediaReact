@@ -6,16 +6,19 @@ import { signUp } from "../../services/authService";
 import { ApiError } from "../../api/errors";
 import { useAuth } from "../../hooks/useAuth";
 import { hashPassword } from "../../utils/passwordHash";
+import { AUTH_LIMITS } from "../../constants/authValidation";
 
 function PasswordField({
   name,
   label,
+  placeholder,
   value,
   onChange,
   hasError,
 }: {
   name: string;
   label: string;
+  placeholder: string;
   value: string;
   onChange: (v: string) => void;
   hasError?: boolean;
@@ -34,7 +37,11 @@ function PasswordField({
           id={name}
           type={show ? "text" : "password"}
           name={name}
+          placeholder={placeholder}
           required
+          minLength={AUTH_LIMITS.passwordMinLength}
+          maxLength={AUTH_LIMITS.passwordMaxLength}
+          autoComplete="new-password"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className={`auth-input w-full rounded-lg py-3 pl-12 pr-12 text-accent-white text-sm font-medium [&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-credentials-auto-fill-button]:hidden ${
@@ -74,6 +81,40 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const normalizedEmail = email.trim();
+    const normalizedFirstName = firstName.trim();
+    const normalizedLastName = lastName.trim();
+
+    if (!normalizedEmail) {
+      setError(new Error(t("validation.emailRequired")));
+      return;
+    }
+
+    if (normalizedEmail.length > AUTH_LIMITS.emailMaxLength) {
+      setError(new Error(t("validation.emailTooLong", { max: AUTH_LIMITS.emailMaxLength })));
+      return;
+    }
+
+    if (normalizedFirstName.length < AUTH_LIMITS.nameMinLength || normalizedLastName.length < AUTH_LIMITS.nameMinLength) {
+      setError(new Error(t("validation.nameTooShort", { min: AUTH_LIMITS.nameMinLength })));
+      return;
+    }
+
+    if (normalizedFirstName.length > AUTH_LIMITS.nameMaxLength || normalizedLastName.length > AUTH_LIMITS.nameMaxLength) {
+      setError(new Error(t("validation.nameTooLong", { max: AUTH_LIMITS.nameMaxLength })));
+      return;
+    }
+
+    if (password.length < AUTH_LIMITS.passwordMinLength) {
+      setError(new Error(t("validation.passwordTooShort", { min: AUTH_LIMITS.passwordMinLength })));
+      return;
+    }
+
+    if (password.length > AUTH_LIMITS.passwordMaxLength) {
+      setError(new Error(t("validation.passwordTooLong", { max: AUTH_LIMITS.passwordMaxLength })));
+      return;
+    }
+
     if (password !== confirmPassword) {
       setPasswordMismatch(true);
       return;
@@ -83,9 +124,9 @@ export default function RegisterPage() {
     setIsPending(true);
     try {
       const res = await signUp({
-        firstName,
-        lastName,
-        email,
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
+        email: normalizedEmail,
         password: hashPassword(password)
       });
       login({ id: res.id, firstName: res.firstName, lastName: res.lastName, email: res.email, role: res.role });
@@ -127,6 +168,8 @@ export default function RegisterPage() {
                 name="email"
                 placeholder="you@example.com"
                 required
+                maxLength={AUTH_LIMITS.emailMaxLength}
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={`auth-input w-full rounded-lg py-3 pl-12 pr-4 text-accent-white placeholder-white/25 text-sm font-medium ${
@@ -154,7 +197,11 @@ export default function RegisterPage() {
                   id="firstName"
                   type="text"
                   name="firstName"
+                  placeholder={t("register.firstNamePlaceholder")}
                   required
+                  minLength={AUTH_LIMITS.nameMinLength}
+                  maxLength={AUTH_LIMITS.nameMaxLength}
+                  autoComplete="given-name"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   className={`auth-input w-full rounded-lg py-3 pl-12 pr-4 text-accent-white text-sm font-medium ${
@@ -180,7 +227,11 @@ export default function RegisterPage() {
                   id="lastName"
                   type="text"
                   name="lastName"
+                  placeholder={t("register.lastNamePlaceholder")}
                   required
+                  minLength={AUTH_LIMITS.nameMinLength}
+                  maxLength={AUTH_LIMITS.nameMaxLength}
+                  autoComplete="family-name"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   className={`auth-input w-full rounded-lg py-3 pl-12 pr-4 text-accent-white text-sm font-medium ${
@@ -202,6 +253,7 @@ export default function RegisterPage() {
             <PasswordField
               name="password"
               label={t("register.passwordLabel")}
+              placeholder={t("register.passwordPlaceholder")}
               value={password}
               onChange={(v) => { setPassword(v); setPasswordMismatch(false); }}
               hasError={!!apiError?.fieldMessage("password")}
@@ -219,6 +271,7 @@ export default function RegisterPage() {
             <PasswordField
               name="confirmPassword"
               label={t("register.confirmPasswordLabel")}
+              placeholder={t("register.confirmPasswordPlaceholder")}
               value={confirmPassword}
               onChange={(v) => { setConfirmPassword(v); setPasswordMismatch(false); }}
               hasError={passwordMismatch}

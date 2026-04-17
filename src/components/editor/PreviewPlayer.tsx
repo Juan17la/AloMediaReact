@@ -196,7 +196,7 @@ export function PreviewPlayer() {
   })
 
   const sortedTracks = useMemo(
-    () => [...project.tracks].sort((a, b) => b.order - a.order),
+    () => [...project.tracks].sort((a, b) => a.order - b.order),
     [project.tracks],
   )
 
@@ -244,15 +244,16 @@ export function PreviewPlayer() {
     return (project.clipGroups ?? []).find(group => group.memberClipIds.includes(selectedClipId))?.id
   }, [project.clipGroups, selectedClipId])
 
-  const trackOrderMap = useMemo(
-    () => new Map(project.tracks.map(t => [t.id, t.order])),
-    [project.tracks],
+  const trackLayerIndexMap = useMemo(
+    () => new Map(sortedTracks.map((t, index) => [t.id, index])),
+    [sortedTracks],
   )
-  const maxOrder = useMemo(
-    () => Math.max(0, ...project.tracks.map(t => t.order)),
-    [project.tracks],
-  )
-  const zIndex = (trackId: string) => maxOrder - (trackOrderMap.get(trackId) ?? 0) + 1
+  const zIndex = (trackId: string) => {
+    const layerIndex = trackLayerIndexMap.get(trackId)
+    if (layerIndex === undefined) return 1
+    // First track in timeline order should be visually on top.
+    return sortedTracks.length - layerIndex
+  }
 
   const primaryVideoClip = useMemo(
     () => getActiveVideoClip(project.tracks, playhead),

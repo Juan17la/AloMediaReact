@@ -63,18 +63,19 @@ function buildVideoSegmentFilters(
     }
   }
 
-  // Keep alpha for image overlays (e.g. PNG/GIF transparency), use yuv420p for videos.
-  const pixelFormat = isStaticVisual ? 'rgba' : 'yuv420p'
-  if (seg.type === 'image') {
-    // Images should preserve authored aspect in export just like preview composition.
+  // IMPORTANT: Never stretch visual media. Keep source aspect ratio inside the
+  // authored transform box (canvasW x canvasH) and center it with transparent padding.
+  // This preserves preview/export parity for "100%" scale or ratio-locked clips.
+  if (seg.type === 'text') {
+    filters.push(`scale=${canvasW}:${canvasH}:flags=bicubic`)
+    filters.push(`setsar=1`)
+    filters.push(`format=rgba`)
+  } else {
     filters.push(`scale=${canvasW}:${canvasH}:force_original_aspect_ratio=decrease:flags=lanczos`)
     filters.push(`pad=${canvasW}:${canvasH}:(ow-iw)/2:(oh-ih)/2:color=black@0`)
     filters.push(`setsar=1`)
-  } else {
-    filters.push(`scale=${canvasW}:${canvasH}:flags=bicubic`)
-    filters.push(`setsar=1`)
+    filters.push(`format=rgba`)
   }
-  filters.push(`format=${pixelFormat}`)
 
   if (seg.colorAdjustments) {
     const eq = buildEqFilter(seg.colorAdjustments)
@@ -198,12 +199,12 @@ function buildVideoSegmentFiltersForXfadeChain(
     }
   }
 
-  if (seg.type === 'image') {
-    filters.push(`scale=${canvasW}:${canvasH}:force_original_aspect_ratio=decrease:flags=lanczos`)
-    filters.push(`pad=${canvasW}:${canvasH}:(ow-iw)/2:(oh-ih)/2:color=black@0`)
+  if (seg.type === 'text') {
+    filters.push(`scale=${canvasW}:${canvasH}:flags=bicubic`)
     filters.push(`setsar=1`)
   } else {
-    filters.push(`scale=${canvasW}:${canvasH}:flags=bicubic`)
+    filters.push(`scale=${canvasW}:${canvasH}:force_original_aspect_ratio=decrease:flags=lanczos`)
+    filters.push(`pad=${canvasW}:${canvasH}:(ow-iw)/2:(oh-ih)/2:color=black@0`)
     filters.push(`setsar=1`)
   }
   if (seg.colorAdjustments) {

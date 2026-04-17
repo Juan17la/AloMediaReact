@@ -65,7 +65,16 @@ function buildVideoSegmentFilters(
 
   // Keep alpha for image overlays (e.g. PNG/GIF transparency), use yuv420p for videos.
   const pixelFormat = isStaticVisual ? 'rgba' : 'yuv420p'
-  filters.push(`scale=${canvasW}:${canvasH},format=${pixelFormat}`)
+  if (seg.type === 'image') {
+    // Images should preserve authored aspect in export just like preview composition.
+    filters.push(`scale=${canvasW}:${canvasH}:force_original_aspect_ratio=decrease:flags=lanczos`)
+    filters.push(`pad=${canvasW}:${canvasH}:(ow-iw)/2:(oh-ih)/2:color=black@0`)
+    filters.push(`setsar=1`)
+  } else {
+    filters.push(`scale=${canvasW}:${canvasH}:flags=bicubic`)
+    filters.push(`setsar=1`)
+  }
+  filters.push(`format=${pixelFormat}`)
 
   if (seg.colorAdjustments) {
     const eq = buildEqFilter(seg.colorAdjustments)
@@ -189,7 +198,14 @@ function buildVideoSegmentFiltersForXfadeChain(
     }
   }
 
-  filters.push(`scale=${canvasW}:${canvasH}`)
+  if (seg.type === 'image') {
+    filters.push(`scale=${canvasW}:${canvasH}:force_original_aspect_ratio=decrease:flags=lanczos`)
+    filters.push(`pad=${canvasW}:${canvasH}:(ow-iw)/2:(oh-ih)/2:color=black@0`)
+    filters.push(`setsar=1`)
+  } else {
+    filters.push(`scale=${canvasW}:${canvasH}:flags=bicubic`)
+    filters.push(`setsar=1`)
+  }
   if (seg.colorAdjustments) {
     const eq = buildEqFilter(seg.colorAdjustments)
     const shadow = buildShadowFilter(seg.colorAdjustments)

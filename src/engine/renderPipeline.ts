@@ -163,9 +163,15 @@ export function buildRenderJob(
 
   const segments: RenderSegment[] = []
 
-  for (const track of project.tracks) {
+  // Normalize visual layer order from the timeline sort so export compositing
+  // stays deterministic even if persisted `track.order` values are stale/duplicated.
+  const normalizedTracks = [...project.tracks]
+    .sort((a, b) => a.order - b.order)
+    .map((track, index) => ({ track, normalizedOrder: index }))
+
+  for (const { track, normalizedOrder } of normalizedTracks) {
     for (const clip of track.clips) {
-      const seg = clipToSegment(clip, track.id, track.order, track.type)
+      const seg = clipToSegment(clip, track.id, normalizedOrder, track.type)
 
       // Skip clips that have neither a backing file nor a generated export source.
       if (!seg.mediaId) continue

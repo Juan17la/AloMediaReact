@@ -63,11 +63,14 @@ function buildVideoSegmentFilters(
     }
   }
 
-  // IMPORTANT: Never stretch visual media. Keep source aspect ratio inside the
-  // authored transform box (canvasW x canvasH) and center it with transparent padding.
-  // This preserves preview/export parity for "100%" scale or ratio-locked clips.
+  // Keep strict aspect-ratio preservation only for videos.
+  // Images are intentionally allowed to stretch to any authored transform size.
   if (seg.type === 'text') {
     filters.push(`scale=${canvasW}:${canvasH}:flags=bicubic`)
+    filters.push(`setsar=1`)
+    filters.push(`format=rgba`)
+  } else if (seg.type === 'image') {
+    filters.push(`scale=${canvasW}:${canvasH}:flags=lanczos`)
     filters.push(`setsar=1`)
     filters.push(`format=rgba`)
   } else {
@@ -201,6 +204,9 @@ function buildVideoSegmentFiltersForXfadeChain(
 
   if (seg.type === 'text') {
     filters.push(`scale=${canvasW}:${canvasH}:flags=bicubic`)
+    filters.push(`setsar=1`)
+  } else if (seg.type === 'image') {
+    filters.push(`scale=${canvasW}:${canvasH}:flags=lanczos`)
     filters.push(`setsar=1`)
   } else {
     filters.push(`scale=${canvasW}:${canvasH}:force_original_aspect_ratio=decrease:flags=lanczos`)

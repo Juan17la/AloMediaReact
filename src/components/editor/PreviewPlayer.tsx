@@ -16,6 +16,8 @@ import { getActiveVideoClip } from "../../player/timeline/activeClipResolver"
 import { DEFAULT_SPEED } from "../../constants/speed"
 import { compileUnifiedTransitions } from "../../engine/transitionCompiler"
 
+// Toggle this to enable/disable the transition debug overlay
+const transitionDebug = false
 
 // ======================================================
 // REMOVE: This is a playground for testing out the preview player and related features. It's not currently used in the app, but it can be useful for development and experimentation.
@@ -273,6 +275,7 @@ export function PreviewPlayer() {
   // ======================================================
 
   const activeTransitionDebug = useMemo<ActiveTransitionDebugView | null>(() => {
+    if (!transitionDebug) return null
     const compiled = compileUnifiedTransitions(project)
     const active = compiled.transitions
       .filter(transition => playhead >= transition.startTimeS - CLIP_EPSILON && playhead <= transition.endTimeS + CLIP_EPSILON)
@@ -543,8 +546,8 @@ export function PreviewPlayer() {
                 const s = clip.style ?? DEFAULT_TEXT_STYLE
                 const justifyContent =
                   s.textAlign === "center" ? "center"
-                  : s.textAlign === "right" ? "flex-end"
-                  : "flex-start"
+                    : s.textAlign === "right" ? "flex-end"
+                      : "flex-start"
                 return (
                   <div
                     key={clip.id}

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FileText, Plus } from "lucide-react"
+import { FileText, MoreHorizontal, Plus } from "lucide-react"
 import type { Media } from "../../project/projectTypes"
 import { MediaContextMenu } from "./MediaContextMenu"
 
@@ -22,6 +22,13 @@ function formatDuration(media: Media): string {
   return `${m.toString().padStart(2, "0")}:${s
     .toString()
     .padStart(2, "0")}`
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
 }
 
 function getTypeBadgeClass(type: Media["type"]): string {
@@ -79,6 +86,7 @@ interface MediaCardProps {
   proxyStatus?: 'pending' | 'ready' | 'error'
   onInsertAtPlayhead: () => void
   onImportSubtitles?: () => void
+  onOpenAiTools?: (tool: "clean" | "transcribe") => void
   isImportingSubtitles?: boolean
 }
 
@@ -88,23 +96,27 @@ export function MediaCard({
   proxyStatus,
   onInsertAtPlayhead,
   onImportSubtitles,
+  onOpenAiTools,
   isImportingSubtitles,
 }: MediaCardProps) {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const isSubtitles = media.type === "subtitles"
 
-  function handleContextMenu(e: React.MouseEvent) {
-    e.preventDefault()
-    setMenu({ x: e.clientX, y: e.clientY })
+  function openMenuAt(x: number, y: number) {
+    setMenu({ x, y })
   }
 
-  const proxyBarClass = proxyStatus === 'pending'
-    ? "bg-[#d4622a]"
-    : proxyStatus === 'ready'
-      ? "bg-[#166534]"
-      : proxyStatus === 'error'
-        ? "bg-[#7f1d1d]"
-        : "bg-transparent"
+  function handleContextMenu(e: React.MouseEvent) {
+    e.preventDefault()
+    openMenuAt(e.clientX, e.clientY)
+  }
+
+  function handleOpenMenuClick(e: React.MouseEvent<HTMLButtonElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    const rect = e.currentTarget.getBoundingClientRect()
+    openMenuAt(rect.left, rect.bottom + 4)
+  }
 
   return (
     <>
@@ -130,10 +142,19 @@ export function MediaCard({
         onDragEnd={() => {
           window.dispatchEvent(new CustomEvent("alomedia:drag-end"))
         }}
-        className="group relative flex flex-col w-full bg-white/5 border border-white/7 rounded-lg p-1.5 shadow-[0_2px_6px_rgba(0,0,0,0.25)] cursor-pointer overflow-hidden select-none transition-[background,border-color] duration-120 ease-out hover:bg-white/9 hover:border-white/[0.14]"
+        className="group relative flex flex-col w-full min-h-36 h-auto bg-white/5 border border-white/7 rounded-lg p-2 shadow-[0_2px_6px_rgba(0,0,0,0.25)] cursor-pointer overflow-hidden select-none transition-[background,border-color] duration-120 ease-out hover:bg-white/9 hover:border-white/[0.14]"
       >
+        <button
+          type="button"
+          aria-label="Open media options"
+          onClick={handleOpenMenuClick}
+          className="absolute top-3 right-3 z-20 h-6 w-6 rounded-md border border-white/12 bg-black/45 text-white/80 flex items-center justify-center transition-colors duration-100 hover:bg-black/65 hover:text-white"
+        >
+          <MoreHorizontal size={14} />
+        </button>
+
         {/* Thumbnail area — 16:9 */}
-        <div className="relative aspect-video bg-dark overflow-hidden">
+        <div className="relative aspect-video bg-dark overflow-hidden rounded-md">
           <MediaThumbnail media={media} objectUrl={objectUrl} />
 
           {/* Type badge — top-left */}
@@ -159,18 +180,16 @@ export function MediaCard({
         </div>
 
         {/* Info strip */}
-        <div className="h-7 px-1.5 flex items-center justify-between gap-1 relative">
-          <span className="text-[10px] text-accent-white overflow-hidden text-ellipsis whitespace-nowrap flex-1">
+        <div className="pt-2 px-0.5 flex flex-col gap-1.5 relative">
+          <span className="text-[10px] text-accent-white overflow-hidden text-ellipsis whitespace-nowrap pr-8">
             {media.name}
           </span>
-          <span className="text-[10px] text-muted shrink-0 font-mono">
-            {formatDuration(media)}
-          </span>
+          <div className="flex flex-wrap items-center gap-1 text-[9px] text-white/55">
+            <span className="rounded bg-white/8 px-1.5 py-0.5 uppercase tracking-[0.06em]">{media.format || media.type}</span>
+            <span className="rounded bg-white/8 px-1.5 py-0.5 font-mono">{formatDuration(media)}</span>
+            <span className="rounded bg-white/8 px-1.5 py-0.5 font-mono">{formatSize(media.size)}</span>
+          </div>
 
-          {/* Proxy status bar — 2px at very bottom */}
-          {proxyStatus && (
-            <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${proxyBarClass}`} />
-          )}
         </div>
       </div>
 
@@ -183,6 +202,7 @@ export function MediaCard({
           onClose={() => setMenu(null)}
           onInsertAtPlayhead={onInsertAtPlayhead}
           onImportSubtitles={onImportSubtitles}
+          onOpenAiTools={onOpenAiTools}
           isImportingSubtitles={isImportingSubtitles}
         />
       )}
@@ -192,7 +212,7 @@ export function MediaCard({
 
 export function LoadingCard({ fileName }: { fileName: string }) {
   return (
-    <div className="relative flex flex-col w-full bg-white/9 border border-white/[0.14] rounded-lg p-1.5 shadow-[0_2px_6px_rgba(0,0,0,0.25)] cursor-pointer overflow-hidden select-none">
+    <div className="relative flex flex-col w-full min-h-36 h-auto bg-white/9 border border-white/[0.14] rounded-lg p-1.5 shadow-[0_2px_6px_rgba(0,0,0,0.25)] cursor-pointer overflow-hidden select-none">
       {/* Thumbnail placeholder — 16:9 */}
       <div className="relative aspect-video bg-dark flex items-center justify-center rounded-sm">
         <div className="w-5 h-5 rounded-full border-2 border-dark-elevated border-t-accent-white animate-spin" />

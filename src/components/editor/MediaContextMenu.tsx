@@ -11,6 +11,7 @@ interface MediaContextMenuProps {
   onClose: () => void
   onInsertAtPlayhead: () => void
   onImportSubtitles?: () => void
+  onOpenAiTools?: (tool: "clean" | "transcribe") => void
   isImportingSubtitles?: boolean
 }
 
@@ -34,6 +35,7 @@ export function MediaContextMenu({
   onClose,
   onInsertAtPlayhead,
   onImportSubtitles,
+  onOpenAiTools,
   isImportingSubtitles,
 }: MediaContextMenuProps) {
   const removeMedia = useEditorStore(s => s.removeMedia)
@@ -45,6 +47,7 @@ export function MediaContextMenu({
   const proxyStatus = proxyMap[mediaId]?.status
   const isProxyPending = proxyStatus === 'pending'
   const isSubtitles = mediaType === "subtitles"
+  const isAudio = mediaType === "audio"
 
   const clipsUsingMedia = tracks.flatMap(t => t.clips).filter(
     c => 'mediaId' in c && c.mediaId === mediaId,
@@ -53,7 +56,7 @@ export function MediaContextMenu({
 
   // Clamp position to viewport
   const menuWidth = 200
-  const menuHeight = confirmDelete ? 104 : isSubtitles ? 120 : 88
+  const menuHeight = confirmDelete ? 104 : isSubtitles ? 120 : isAudio && onOpenAiTools ? 168 : 88
   const clampedX = Math.min(x, window.innerWidth - menuWidth - 8)
   const clampedY = Math.min(y, window.innerHeight - menuHeight - 8)
 
@@ -87,6 +90,12 @@ export function MediaContextMenu({
   function handleImportSubtitles() {
     if (!onImportSubtitles || isImportingSubtitles) return
     onImportSubtitles()
+    onClose()
+  }
+
+  function handleOpenAiTools(tool: "clean" | "transcribe") {
+    if (!onOpenAiTools) return
+    onOpenAiTools(tool)
     onClose()
   }
 
@@ -137,7 +146,26 @@ export function MediaContextMenu({
               Add to Timeline
             </button>
           )}
-          <div className="my-1 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
+          {isAudio && onOpenAiTools && (
+            <>
+              <button
+                role="menuitem"
+                onClick={() => handleOpenAiTools("clean")}
+                className={`${menuAction} ${menuActionNeutral}`}
+              >
+                Clean Audio
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => handleOpenAiTools("transcribe")}
+                className={`${menuAction} ${menuActionNeutral}`}
+              >
+                Transcript
+              </button>
+              <div className="my-1 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
+            </>
+          )}
+          {!isAudio && <div className="my-1 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />}
           <button
             role="menuitem"
             onClick={handleDeleteClick}

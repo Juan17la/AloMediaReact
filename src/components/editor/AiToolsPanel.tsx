@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Wand2, FileText, AlertCircle, CheckCircle2, Loader2, MousePointerClick } from "lucide-react"
 import type { Media } from "../../project/projectTypes"
 import { fileMap, useEditorStore } from "../../store/editorStore"
@@ -11,19 +11,28 @@ type Status = "idle" | "processing" | "success" | "error"
 
 interface AiToolsPanelProps {
   selectedMedia: Media | null
+  initialTool?: AiTool
 }
 
 const sectionLabel =
   "text-[10px] font-semibold tracking-[0.1em] uppercase text-white/40 mb-1.5"
 
-export function AiToolsPanel({ selectedMedia }: AiToolsPanelProps) {
+export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPanelProps) {
   const addMedia = useEditorStore((s) => s.addMedia)
 
-  const [activeTool, setActiveTool] = useState<AiTool>("clean")
+  const [activeTool, setActiveTool] = useState<AiTool>(initialTool)
   const [status, setStatus] = useState<Status>("idle")
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [resultName, setResultName] = useState<string | null>(null)
   const processingRef = useRef(false)
+
+  useEffect(() => {
+    if (processingRef.current) return
+    setActiveTool(initialTool)
+    setStatus("idle")
+    setErrorMsg(null)
+    setResultName(null)
+  }, [initialTool, selectedMedia?.id])
 
   // ── No media selected ───────────────────────────────────────────────────────
   if (!selectedMedia) {

@@ -103,7 +103,7 @@ function getMediaDuration(file: File, type: MediaType): Promise<number | null> {
   })
 }
 
-const AUDIO_EXTENSIONS = new Set(["wav", "mp3", "ogg", "flac", "m4a", "aac", "opus"])
+const AUDIO_EXTENSIONS = new Set(["wav", "mp3", "mpeg", "mpga", "ogg", "flac", "m4a", "aac", "opus"])
 const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm", "avi", "mkv", "m4v"])
 const SUBTITLE_EXTENSIONS = new Set(["srt"])
 const SUBTITLE_MIME_TYPES = new Set([

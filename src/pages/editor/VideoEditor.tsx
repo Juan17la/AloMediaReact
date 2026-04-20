@@ -15,7 +15,7 @@ import { loadProject } from "../../project/projectSerializer"
 import { useExport } from "../../hooks/useExport"
 import { useEditorKeyboardShortcuts } from "../../hooks/useEditorKeyboardShortcuts"
 import { getProjectById, createProject, updateProject } from "../../services/projectService"
-import { serializeTimeline, deserializeTimeline } from "../../utils/timelineSerializer"
+import { deserializeTimeline } from "../../utils/timelineSerializer"
 import type { ApiProject } from "../../types/projectApiTypes"
 import type { Project } from "../../project/projectTypes"
 import { ApiError } from "../../api/errors"
@@ -23,6 +23,8 @@ import { MediaRelinkDialog } from "../../components/editor/MediaRelinkDialog"
 import { saveFileToCache, evictExpiredEntries } from "../../services/fileCacheService"
 import { EditorErrorBoundary } from "../../components/editor/EditorErrorBoundary"
 import AloMediaLogo from "../../assets/AloMediaLogo.webp"
+import { normalizeProjectTimelineFromApi, serializeProjectTimelineForApi } from "../../project/timelineMediaAdapter"
+import { hydrateProjectMediaCache } from "../../services/projectMediaSyncService"
 
 export default function VideoEditor() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -95,11 +97,13 @@ export default function VideoEditor() {
 
     getProjectById(numericId)
       .then(async loaded => {
-        const editorProject = deserializeTimeline(loaded.timelineData)
-        await useEditorStore.getState().loadProject(editorProject)
+        const parsedProject = deserializeTimeline(loaded.timelineData)
+        const normalizedProject = normalizeProjectTimelineFromApi(parsedProject, loaded.id)
+        const hydratedProject = await hydrateProjectMediaCache(normalizedProject, loaded.id)
+        await useEditorStore.getState().loadProject(hydratedProject)
         savedProjectRef.current = useEditorStore.getState().project
         setIsDirty(false)
-        setTitleDraft(editorProject.name)
+        setTitleDraft(hydratedProject.name)
         setApiProject(loaded)
       })
       .catch(err => {
@@ -173,42 +177,44 @@ export default function VideoEditor() {
     setIsEditingTitle(false)
   }
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!apiProject) {
       setShowSaveModal(true)
       return
     }
     const currentProject = useEditorStore.getState().project
     setIsSaving(true)
-    updateProject(apiProject.id, {
-      name: currentProject.name,
-      timelineData: serializeTimeline(currentProject),
-    })
-      .then(updated => {
-        setApiProject(updated)
-        savedProjectRef.current = currentProject
-        setIsDirty(false)
-        setToast({ message: 'Project saved.', type: 'success' })
-        // Background: persist files to IDB cache so they survive reload
-        currentProject.media.forEach(m => {
-          const file = fileMap.get(m.id)
-          if (file) saveFileToCache(m.hash, file).catch(() => { })
-        })
+    try {
+      const timelineData = await serializeProjectTimelineForApi(currentProject, id => fileMap.get(id))
+      const updated = await updateProject(apiProject.id, {
+        name: currentProject.name,
+        timelineData,
       })
-      .catch(err => {
-        const msg = err instanceof ApiError ? err.message : 'Failed to save project.'
-        setToast({ message: msg, type: 'error' })
+      setApiProject(updated)
+      savedProjectRef.current = currentProject
+      setIsDirty(false)
+      setToast({ message: 'Project saved.', type: 'success' })
+      // Background: persist files to IDB cache so they survive reload
+      currentProject.media.forEach(m => {
+        const file = fileMap.get(m.id)
+        if (file) saveFileToCache(m.hash, file).catch(() => { })
       })
-      .finally(() => setIsSaving(false))
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to save project.'
+      setToast({ message: msg, type: 'error' })
+    } finally {
+      setIsSaving(false)
+    }
   }, [apiProject])
 
   const handleSaveConfirm = useCallback(async (name: string) => {
     const currentProject = useEditorStore.getState().project
     setIsSaving(true)
     try {
+      const timelineData = await serializeProjectTimelineForApi(currentProject, id => fileMap.get(id))
       const created = await createProject({
         name,
-        timelineData: serializeTimeline(currentProject),
+        timelineData,
       })
       useEditorStore.setState(s => ({ project: { ...s.project, name } }))
       const updatedProject = useEditorStore.getState().project

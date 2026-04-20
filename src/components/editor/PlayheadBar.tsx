@@ -56,7 +56,7 @@ export function PlayheadBar({ totalWidth, duration, majorInterval }: PlayheadBar
     <div
       ref={rulerRef}
       onMouseDown={handleMouseDown}
-      className="relative h-6 shrink-0 border-b border-b-white/8 cursor-pointer select-none bg-white/3"
+      className="sticky top-0 z-30 h-6 shrink-0 border-b border-b-white/8 cursor-pointer select-none bg-white/3"
       style={{ minWidth: totalWidth }}
     >
       {ticks.map(({ t, isMajor }) => (

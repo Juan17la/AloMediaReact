@@ -161,6 +161,20 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
     }
   }, [project, selectedTransitionClipId, setSelectedTransitionClip, track.clips])
 
+  useEffect(() => {
+    const clearReorderState = () => setReorderOver(false)
+    window.addEventListener("dragend", clearReorderState)
+    window.addEventListener("drop", clearReorderState)
+    return () => {
+      window.removeEventListener("dragend", clearReorderState)
+      window.removeEventListener("drop", clearReorderState)
+    }
+  }, [])
+
+  function isTrackReorderDrag(e: DragEvent<HTMLDivElement>): boolean {
+    return e.dataTransfer.types.includes("reordertrackid") || e.dataTransfer.types.includes("reorderTrackId")
+  }
+
   function isCompatibleDrop(mediaType: MediaType, trackType: TrackType): boolean {
     if (mediaType === "subtitles") return false
     if (mediaType === "audio") return trackType === "audio"
@@ -168,7 +182,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
   }
 
   function handleDragOver(e: DragEvent<HTMLDivElement>) {
-    if (e.dataTransfer.types.includes('reordertrackid')) {
+    if (isTrackReorderDrag(e)) {
       e.preventDefault()
       e.dataTransfer.dropEffect = 'move'
       setReorderOver(true)
@@ -183,7 +197,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
 
   function handleDragEnter(e: DragEvent<HTMLDivElement>) {
     e.preventDefault()
-    if (e.dataTransfer.types.includes('reordertrackid')) return
+    if (isTrackReorderDrag(e)) return
     setDragOverTrack(track.id)
   }
 
@@ -202,6 +216,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
     const sourceId = e.dataTransfer.getData('reorderTrackId')
     if (sourceId && sourceId !== track.id) {
       reorderTrack(sourceId, track.id)
+      setDragOverTrack(undefined)
       return
     }
 
@@ -254,13 +269,16 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
       className={[
         "flex min-w-full box-border overflow-hidden border-b border-b-white/5 timeline-track-row",
         isOver ? "bg-white/6" : "odd:bg-white/2 even:bg-black/12",
-        reorderOver ? "border-t-2 border-t-accent-red" : "",
       ].filter(Boolean).join(" ")}
       style={{ height: rowHeight }}
     >
       {/* Track header — sticky left */}
       <div
-        className="group sticky left-0 z-4 h-full shrink-0 flex items-center justify-between pr-1.5 box-border gap-1 border-r border-r-white/8 bg-white/5"
+        data-track-header="true"
+        className={[
+          "group sticky left-0 z-4 h-full shrink-0 flex items-center justify-between pr-1.5 box-border gap-1 border-r border-r-white/8 bg-white/5",
+          reorderOver ? "ring-1 ring-inset ring-accent-red/80" : "",
+        ].filter(Boolean).join(" ")}
         style={{ width: TRACK_HEADER_WIDTH }}
       >
         {/* Grip handle — dotted texture on far left */}
@@ -270,6 +288,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
             e.dataTransfer.setData('reorderTrackId', track.id)
             e.dataTransfer.effectAllowed = 'move'
           }}
+          onDragEnd={() => setReorderOver(false)}
           className="w-3.5 h-full shrink-0 cursor-grab select-none"
           style={{
             background: "repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, var(--color-dark-border-light) 2px, var(--color-dark-border-light) 3px)",

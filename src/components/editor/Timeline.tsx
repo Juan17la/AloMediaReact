@@ -196,10 +196,21 @@ export function Timeline() {
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [marquee])
 
+  useEffect(() => {
+    const clearMarquee = () => setMarquee(null)
+    window.addEventListener("dragend", clearMarquee)
+    window.addEventListener("drop", clearMarquee)
+    return () => {
+      window.removeEventListener("dragend", clearMarquee)
+      window.removeEventListener("drop", clearMarquee)
+    }
+  }, [])
+
   function handleTracksMouseDown(e: React.MouseEvent<HTMLDivElement>) {
     if (e.button !== 0) return
     const target = e.target as HTMLElement
     if (target.closest("[data-clip-id]")) return
+    if (target.closest("[data-track-header='true']")) return
 
     const rect = tracksAreaRef.current?.getBoundingClientRect()
     if (!rect) return

@@ -329,7 +329,7 @@ export default function VideoEditor() {
       <EditorErrorBoundary onReset={resetProject}>
         <div className="flex flex-1 min-h-0 overflow-hidden gap-0">
           <aside
-            className="shrink-0 flex flex-col overflow-hidden border-r border-white/10 w-80"
+            className="shrink-0 flex flex-col overflow-hidden border-r border-white/10 w-96"
           >
             <MediaLibrary />
           </aside>

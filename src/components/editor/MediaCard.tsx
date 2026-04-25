@@ -93,7 +93,6 @@ interface MediaCardProps {
 export function MediaCard({
   media,
   objectUrl,
-  proxyStatus,
   onInsertAtPlayhead,
   onImportSubtitles,
   onOpenAiTools,

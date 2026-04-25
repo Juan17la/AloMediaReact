@@ -10,7 +10,7 @@ interface AiToolsModalProps {
 }
 
 const overlayClass =
-  "fixed inset-0 z-50 flex items-center justify-center bg-black/5 backdrop-blur-sm px-3"
+  "fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm px-3"
 
 export function AiToolsModal({ media, initialTool, onClose }: AiToolsModalProps) {
   useEffect(() => {

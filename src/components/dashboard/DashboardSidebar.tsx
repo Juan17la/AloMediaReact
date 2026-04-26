@@ -34,9 +34,9 @@ export default function DashboardSidebar({
 
   return (
     <>
-      <aside className="fixed left-0 top-0 z-30 hidden h-screen w-16 border-r border-white/8 bg-black/30 backdrop-blur-2xl lg:flex">
+      <aside className="fixed left-0 top-0 z-30 hidden h-screen w-16 border-r border-dark-border/80 bg-dark/85 backdrop-blur-2xl lg:flex">
         <div className="flex h-full w-full flex-col items-center py-4">
-          <div className="mb-3 h-10 w-10 rounded-sm border border-dashed border-white/15 bg-white/3 p-1" aria-hidden="true">
+          <div className="mb-3 h-10 w-10 rounded-sm border border-dashed border-dark-border bg-dark-card p-1" aria-hidden="true">
             <img src={favicon} alt="icon" />
           </div>
 
@@ -47,7 +47,7 @@ export default function DashboardSidebar({
                 type="button"
                 title={t(labelKey)}
                 onClick={actionMap[onKey]}
-                className="flex h-10 w-10 items-center justify-center rounded-sm border border-white/8 bg-white/4 text-white/65 transition-colors duration-200 hover:border-blood-red/30 hover:bg-white/8 hover:text-white"
+                className="flex h-10 w-10 items-center justify-center rounded-sm border border-dark-border bg-dark-card text-accent-white/65 transition-colors duration-200 hover:border-blood-red/30 hover:bg-dark-elevated hover:text-accent-white"
               >
                 <Icon className="h-4 w-4" />
               </button>
@@ -56,11 +56,11 @@ export default function DashboardSidebar({
         </div>
       </aside>
 
-      <div className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between border-b border-white/8 bg-black/40 px-4 py-3 backdrop-blur-2xl lg:hidden">
+      <div className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between border-b border-dark-border/80 bg-dark/90 px-4 py-3 backdrop-blur-2xl lg:hidden">
         <button
           type="button"
           onClick={onMobileMenu}
-          className="flex h-9 w-9 items-center justify-center rounded-sm border border-white/10 bg-white/5 text-sm font-bold text-white"
+          className="flex h-9 w-9 items-center justify-center rounded-sm border border-dark-border bg-dark-card text-sm font-bold text-accent-white"
           aria-label={t("common:aria.openMenu")}
         >
           <Menu className="h-4 w-4" />
@@ -70,7 +70,7 @@ export default function DashboardSidebar({
           <button
             type="button"
             onClick={onScrollOngoing}
-            className="flex h-9 items-center gap-2 rounded-sm border border-white/10 bg-white/5 px-3 text-xs font-semibold text-white/75"
+            className="flex h-9 items-center gap-2 rounded-sm border border-dark-border bg-dark-card px-3 text-xs font-semibold text-accent-white/75"
           >
             <Menu className="h-3.5 w-3.5" />
             {t("common:labels.projects")}
@@ -78,7 +78,7 @@ export default function DashboardSidebar({
           <button
             type="button"
             onClick={onNewProject}
-            className="flex h-9 items-center gap-2 rounded-sm border border-blood-red/30 bg-blood-red/15 px-3 text-xs font-semibold text-white"
+            className="flex h-9 items-center gap-2 rounded-sm border border-blood-red/30 bg-blood-red/15 px-3 text-xs font-semibold text-accent-white"
           >
             <Plus className="h-3.5 w-3.5" />
             {t("common:labels.new")}

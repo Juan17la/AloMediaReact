@@ -57,26 +57,26 @@ function ProjectStripCard({
     <button
       type="button"
       onClick={() => onOpenProject(project.id)}
-      className="group flex w-64 shrink-0 flex-col overflow-hidden rounded-md border border-white/8 bg-white/4 text-left transition-colors duration-200 hover:border-blood-red/30 hover:bg-white/6 sm:w-72 lg:w-80"
+      className="group flex w-64 shrink-0 flex-col overflow-hidden rounded-md border border-dark/8 bg-dark/4 text-left transition-colors duration-200 hover:border-blood-red/30 hover:bg-dark/6 sm:w-72 lg:w-80"
     >
-      <div className="relative aspect-16/10 overflow-hidden border-b border-white/8 bg-linear-to-br">
+      <div className="relative aspect-16/10 overflow-hidden border-b border-dark/8 bg-linear-to-br">
         <div className={["absolute inset-0 bg-linear-to-br", tone].join(" ")} />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex h-12 w-12 items-center justify-center border border-white/10 bg-black/25 text-white/90 transition-transform duration-200 group-hover:scale-105">
+          <div className="flex h-12 w-12 items-center justify-center border border-dark/10 bg-black/25 text-accent-white/90 transition-transform duration-200 group-hover:scale-105">
             <Play className="ml-0.5 h-5 w-5" />
           </div>
         </div>
         <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent p-3">
-          <p className="truncate text-sm font-semibold text-white">{project.name}</p>
-          <p className="mt-1 text-[11px] text-white/60">{relative}</p>
+          <p className="truncate text-sm font-semibold text-accent-white">{project.name}</p>
+          <p className="mt-1 text-[11px] text-accent-white/60">{relative}</p>
         </div>
       </div>
 
       <div className="space-y-2 px-3 py-3">
         <div className="flex items-center justify-between gap-3">
-          <span className="truncate text-sm font-semibold text-white/90">{project.name}</span>
+          <span className="truncate text-sm font-semibold text-accent-white/90">{project.name}</span>
         </div>
-        <div className="flex items-center justify-between text-xs text-white/50">
+        <div className="flex items-center justify-between text-xs text-accent-white/50">
           <span>{formatDate(project.updatedAt, i18n.language)}</span>
         </div>
       </div>
@@ -106,31 +106,31 @@ function SharedRow({
     <button
       type="button"
       onClick={() => onOpenProject(project.id)}
-      className="group flex w-full items-center gap-4 rounded-sm border border-white/8 bg-white/4 px-3 py-3 text-left transition-colors duration-200 hover:border-blood-red/30 hover:bg-white/6"
+      className="group flex w-full items-center gap-4 rounded-sm border border-dark/8 bg-dark/4 px-3 py-3 text-left transition-colors duration-200 hover:border-blood-red/30 hover:bg-dark/6"
     >
-      <div className={["h-12 w-18 shrink-0 border border-white/8 bg-linear-to-br", tone].join(" ")}>
+      <div className={["h-12 w-18 shrink-0 border border-dark/8 bg-linear-to-br", tone].join(" ")}>
         <div className="flex h-full items-center justify-center">
-          <Film className="h-4.5 w-4.5 text-white/90" />
+          <Film className="h-4.5 w-4.5 text-accent-white/90" />
         </div>
       </div>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white/95">{project.name}</p>
-            <p className="mt-0.5 text-xs text-white/50">{owner}</p>
+            <p className="truncate text-sm font-semibold text-accent-white/95">{project.name}</p>
+            <p className="mt-0.5 text-xs text-accent-white/50">{owner}</p>
           </div>
-          <div className="hidden items-center gap-2 text-xs text-white/45 md:flex">
+          <div className="hidden items-center gap-2 text-xs text-accent-white/45 md:flex">
             <CalendarDays className="h-3.5 w-3.5" />
             {formatDate(project.updatedAt, i18n.language)}
           </div>
         </div>
-        <div className="mt-2 h-1 overflow-hidden bg-white/8">
+        <div className="mt-2 h-1 overflow-hidden bg-dark/8">
           <div className="h-full bg-blood-red/80" style={{ width: progress }} />
         </div>
       </div>
 
-      <ArrowRight className="h-4 w-4 text-white/35" />
+      <ArrowRight className="h-4 w-4 text-accent-white/35" />
     </button>
   );
 }
@@ -155,15 +155,15 @@ export default function DashboardProjects({
   return (
     <div className="space-y-8">
       <section ref={ongoingRef} className="space-y-3">
-        <div className="flex items-center justify-between gap-3 border-b border-white/8 pb-2">
+        <div className="flex items-center justify-between gap-3 border-b border-dark/8 pb-2">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">{t("projects.ongoingLabel")}</p>
-            <h2 className="mt-1 text-lg font-semibold text-white/90">{t("projects.continueWorking")}</h2>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-accent-white/40">{t("projects.ongoingLabel")}</p>
+            <h2 className="mt-1 text-lg font-semibold text-accent-white/90">{t("projects.continueWorking")}</h2>
           </div>
           <button
             type="button"
             onClick={onRefresh}
-            className="flex items-center gap-2 rounded-sm border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/75 transition-colors duration-200 hover:border-blood-red/30 hover:bg-white/8"
+            className="flex items-center gap-2 rounded-sm border border-dark/10 bg-dark/5 px-3 py-2 text-xs font-semibold text-accent-white/75 transition-colors duration-200 hover:border-blood-red/30 hover:bg-dark/8"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             {t("common:actions.refresh")}
@@ -173,20 +173,20 @@ export default function DashboardProjects({
         {ownLoading && ownProjects.length === 0 ? (
           <div className="flex gap-3 overflow-x-auto pb-2">
             {ownSkeletons.map((_, index) => (
-              <div key={index} className="w-64 shrink-0 rounded-md border border-white/8 bg-white/4 sm:w-72 lg:w-80">
-                <div className="aspect-16/10 bg-white/5" />
+              <div key={index} className="w-64 shrink-0 rounded-md border border-dark/8 bg-dark/4 sm:w-72 lg:w-80">
+                <div className="aspect-16/10 bg-dark/5" />
                 <div className="space-y-2 px-3 py-3">
-                  <div className="h-3 w-2/3 bg-white/8" />
-                  <div className="h-1 bg-white/8" />
-                  <div className="h-2 w-1/3 bg-white/8" />
+                  <div className="h-3 w-2/3 bg-dark/8" />
+                  <div className="h-1 bg-dark/8" />
+                  <div className="h-2 w-1/3 bg-dark/8" />
                 </div>
               </div>
             ))}
           </div>
         ) : ownError && ownProjects.length === 0 ? (
-          <p className="rounded-sm border border-white/8 bg-white/4 px-3 py-3 text-sm text-red-300">{ownError}</p>
+          <p className="rounded-sm border border-dark/8 bg-dark/4 px-3 py-3 text-sm text-red-300">{ownError}</p>
         ) : ownProjects.length === 0 ? (
-          <p className="px-1 py-2 text-sm text-white/50">{t("projects.noOngoing")}</p>
+          <p className="px-1 py-2 text-sm text-accent-white/50">{t("projects.noOngoing")}</p>
         ) : (
           <div className="overflow-x-auto pb-2">
             <div className="flex gap-3 pr-1">
@@ -199,27 +199,27 @@ export default function DashboardProjects({
       </section>
 
       <section ref={sharedRef} className="space-y-3">
-        <div className="border-b border-white/8 pb-2">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-white/40">{t("projects.sharedLabel")}</p>
-          <h2 className="mt-1 text-lg font-semibold text-white/90">{t("projects.collaborativeWork")}</h2>
+        <div className="border-b border-dark/8 pb-2">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-accent-white/40">{t("projects.sharedLabel")}</p>
+          <h2 className="mt-1 text-lg font-semibold text-accent-white/90">{t("projects.collaborativeWork")}</h2>
         </div>
 
         {sharedLoading && sharedProjects.length === 0 ? (
           <div className="space-y-2">
             {sharedSkeletons.map((_, index) => (
-              <div key={index} className="flex items-center gap-3 rounded-sm border border-white/8 bg-white/4 px-3 py-3">
-                <div className="h-12 w-18 bg-white/5" />
+              <div key={index} className="flex items-center gap-3 rounded-sm border border-dark/8 bg-dark/4 px-3 py-3">
+                <div className="h-12 w-18 bg-dark/5" />
                 <div className="min-w-0 flex-1 space-y-2">
-                  <div className="h-3 w-1/2 bg-white/8" />
-                  <div className="h-1 bg-white/8" />
+                  <div className="h-3 w-1/2 bg-dark/8" />
+                  <div className="h-1 bg-dark/8" />
                 </div>
               </div>
             ))}
           </div>
         ) : sharedError && sharedProjects.length === 0 ? (
-          <p className="rounded-sm border border-white/8 bg-white/4 px-3 py-3 text-sm text-red-300">{sharedError}</p>
+          <p className="rounded-sm border border-dark/8 bg-dark/4 px-3 py-3 text-sm text-red-300">{sharedError}</p>
         ) : sharedProjects.length === 0 ? (
-          <p className="px-1 py-2 text-sm text-white/50">{t("projects.noShared")}</p>
+          <p className="px-1 py-2 text-sm text-accent-white/50">{t("projects.noShared")}</p>
         ) : (
           <div className="space-y-2">
             {sharedProjects.map((project, index) => (

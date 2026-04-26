@@ -6,6 +6,7 @@ import Cookies from "js-cookie";
 import PageHeader from "../../components/common/PageHeader";
 import SectionCard from "../../components/common/SectionCard";
 import StatsCard from "../../components/admin/StatsCard";
+import Footer from "../../components/common/Footer";
 
 interface AdminStats {
   totalUsers: number;
@@ -82,16 +83,20 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-dark text-accent-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(212,80,90,0.10)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(245,229,235,0.72)_0%,transparent_55%)]" />
+    <div className="relative min-h-screen overflow-hidden bg-surface text-on-surface">
+      {/* Light theme gradients */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(124,58,237,0.08)_0%,transparent_55%)] dark:hidden" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(99,14,212,0.06)_0%,transparent_55%)] dark:hidden" />
+      {/* Dark theme gradients */}
+      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_20%_10%,rgba(167,139,250,0.12)_0%,transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_80%_90%,rgba(206,189,255,0.08)_0%,transparent_55%)]" />
 
       <main className="relative z-10 px-4 py-10 sm:px-8">
         <div className="mx-auto max-w-4xl space-y-5">
           <button
             type="button"
             onClick={() => navigate("/dashboard")}
-            className="mb-2 flex items-center gap-1.5 text-xs text-muted transition-colors duration-150 hover:text-accent-white/70"
+            className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground transition-colors duration-150 hover:text-on-surface"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Dashboard
@@ -100,20 +105,20 @@ export default function AdminPage() {
           <PageHeader
             title={t("admin.title")}
             subtitle={t("admin.subtitle")}
-            icon={<Shield className="h-5 w-5 text-blood-red" />}
+            icon={<Shield className="h-5 w-5 text-primary" />}
           />
 
           {loading && (
             <div className="text-center py-12">
-              <div className="inline-block h-6 w-6 border-2 border-dark-border border-t-accent-red rounded-full" style={{ animation: "spin 0.8s linear infinite" }} />
-              <p className="mt-3 text-sm text-muted">{t("common:states.loading")}</p>
+              <div className="inline-block h-6 w-6 border-2 border-outline-variant border-t-primary rounded-full animate-spin" />
+              <p className="mt-3 text-sm text-muted-foreground">{t("common:states.loading")}</p>
             </div>
           )}
 
           {error && (
             <div className="flex items-center justify-center gap-2 py-8 animate-error-slide">
-              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-              <p className="text-sm text-red-400">{error}</p>
+              <AlertCircle className="w-4 h-4 text-error shrink-0" />
+              <p className="text-sm text-error">{error}</p>
             </div>
           )}
 
@@ -125,7 +130,7 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={handleDownloadCSV}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-dark-border bg-dark-card px-3 py-1.5 text-xs font-semibold text-accent-white/70 hover:bg-dark-elevated transition-colors duration-150"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container px-3 py-1.5 text-xs font-semibold text-on-surface/70 hover:bg-surface-container-high transition-colors duration-150"
                   >
                     <FileDown className="w-3.5 h-3.5" />
                     {t("admin.downloadCSV")}
@@ -165,7 +170,7 @@ export default function AdminPage() {
                   />
                 </div>
 
-                <p className="mt-4 text-xs text-muted-light">
+                <p className="mt-4 text-xs text-muted-foreground">
                   {t("admin.generatedAt")}: {new Date(stats.generatedAt).toLocaleString()}
                 </p>
               </SectionCard>
@@ -173,6 +178,10 @@ export default function AdminPage() {
           )}
         </div>
       </main>
+
+      <div className="relative z-10">
+        <Footer />
+      </div>
     </div>
   );
 }

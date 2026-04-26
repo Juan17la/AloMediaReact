@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import DashboardProjects from "../../components/dashboard/DashboardProjects";
-import DashboardSidebar from "../../components/dashboard/DashboardSidebar";
 import UserMenuModal from "../../components/UserMenuModal";
 import { useAuth } from "../../hooks/useAuth";
 import { useProjectListStore } from "../../store/projectListStore";

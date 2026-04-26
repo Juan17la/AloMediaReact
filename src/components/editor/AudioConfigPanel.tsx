@@ -6,11 +6,11 @@ import { InspectorSliderRow } from "../ui/InspectorSliderRow"
 
 // Glass card constant
 const glassCard =
-  "w-full bg-white/[0.03] border border-white/[0.07] rounded-lg p-3 mb-3"
+  "w-full bg-dark border border-dark-border rounded-lg p-3 mb-3"
 
 // Section label constant
 const sectionLabel =
-  "text-[11px] font-semibold tracking-[0.06em] uppercase text-white/40"
+  "text-[11px] font-semibold tracking-[0.06em] uppercase text-muted"
 
 // Mute button styling
 const muteButtonBase =
@@ -20,7 +20,7 @@ const muteButtonActive =
   "text-[var(--color-accent-red)]"
 
 const muteButtonInactive =
-  "text-white/55 hover:text-white/80"
+  "text-muted hover:text-accent-white"
 
 function formatBalance(v: number): string {
   if (Math.abs(v) <= 0.001) return "C"
@@ -75,7 +75,7 @@ export function AudioConfigPanel({ clipId }: AudioConfigPanelProps) {
 
       {/* Mute row */}
       <div className="h-7 flex items-center justify-between gap-3 mb-2.5">
-        <span className="text-xs text-white/50">Mute</span>
+        <span className="text-xs text-muted">Mute</span>
         <button
           onClick={() => set("muted", !config.muted)}
           aria-label={config.muted ? "Unmute" : "Mute"}

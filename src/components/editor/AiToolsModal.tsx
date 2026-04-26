@@ -10,7 +10,7 @@ interface AiToolsModalProps {
 }
 
 const overlayClass =
-  "fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm px-3"
+  "fixed inset-0 z-50 flex items-center justify-center bg-[rgba(26,26,31,0.10)] backdrop-blur-sm px-3"
 
 export function AiToolsModal({ media, initialTool, onClose }: AiToolsModalProps) {
   useEffect(() => {
@@ -32,8 +32,8 @@ export function AiToolsModal({ media, initialTool, onClose }: AiToolsModalProps)
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold text-white/95">AI Audio Tools</h2>
-            <p className="text-[11px] text-white/55 mt-1">
+            <h2 className="text-base font-semibold text-accent-white">AI Audio Tools</h2>
+            <p className="text-[11px] text-muted mt-1">
               Choose an action for {media.name}
             </p>
           </div>
@@ -41,7 +41,7 @@ export function AiToolsModal({ media, initialTool, onClose }: AiToolsModalProps)
             type="button"
             onClick={onClose}
             aria-label="Close AI tools"
-            className="h-7 w-7 rounded-md border border-white/10 bg-white/5 text-white/75 flex items-center justify-center transition-colors duration-100 hover:bg-white/10 hover:text-white"
+            className="h-7 w-7 rounded-md border border-dark-border bg-dark-card text-accent-white/70 flex items-center justify-center transition-colors duration-100 hover:bg-dark-elevated hover:text-accent-white"
           >
             <X size={14} />
           </button>

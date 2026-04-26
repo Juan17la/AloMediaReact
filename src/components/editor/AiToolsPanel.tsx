@@ -15,7 +15,7 @@ interface AiToolsPanelProps {
 }
 
 const sectionLabel =
-  "text-[10px] font-semibold tracking-[0.1em] uppercase text-white/40 mb-1.5"
+  "text-[10px] font-semibold tracking-[0.1em] uppercase text-muted mb-1.5"
 
 export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPanelProps) {
   const addMedia = useEditorStore((s) => s.addMedia)
@@ -38,7 +38,7 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
   if (!selectedMedia) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
-        <MousePointerClick size={22} className="text-white/25" />
+        <MousePointerClick size={22} className="text-muted-light" />
         <p className="text-[11px] text-muted leading-relaxed">
           Click a file in the Library tab<br />to use AI tools on it
         </p>
@@ -50,7 +50,7 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
   if (selectedMedia.type === "image") {
     return (
       <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
-        <AlertCircle size={22} className="text-white/25" />
+        <AlertCircle size={22} className="text-muted-light" />
         <p className="text-[11px] text-muted">AI tools are not available for images</p>
       </div>
     )
@@ -59,7 +59,7 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
   if (selectedMedia.type === "video") {
     return (
       <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
-        <AlertCircle size={22} className="text-white/25" />
+        <AlertCircle size={22} className="text-muted-light" />
         <p className="text-[11px] text-muted leading-relaxed">
           Audio extraction from video is not yet supported.<br />
           Add the audio track separately to use AI tools.
@@ -71,7 +71,7 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
   if (selectedMedia.type === "subtitles") {
     return (
       <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
-        <AlertCircle size={22} className="text-white/25" />
+        <AlertCircle size={22} className="text-muted-light" />
         <p className="text-[11px] text-muted leading-relaxed">
           Subtitle files can be imported into the timeline, but AI tools are not available for them.
         </p>
@@ -156,7 +156,7 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
       {/* Selected file */}
       <div>
         <p className={sectionLabel}>Selected File</p>
-        <div className="flex items-center gap-2 px-2.5 py-2 bg-white/4 border border-white/8 rounded-lg">
+        <div className="flex items-center gap-2 px-2.5 py-2 bg-dark-card border border-dark-border rounded-lg">
           <span className="text-[11px] text-accent-white truncate">{selectedMedia.name}</span>
         </div>
       </div>
@@ -183,7 +183,7 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
       </div>
 
       {/* Description */}
-      <div className="px-2.5 py-2 bg-white/3 border border-white/6 rounded-lg">
+      <div className="px-2.5 py-2 bg-dark-card border border-dark-border rounded-lg">
         <p className="text-[11px] text-muted leading-relaxed">
           {activeTool === "clean"
             ? "Removes background noise and enhances speech clarity. The result is added to your library."
@@ -214,7 +214,7 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
       <button
         onClick={handleRun}
         disabled={isProcessing}
-        className="flex items-center justify-center gap-2 h-8 rounded-lg text-[11px] font-semibold bg-accent-red text-white disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98] transition-all duration-100 cursor-pointer"
+        className="flex items-center justify-center gap-2 h-8 rounded-lg text-[11px] font-semibold bg-accent-red text-accent-white disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98] transition-all duration-100 cursor-pointer"
       >
         {isProcessing ? (
           <>
@@ -254,7 +254,7 @@ function ToolButton({ active, disabled, onClick, icon, label }: ToolButtonProps)
         "flex items-center gap-1.5 flex-1 h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-all duration-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
         active
           ? "bg-accent-red/15 border-accent-red/40 text-accent-white"
-          : "bg-white/4 border-white/10 text-muted hover:bg-white/7 hover:text-white/70",
+          : "bg-dark border-dark-border text-muted hover:bg-dark-card hover:text-accent-white",
       ].join(" ")}
     >
       {icon}

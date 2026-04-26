@@ -28,11 +28,11 @@ export default function TermsPage() {
         ]}
       />
 
-      <p className="text-xs text-white/40">{t("legal.terms.lastUpdated")}</p>
+      <p className="text-xs text-accent-white/40">{t("legal.terms.lastUpdated")}</p>
 
       {sections.map((section, idx) => (
         <SectionCard key={idx} title={section.title}>
-          <p className="text-sm text-white/55 leading-relaxed">{section.text}</p>
+          <p className="text-sm text-accent-white/55 leading-relaxed">{section.text}</p>
         </SectionCard>
       ))}
 

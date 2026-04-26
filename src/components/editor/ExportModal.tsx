@@ -74,7 +74,7 @@ export function ExportModal({
         className="modal-panel w-120 flex flex-col gap-5"
         onClick={e => e.stopPropagation()}
       >
-        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--color-accent-white)", marginBottom: 0 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--color-on-surface)", marginBottom: 0 }}>
           {inProgress ? 'Exporting…' : isDone ? 'Export complete' : 'Export video'}
         </h2>
 
@@ -83,15 +83,15 @@ export function ExportModal({
           <>
             {/* Format */}
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted)" }}>Format</label>
+              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted-foreground)" }}>Format</label>
               <div className="flex gap-2">
                 {AVAILABLE_FORMATS.map(f => (
                   <button
                     key={f}
                     onClick={() => setFormat(f)}
                     className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors duration-120 ${format === f
-                      ? 'bg-accent-red border-accent-red text-accent-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
-                      : 'bg-dark border-dark-border text-muted hover:text-accent-white hover:border-dark-border-light hover:bg-dark-card'
+                      ? 'bg-primary border-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
+                      : 'bg-surface-container-low border-outline-variant text-muted-foreground hover:text-on-surface hover:border-outline hover:bg-surface-container'
                       }`}
                   >
                     {f.toUpperCase()}
@@ -102,7 +102,7 @@ export function ExportModal({
 
             {/* Resolution */}
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted)" }}>Resolution</label>
+              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted-foreground)" }}>Resolution</label>
               <div className="flex gap-2 flex-wrap">
                 {[
                   { label: '1280×720', w: 1280, h: 720 },
@@ -115,8 +115,8 @@ export function ExportModal({
                       key={r.label}
                       onClick={() => setResolution({ width: r.w, height: r.h })}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors duration-120 ${selected
-                        ? 'bg-accent-red border-accent-red text-accent-white'
-                        : 'border-dark-border text-muted hover:text-accent-white hover:border-dark-border-light hover:bg-dark-card'
+                        ? 'bg-primary border-primary text-primary-foreground'
+                        : 'border-outline-variant text-muted-foreground hover:text-on-surface hover:border-outline hover:bg-surface-container'
                         }`}
                     >
                       {r.label}
@@ -128,15 +128,15 @@ export function ExportModal({
 
             {/* FPS */}
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted)" }}>Frame rate</label>
+              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted-foreground)" }}>Frame rate</label>
               <div className="flex gap-2">
                 {[24, 30, 60].map(f => (
                   <button
                     key={f}
                     onClick={() => setFps(f)}
                     className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors duration-120 ${fps === f
-                      ? 'bg-accent-red border-accent-red text-accent-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
-                      : 'bg-dark border-dark-border text-muted hover:text-accent-white hover:border-dark-border-light hover:bg-dark-card'
+                      ? 'bg-primary border-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
+                      : 'bg-surface-container-low border-outline-variant text-muted-foreground hover:text-on-surface hover:border-outline hover:bg-surface-container'
                       }`}
                   >
                     {f} fps
@@ -147,15 +147,15 @@ export function ExportModal({
 
             {/* File name */}
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted)" }}>File name</label>
+              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted-foreground)" }}>File name</label>
               <div className="flex items-center gap-2">
                 <input
                   value={fileName}
                   onChange={e => setFileName(e.target.value)}
-                  className="editor-input flex-1 px-3 py-2 text-sm text-accent-white"
+                  className="editor-input flex-1 px-3 py-2 text-sm text-on-surface"
                   spellCheck={false}
                 />
-                <span className="text-muted text-sm shrink-0">.{format}</span>
+                <span className="text-muted-foreground text-sm shrink-0">.{format}</span>
               </div>
             </div>
 
@@ -163,13 +163,13 @@ export function ExportModal({
             <div className="flex justify-end gap-2.5" style={{ marginTop: 8 }}>
               <button
                 onClick={onClose}
-                className="btn-ghost px-4 py-2 rounded-lg text-sm border border-dark-border bg-dark-card text-accent-white/80 hover:border-dark-border-light hover:bg-dark-elevated"
+                className="px-4 py-2 rounded-lg text-sm border border-outline-variant bg-surface-container-low text-on-surface/80 hover:border-outline hover:bg-surface-container transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleStart}
-                className="btn-accent px-5 py-2 rounded-lg text-sm font-semibold bg-accent-red text-accent-white"
+                className="px-5 py-2 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:brightness-95 transition-colors"
               >
                 Export
               </button>

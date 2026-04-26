@@ -45,13 +45,13 @@ export function ShareProjectModal({ projectId, onClose }: ShareProjectModalProps
         className="modal-panel w-120 flex flex-col gap-5"
         onClick={e => e.stopPropagation()}
       >
-        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "rgba(255, 255, 255, 0.92)" }}>Share project</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--color-on-surface)" }}>Share project</h2>
         {success ? (
-          <p className="text-sm text-green-400">Project shared successfully.</p>
+          <p className="text-sm text-primary">Project shared successfully.</p>
         ) : (
           <>
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.40)" }}>Collaborator email</label>
+              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted-foreground)" }}>Collaborator email</label>
               <input
                 autoFocus
                 type="email"
@@ -59,22 +59,21 @@ export function ShareProjectModal({ projectId, onClose }: ShareProjectModalProps
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleShare() }}
-                className="editor-input w-full px-3 py-2 text-sm text-accent-white placeholder:text-white/25"
+                className="editor-input w-full px-3 py-2 text-sm text-on-surface placeholder:text-muted-foreground"
               />
-              {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
+              {error && <p className="text-xs text-error mt-1">{error}</p>}
             </div>
             <div className="flex justify-end gap-2.5" style={{ marginTop: 8 }}>
               <button
                 onClick={onClose}
-                className="btn-ghost px-4 py-2 rounded-lg text-sm border border-white/10 bg-white/5"
-                style={{ color: "rgba(255, 255, 255, 0.80)" }}
+                className="px-4 py-2 rounded-lg text-sm border border-outline-variant bg-surface-container-low text-on-surface/80 hover:border-outline hover:bg-surface-container transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleShare}
                 disabled={isLoading || !email.trim()}
-                className="btn-accent px-5 py-2 rounded-lg text-sm font-semibold bg-accent-red text-white"
+                className="px-5 py-2 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:brightness-95 transition-all"
               >
                 {isLoading ? 'Sharing…' : 'Share'}
               </button>

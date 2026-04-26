@@ -1,5 +1,4 @@
 import { Outlet } from "react-router";
-import Footer from "../components/common/Footer";
 
 export default function PublicLayout() {
   return (
@@ -11,10 +10,6 @@ export default function PublicLayout() {
       <main className="relative z-10 flex-1">
         <Outlet />
       </main>
-
-      <div className="relative z-10">
-        <Footer />
-      </div>
     </div>
   );
 }

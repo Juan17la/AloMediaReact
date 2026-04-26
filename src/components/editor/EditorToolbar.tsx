@@ -12,10 +12,10 @@ interface EditorToolbarProps {
 }
 
 const ghostBtn =
-  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-white/80 bg-white/5 border border-white/10 hover:bg-white/9 hover:border-white/[0.18] active:scale-95 transition-all duration-100 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
+  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-accent-white/80 bg-dark-card border border-dark-border hover:bg-dark-elevated hover:border-dark-border-light active:scale-95 transition-all duration-100 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed"
 
 const primaryBtn =
-  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg font-semibold text-[11px] tracking-[0.04em] text-white bg-[var(--color-accent-red)] shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] hover:brightness-[0.86] active:scale-95 active:brightness-[0.78] transition-all duration-100 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
+  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg font-semibold text-[11px] tracking-[0.04em] text-accent-white bg-[var(--color-accent-red)] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:brightness-[0.95] active:scale-95 active:brightness-[0.88] transition-all duration-100 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
 
 export function EditorToolbar({
   apiProject,

@@ -52,14 +52,14 @@ const sliderFlex =
 
 // Input styling
 const inputValue =
-    "w-9 h-5 bg-surface-container border border-outline-variant rounded-md px-1 text-[10px] font-mono text-right text-on-surface placeholder:text-muted-foreground focus:border-primary/55 focus:ring-2 focus:ring-primary/12 transition-all duration-150 box-border outline-none"
+    "w-9 h-5 bg-surface-container border border-outline-variant rounded-md px-1 text-[10px] font-mono text-right text-on-surface placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all duration-150 box-border outline-none"
 
 // Reset button styling
 const resetButtonBase =
   "p-1 rounded-sm editor-transition group"
 
 const resetButtonActive =
-    "opacity-60 hover:opacity-100 hover:bg-surface-container cursor-pointer"
+    "opacity-60 hover:opacity-100 hover:bg-surface-container cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/30"
 
 const resetButtonDisabled =
   "opacity-20 cursor-default"

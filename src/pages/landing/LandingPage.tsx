@@ -20,14 +20,17 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-hidden bg-dark text-accent-white">
-      {/* Background gradients */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(212,80,90,0.10)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(245,229,235,0.72)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute -top-[15%] -right-[10%] h-125 w-125 rounded-full bg-blood-red/10 blur-[120px]" />
+    <div className="relative min-h-screen flex flex-col overflow-hidden bg-surface text-on-surface">
+      {/* Background gradients - Light theme */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(124,58,237,0.08)_0%,transparent_55%)] dark:hidden" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(99,14,212,0.06)_0%,transparent_55%)] dark:hidden" />
+      {/* Background gradients - Dark theme */}
+      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_20%_10%,rgba(167,139,250,0.12)_0%,transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_80%_90%,rgba(206,189,255,0.08)_0%,transparent_55%)]" />
+      <div className="pointer-events-none absolute -top-[15%] -right-[10%] h-125 w-125 rounded-full bg-primary/10 blur-[120px]" />
 
       {/* Navbar */}
-      <header className="relative z-20 border-b border-dark-border/80">
+      <header className="relative z-20 border-b border-outline-variant/80">
         <div className="max-w-7xl mx-auto px-6 sm:px-10">
           <nav className="h-16 flex items-center justify-between">
             <div className="flex items-center gap-2 py-2">
@@ -39,7 +42,7 @@ export default function LandingPage() {
                 <button
                   type="button"
                   onClick={() => navigate("/dashboard")}
-                  className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-4 py-2.5 text-sm font-semibold text-accent-white"
+                  className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-primary to-primary-container px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 hover:brightness-95 transition-all"
                 >
                   {t("landing.ctaLoggedIn")}
                   <ArrowRight className="w-4 h-4" />
@@ -49,14 +52,14 @@ export default function LandingPage() {
                   <button
                     type="button"
                     onClick={() => navigate("/auth/login")}
-                    className="rounded-lg border border-dark-border bg-dark-card px-4 py-2 text-sm font-semibold text-accent-white/80 hover:bg-dark-elevated transition-colors duration-150"
+                    className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-sm font-semibold text-on-surface hover:bg-surface-container-low hover:border-outline transition-colors duration-150"
                   >
                     Sign In
                   </button>
                   <button
                     type="button"
                     onClick={() => navigate("/auth/register")}
-                    className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-4 py-2.5 text-sm font-semibold text-accent-white"
+                    className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-primary to-primary-container px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 hover:brightness-95 transition-all"
                   >
                     Sign Up
                   </button>
@@ -71,14 +74,14 @@ export default function LandingPage() {
       <main className="relative z-10 flex-1">
         <div className="max-w-7xl mx-auto px-6 sm:px-10">
           <section className="pt-20 pb-16 sm:pt-28 sm:pb-20 text-center">
-            <div className="flex items-center justify-center gap-2 text-accent-red mb-4">
+            <div className="flex items-center justify-center gap-2 text-primary mb-4">
               <Plus className="h-4 w-4" />
               <span className="text-xs font-semibold uppercase tracking-[0.16em]">{t("landing.heroTagline")}</span>
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-[-0.03em] text-gradient-red max-w-3xl mx-auto leading-tight">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-[-0.03em] text-gradient-primary max-w-3xl mx-auto leading-tight">
               {t("landing.heroTitle")}
             </h1>
-            <p className="mt-5 text-base sm:text-lg text-muted max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-5 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               {t("landing.heroDescription")}
             </p>
 
@@ -87,7 +90,7 @@ export default function LandingPage() {
                 <button
                   type="button"
                   onClick={() => navigate("/dashboard")}
-                  className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-6 py-3 text-sm font-semibold text-accent-white"
+                  className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-primary to-primary-container px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 hover:brightness-95 transition-all"
                 >
                   {t("landing.ctaLoggedIn")}
                   <ArrowRight className="w-4 h-4" />
@@ -96,7 +99,7 @@ export default function LandingPage() {
                 <button
                   type="button"
                   onClick={() => navigate("/auth/register")}
-                  className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-6 py-3 text-sm font-semibold text-accent-white"
+                  className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-primary to-primary-container px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 hover:brightness-95 transition-all"
                 >
                   {t("landing.cta")}
                   <ArrowRight className="w-4 h-4" />
@@ -107,19 +110,19 @@ export default function LandingPage() {
 
           {/* Features */}
           <section className="pb-20">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted text-center mb-8">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground text-center mb-8">
               {t("landing.features")}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {features.map((f, idx) => (
                 <div key={idx} className="auth-glass-card rounded-md px-5 py-6 text-center">
                   <div className="flex items-center justify-center mb-4">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-dark-border bg-dark-card text-accent-red">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-low text-primary">
                       {f.icon}
                     </div>
                   </div>
-                  <h3 className="mb-2 text-sm font-semibold text-accent-white">{f.title}</h3>
-                  <p className="text-xs leading-relaxed text-muted">{f.desc}</p>
+                  <h3 className="mb-2 text-sm font-semibold text-on-surface">{f.title}</h3>
+                  <p className="text-xs leading-relaxed text-muted-foreground">{f.desc}</p>
                 </div>
               ))}
             </div>

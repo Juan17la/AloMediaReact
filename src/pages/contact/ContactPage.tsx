@@ -54,11 +54,11 @@ export default function ContactPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="name" className="text-[13px] text-white/50 tracking-wide pl-1">
+            <label htmlFor="name" className="text-[13px] text-muted tracking-wide pl-1">
               {t("contact.name")}
             </label>
             <div className="relative group">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-light group-focus-within:text-accent-white transition-colors duration-150" />
               <input
                 id="name"
                 name="name"
@@ -72,11 +72,11 @@ export default function ContactPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="contact-email" className="text-[13px] text-white/50 tracking-wide pl-1">
+            <label htmlFor="contact-email" className="text-[13px] text-muted tracking-wide pl-1">
               {t("contact.email")}
             </label>
             <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-light group-focus-within:text-accent-white transition-colors duration-150" />
               <input
                 id="contact-email"
                 name="email"
@@ -90,11 +90,11 @@ export default function ContactPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="subject" className="text-[13px] text-white/50 tracking-wide pl-1">
+            <label htmlFor="subject" className="text-[13px] text-muted tracking-wide pl-1">
               {t("contact.subject")}
             </label>
             <div className="relative group">
-              <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
+              <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-light group-focus-within:text-accent-white transition-colors duration-150" />
               <input
                 id="subject"
                 name="subject"
@@ -108,7 +108,7 @@ export default function ContactPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="message" className="text-[13px] text-white/50 tracking-wide pl-1">
+            <label htmlFor="message" className="text-[13px] text-muted tracking-wide pl-1">
               {t("contact.message")}
             </label>
             <textarea
@@ -140,7 +140,7 @@ export default function ContactPage() {
       </SectionCard>
 
       <SectionCard title={t("contact.other")}>
-        <p className="text-sm text-white/50">{t("contact.otherInfo")}</p>
+        <p className="text-sm text-muted">{t("contact.otherInfo")}</p>
       </SectionCard>
     </div>
   );

@@ -273,7 +273,7 @@ export default function VideoEditor() {
 
       {/* ── Topbar ── */}
       <header
-        className="flex h-12.5 shrink-0 items-center border-b border-dark-border bg-dark/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_4px_12px_rgba(26,26,31,0.04),0_8px_24px_rgba(26,26,31,0.04)]"
+        className="flex items-center justify-between h-14 px-4 border-b border-outline-variant/60"
         style={{
           backdropFilter: "blur(28px) saturate(160%)",
           WebkitBackdropFilter: "blur(28px) saturate(160%)",

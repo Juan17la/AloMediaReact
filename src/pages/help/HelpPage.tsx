@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import { ArrowLeft } from "lucide-react";
 import { HelpCircle, Search, ChevronDown, ChevronUp, BookOpen, MessageSquare } from "lucide-react";
 import PageHeader from "../../components/common/PageHeader";
 import SectionCard from "../../components/common/SectionCard";
+import Footer from "../../components/common/Footer";
 
 interface FaqItem {
   q: string;
@@ -32,75 +34,98 @@ export default function HelpPage() {
     : faqs;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10 sm:px-8 space-y-5 animate-fade-in">
-      <PageHeader
-        title={t("help.title")}
-        subtitle={t("help.subtitle")}
-        icon={<HelpCircle className="h-5 w-5 text-blood-red" />}
-      />
+    <div className="relative min-h-screen overflow-hidden bg-surface text-on-surface">
+      {/* Light theme gradients */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(124,58,237,0.08)_0%,transparent_55%)] dark:hidden" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(99,14,212,0.06)_0%,transparent_55%)] dark:hidden" />
+      {/* Dark theme gradients */}
+      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_20%_10%,rgba(167,139,250,0.12)_0%,transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_80%_90%,rgba(206,189,255,0.08)_0%,transparent_55%)]" />
 
-      {/* Search */}
-      <div className="relative group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-light group-focus-within:text-accent-white transition-colors duration-150" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          placeholder={t("help.search")}
-          className="auth-input w-full rounded-lg py-3 pl-12 pr-4 text-accent-white placeholder-white/25 text-sm font-medium"
-        />
-      </div>
+      <main className="relative z-10 px-4 py-10 sm:px-8">
+        <div className="max-w-3xl mx-auto space-y-5 animate-fade-in">
+          <Link
+            to="/"
+            className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground transition-colors duration-150 hover:text-on-surface"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Home
+          </Link>
 
-      {/* Getting Started */}
-      <SectionCard title={t("help.gettingStarted")} icon={<BookOpen className="w-4 h-4" />}>
-        <p className="text-sm text-muted leading-relaxed">{t("help.gettingStartedText")}</p>
-      </SectionCard>
+          <PageHeader
+            title={t("help.title")}
+            subtitle={t("help.subtitle")}
+            icon={<HelpCircle className="h-5 w-5 text-primary" />}
+          />
 
-      {/* FAQ */}
-      <SectionCard title={t("help.faq")}>
-        <div className="space-y-2">
-          {filtered.length === 0 ? (
-            <p className="py-3 text-sm text-muted">{t("common:states.noResults")}</p>
-          ) : (
-            filtered.map((faq, idx) => {
-              const isOpen = openFaq === idx;
-              return (
-                <div key={idx} className="overflow-hidden rounded-lg border border-dark-border">
-                  <button
-                    type="button"
-                    onClick={() => setOpenFaq(isOpen ? null : idx)}
-                    className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-accent-white/80 transition-colors duration-150 hover:bg-dark-card"
-                  >
-                    <span>{faq.q}</span>
-                    {isOpen ? (
-                      <ChevronUp className="ml-3 h-4 w-4 shrink-0 text-muted-light" />
-                    ) : (
-                      <ChevronDown className="ml-3 h-4 w-4 shrink-0 text-muted-light" />
-                    )}
-                  </button>
-                  {isOpen && (
-                    <div className="px-4 pb-3 animate-slide-up">
-                      <p className="text-sm leading-relaxed text-muted">{faq.a}</p>
+          {/* Search */}
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors duration-150" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={t("help.search")}
+              className="w-full rounded-lg py-3 pl-12 pr-4 bg-surface-container border border-outline-variant text-on-surface placeholder:text-muted-foreground/50 text-sm font-medium focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all duration-150 outline-none"
+            />
+          </div>
+
+          {/* Getting Started */}
+          <SectionCard title={t("help.gettingStarted")} icon={<BookOpen className="w-4 h-4" />}>
+            <p className="text-sm text-muted-foreground leading-relaxed">{t("help.gettingStartedText")}</p>
+          </SectionCard>
+
+          {/* FAQ */}
+          <SectionCard title={t("help.faq")}>
+            <div className="space-y-2">
+              {filtered.length === 0 ? (
+                <p className="py-3 text-sm text-muted-foreground">{t("common:states.noResults")}</p>
+              ) : (
+                filtered.map((faq, idx) => {
+                  const isOpen = openFaq === idx;
+                  return (
+                    <div key={idx} className="overflow-hidden rounded-lg border border-outline-variant">
+                      <button
+                        type="button"
+                        onClick={() => setOpenFaq(isOpen ? null : idx)}
+                        className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-on-surface/80 transition-colors duration-150 hover:bg-surface-container-high"
+                      >
+                        <span>{faq.q}</span>
+                        {isOpen ? (
+                          <ChevronUp className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" />
+                        )}
+                      </button>
+                      {isOpen && (
+                        <div className="px-4 pb-3 animate-slide-up">
+                          <p className="text-sm leading-relaxed text-muted-foreground">{faq.a}</p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </SectionCard>
+                  );
+                })
+              )}
+            </div>
+          </SectionCard>
 
-      {/* Need More Help */}
-      <SectionCard title={t("help.needMoreHelp")} icon={<MessageSquare className="w-4 h-4" />}>
-        <p className="mb-3 text-sm text-muted">{t("help.needMoreHelpText")}</p>
-        <Link
-          to="/contact"
-          className="inline-flex items-center gap-2 rounded-lg border border-dark-border bg-dark-card px-4 py-2 text-sm font-semibold text-accent-white/70 transition-colors duration-150 hover:bg-dark-elevated"
-        >
-          <MessageSquare className="w-4 h-4" />
-          {t("contact.title")}
-        </Link>
-      </SectionCard>
+          {/* Need More Help */}
+          <SectionCard title={t("help.needMoreHelp")} icon={<MessageSquare className="w-4 h-4" />}>
+            <p className="mb-3 text-sm text-muted-foreground">{t("help.needMoreHelpText")}</p>
+            <Link
+              to="/contact"
+              className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container px-4 py-2 text-sm font-semibold text-on-surface/70 transition-colors duration-150 hover:bg-surface-container-high"
+            >
+              <MessageSquare className="w-4 h-4" />
+              {t("contact.title")}
+            </Link>
+          </SectionCard>
+        </div>
+      </main>
+
+      <div className="relative z-10">
+        <Footer />
+      </div>
     </div>
   );
 }

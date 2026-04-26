@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import { ShieldCheck } from "lucide-react";
 import PageHeader from "../../components/common/PageHeader";
 import SectionCard from "../../components/common/SectionCard";
-import Footer from "../../components/common/Footer";
 
 export default function PrivacyPage() {
   const { t } = useTranslation("pages");

@@ -35,10 +35,10 @@ export function IconButton({
     variant === "solid"
       ? "bg-accent-red text-accent-white hover:brightness-110"
       : variant === "danger"
-        ? "text-white/55 hover:bg-red-900/40 hover:text-red-400"
+        ? "text-muted hover:bg-red-500/10 hover:text-red-500"
         : active
-          ? "text-accent-red bg-[rgba(192,57,43,0.12)]"
-          : "text-white/55 hover:text-white/90 hover:bg-white/7"
+          ? "text-accent-red bg-[rgba(212,80,90,0.12)]"
+          : "text-muted hover:text-accent-white hover:bg-dark-card"
 
   return (
     <button

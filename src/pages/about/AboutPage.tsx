@@ -22,18 +22,18 @@ export default function AboutPage() {
       />
 
       <SectionCard title={t("about.mission")} icon={<Target className="w-4 h-4" />}>
-        <p className="text-sm text-white/55 leading-relaxed">{t("about.missionText")}</p>
+        <p className="text-sm text-muted leading-relaxed">{t("about.missionText")}</p>
       </SectionCard>
 
       <SectionCard title={t("about.team")} icon={<Users className="w-4 h-4" />}>
-        <p className="text-sm text-white/55 leading-relaxed">{t("about.teamText")}</p>
+        <p className="text-sm text-muted leading-relaxed">{t("about.teamText")}</p>
       </SectionCard>
 
       <SectionCard title={t("about.technologies")} icon={<Cpu className="w-4 h-4" />}>
-        <p className="text-sm text-white/55 leading-relaxed mb-3">{t("about.technologiesText")}</p>
+        <p className="mb-3 text-sm leading-relaxed text-muted">{t("about.technologiesText")}</p>
         <ul className="space-y-2">
           {techs.map((tech, idx) => (
-            <li key={idx} className="flex items-start gap-2 text-sm text-white/50">
+            <li key={idx} className="flex items-start gap-2 text-sm text-muted-light">
               <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-accent-red shrink-0" />
               {tech}
             </li>

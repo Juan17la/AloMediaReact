@@ -5,14 +5,14 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="flex items-center gap-1 bg-card border border-border rounded-lg p-1 shadow-xs">
+    <div className="flex items-center gap-1 bg-surface-container-lowest border border-outline-variant rounded-lg p-1 shadow-xs">
       <button
         type="button"
         onClick={() => setTheme("light")}
         className={`p-1.5 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
           theme === "light"
-            ? "bg-accent text-accent-foreground shadow-xs"
-            : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            ? "bg-surface-container-high text-on-surface shadow-xs"
+            : "text-muted-foreground hover:text-on-surface hover:bg-surface-container-low"
         }`}
         title="Light Mode"
       >
@@ -23,8 +23,8 @@ export function ThemeToggle() {
         onClick={() => setTheme("system")}
         className={`p-1.5 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
           theme === "system"
-            ? "bg-accent text-accent-foreground shadow-xs"
-            : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            ? "bg-surface-container-high text-on-surface shadow-xs"
+            : "text-muted-foreground hover:text-on-surface hover:bg-surface-container-low"
         }`}
         title="System Theme"
       >
@@ -35,8 +35,8 @@ export function ThemeToggle() {
         onClick={() => setTheme("dark")}
         className={`p-1.5 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
           theme === "dark"
-            ? "bg-accent text-accent-foreground shadow-xs"
-            : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+            ? "bg-surface-container-high text-on-surface shadow-xs"
+            : "text-muted-foreground hover:text-on-surface hover:bg-surface-container-low"
         }`}
         title="Dark Mode"
       >

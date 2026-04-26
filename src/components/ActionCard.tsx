@@ -10,14 +10,14 @@ export default function ActionCard({ icon: Icon, label, description, onClick }: 
     <button
       type="button"
       onClick={onClick}
-      className="glass-card rounded-2xl p-6 flex items-start gap-4 hover:border-blood-red/30 transition-all duration-300 group cursor-pointer hover:shadow-lg hover:shadow-blood-red/8 text-left"
+      className="glass-card rounded-2xl p-6 flex items-start gap-4 hover:border-primary/50 transition-all duration-300 group cursor-pointer hover:shadow-elevated text-left"
     >
-      <div className="w-12 h-12 rounded-xl bg-linear-to-br from-blood-red/20 to-burgundy/20 flex items-center justify-center shrink-0 group-hover:from-blood-red/30 group-hover:to-burgundy/30 transition-all duration-300">
-        <Icon className="w-5 h-5 text-accent-red" />
+      <div className="w-12 h-12 rounded-xl bg-linear-to-br from-primary/20 to-primary-container/20 flex items-center justify-center shrink-0 group-hover:from-primary/30 group-hover:to-primary-container/30 transition-all duration-300">
+        <Icon className="w-5 h-5 text-primary" />
       </div>
       <div>
-        <p className="text-accent-white font-semibold text-sm">{label}</p>
-        <p className="text-muted text-xs mt-1 leading-relaxed">{description}</p>
+        <p className="text-on-surface font-semibold text-sm">{label}</p>
+        <p className="text-muted-foreground text-xs mt-1 leading-relaxed">{description}</p>
       </div>
     </button>
   );

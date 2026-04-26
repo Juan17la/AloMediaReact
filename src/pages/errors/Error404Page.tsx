@@ -11,22 +11,22 @@ export default function Error404Page() {
   const hasToken = isAuthenticated || !!Cookies.get("token");
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#080a0d] text-white px-4">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(122,26,26,0.18)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(45,10,20,0.26)_0%,transparent_55%)]" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-dark px-4 text-accent-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(212,80,90,0.10)_0%,transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(245,229,235,0.72)_0%,transparent_55%)]" />
 
       <div className="relative text-center max-w-md animate-fade-in">
         <p className="text-8xl sm:text-9xl font-extrabold text-gradient-red tracking-[-0.04em] leading-none">
           {t("errors.notFound.code")}
         </p>
-        <h1 className="text-2xl font-bold text-white/90 mt-4">{t("errors.notFound.title")}</h1>
-        <p className="text-sm text-white/45 mt-2">{t("errors.notFound.description")}</p>
+        <h1 className="mt-4 text-2xl font-bold text-accent-white">{t("errors.notFound.title")}</h1>
+        <p className="mt-2 text-sm text-muted">{t("errors.notFound.description")}</p>
 
         <div className="flex items-center justify-center gap-3 mt-8">
           <button
             type="button"
             onClick={() => navigate("/")}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/80 hover:bg-white/8 transition-colors duration-150"
+            className="inline-flex items-center gap-2 rounded-lg border border-dark-border bg-dark-card px-4 py-2.5 text-sm font-semibold text-accent-white/80 transition-colors duration-150 hover:bg-dark-elevated"
           >
             <Home className="w-4 h-4" />
             {t("errors.notFound.backHome")}
@@ -35,7 +35,7 @@ export default function Error404Page() {
             <button
               type="button"
               onClick={() => navigate("/dashboard")}
-              className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-4 py-2.5 text-sm font-semibold text-white"
+              className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-4 py-2.5 text-sm font-semibold text-accent-white"
             >
               <LayoutDashboard className="w-4 h-4" />
               {t("errors.notFound.backDashboard")}

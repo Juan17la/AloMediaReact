@@ -82,16 +82,16 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#080a0d] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(122,26,26,0.18)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(45,10,20,0.26)_0%,transparent_55%)]" />
+    <div className="relative min-h-screen overflow-hidden bg-dark text-accent-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(212,80,90,0.10)_0%,transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(245,229,235,0.72)_0%,transparent_55%)]" />
 
       <main className="relative z-10 px-4 py-10 sm:px-8">
         <div className="mx-auto max-w-4xl space-y-5">
           <button
             type="button"
             onClick={() => navigate("/dashboard")}
-            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/60 transition-colors duration-150 mb-2"
+            className="mb-2 flex items-center gap-1.5 text-xs text-muted transition-colors duration-150 hover:text-accent-white/70"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Dashboard
@@ -105,8 +105,8 @@ export default function AdminPage() {
 
           {loading && (
             <div className="text-center py-12">
-              <div className="inline-block h-6 w-6 border-2 border-white/20 border-t-accent-red rounded-full" style={{ animation: "spin 0.8s linear infinite" }} />
-              <p className="text-sm text-white/40 mt-3">{t("common:states.loading")}</p>
+              <div className="inline-block h-6 w-6 border-2 border-dark-border border-t-accent-red rounded-full" style={{ animation: "spin 0.8s linear infinite" }} />
+              <p className="mt-3 text-sm text-muted">{t("common:states.loading")}</p>
             </div>
           )}
 
@@ -125,7 +125,7 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={handleDownloadCSV}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/8 transition-colors duration-150"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-dark-border bg-dark-card px-3 py-1.5 text-xs font-semibold text-accent-white/70 hover:bg-dark-elevated transition-colors duration-150"
                   >
                     <FileDown className="w-3.5 h-3.5" />
                     {t("admin.downloadCSV")}
@@ -165,7 +165,7 @@ export default function AdminPage() {
                   />
                 </div>
 
-                <p className="text-xs text-white/30 mt-4">
+                <p className="mt-4 text-xs text-muted-light">
                   {t("admin.generatedAt")}: {new Date(stats.generatedAt).toLocaleString()}
                 </p>
               </SectionCard>

@@ -21,15 +21,15 @@ const gridBtnBase = [
 ].join(" ")
 
 const gridBtnActive =
-    "border-[rgba(220,60,60,0.75)] bg-[rgba(180,20,20,0.26)] text-white"
+    "border-[rgba(166,60,74,0.75)] bg-[rgba(212,80,90,0.14)] text-accent-white"
 
 const gridBtnIdle =
-    "border-white/10 bg-black/24 text-white/72 hover:border-white/20 hover:bg-white/8 hover:text-white"
+    "border-dark-border bg-dark text-accent-white/72 hover:border-dark-border-light hover:bg-dark-card hover:text-accent-white"
 
-const sectionLabel = "mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-white/45"
+const sectionLabel = "mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted"
 const toggleBtn = "rounded-md border px-2.5 py-1.5 text-[11px] font-semibold transition-colors duration-100"
-const toggleActive = "border-[rgba(220,60,60,0.75)] bg-[rgba(180,20,20,0.26)] text-white"
-const toggleIdle = "border-white/10 bg-black/24 text-white/72 hover:border-white/20 hover:bg-white/8"
+const toggleActive = "border-[rgba(166,60,74,0.75)] bg-[rgba(212,80,90,0.14)] text-accent-white"
+const toggleIdle = "border-dark-border bg-dark text-accent-white/72 hover:border-dark-border-light hover:bg-dark-card"
 const warningBox = "rounded-md border border-amber-500/30 bg-amber-500/8 p-2 text-[11px] text-amber-300/80"
 
 function TransitionSection({
@@ -100,9 +100,9 @@ function TransitionSection({
                     </div>
 
                     <div>
-                        <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.06em] text-white/45">
+                        <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
                             <span>Duration</span>
-                            <span className="font-mono text-white/78">{transition.duration.toFixed(2)}s</span>
+                            <span className="font-mono text-accent-white/78">{transition.duration.toFixed(2)}s</span>
                         </div>
                         <input
                             type="range"
@@ -115,7 +115,7 @@ function TransitionSection({
                                 if (!Number.isFinite(nextDuration)) return
                                 onChange({ ...transition, duration: nextDuration })
                             }}
-                            className="w-full accent-[var(--color-accent-red)]"
+                            className="w-full accent-(--color-accent-red)"
                         />
                     </div>
                 </>
@@ -175,11 +175,11 @@ export function TransitionInspector() {
     if (!clipContext) {
         if (selectedTransitionClipId) {
             return (
-                <div className="rounded-md border border-white/10 bg-black/24 p-3 text-[12px] text-white/65">
+                <div className="rounded-md border border-dark-border bg-dark p-3 text-[12px] text-muted">
                     Transition is no longer valid on this boundary.
                     <button
                         type="button"
-                        className="mt-2 block rounded-md border border-white/12 px-2.5 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-white/8"
+                        className="mt-2 block rounded-md border border-dark-border px-2.5 py-1.5 text-[11px] font-semibold text-accent-white/85 hover:bg-dark-card"
                         onClick={() => setSelectedTransitionClip(undefined)}
                     >
                         Clear Selection
@@ -216,7 +216,7 @@ export function TransitionInspector() {
                 <div className={warningBox}>{transitionInOverrideMessage}</div>
             )}
 
-            <div className="h-px bg-white/8" />
+            <div className="h-px bg-dark-border" />
 
             {/* Transition Out section */}
             <TransitionSection

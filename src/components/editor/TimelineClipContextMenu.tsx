@@ -11,25 +11,24 @@ interface TimelineClipContextMenuProps {
 }
 
 const menuPanel = [
-  "fixed z-[9999] min-w-52 rounded-sm border border-dark-border p-1.5",
-  "modal-glass-card",
+  "fixed z-[9999] min-w-52 rounded-lg border border-outline-variant p-1.5",
+  "bg-surface-container shadow-xl",
   "left-[var(--menu-x)] top-[var(--menu-y)]",
   "animate-[context-menu-enter_120ms_var(--ease-snap)_both]",
 ].join(" ")
 
 const menuItem = [
-  "editor-transition flex w-full items-center justify-between gap-4 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-[13px]",
-  "text-accent-white/80 hover:bg-dark-card hover:text-accent-white",
+  "editor-transition flex w-full items-center justify-between gap-4 rounded-md border-0 bg-transparent px-3 py-2 text-left text-[13px] text-on-surface/90 hover:bg-surface-container-high hover:text-on-surface",
 ].join(" ")
 
 const menuItemDanger = [
-  "editor-transition flex w-full items-center justify-between gap-4 rounded-lg border-0 bg-transparent px-3 py-2 text-left text-[13px]",
-  "text-[rgba(166,60,74,0.92)] hover:bg-[rgba(212,80,90,0.10)] hover:text-[rgba(166,60,74,1)]",
+  "editor-transition flex w-full items-center justify-between gap-4 rounded-md border-0 bg-transparent px-3 py-2 text-left text-[13px]",
+  "text-error hover:bg-error/10 hover:text-error",
 ].join(" ")
 
 const menuItemDisabled = "pointer-events-none opacity-40"
 
-const shortcutHint = "text-[11px] font-mono text-muted"
+const shortcutHint = "text-[11px] font-mono text-muted-foreground"
 
 const DEFAULT_TRANSITION = { type: "fade" as const, duration: 0.4 }
 
@@ -120,7 +119,7 @@ export function TimelineClipContextMenu({ x, y, clip, onClose }: TimelineClipCon
         <span className={shortcutHint}>Ctrl + C</span>
       </button>
 
-      <div className="my-1 h-px bg-linear-to-r from-transparent via-dark-border to-transparent" />
+      <div className="my-1 h-px bg-linear-to-r from-transparent via-outline-variant to-transparent" />
 
       <button
         type="button"
@@ -188,7 +187,7 @@ export function TimelineClipContextMenu({ x, y, clip, onClose }: TimelineClipCon
         <span className={shortcutHint}>Ctrl + V</span>
       </button>
 
-      <div className="my-1 h-px bg-linear-to-r from-transparent via-dark-border to-transparent" />
+      <div className="my-1 h-px bg-linear-to-r from-transparent via-outline-variant to-transparent" />
 
       <button
         type="button"
@@ -247,7 +246,7 @@ export function TimelineClipContextMenu({ x, y, clip, onClose }: TimelineClipCon
         <span className={shortcutHint} />
       </button>
 
-      <div className="my-1 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
+      <div className="my-1 h-px bg-linear-to-r from-transparent via-outline-variant/50 to-transparent" />
 
       <button
         type="button"

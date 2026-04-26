@@ -12,7 +12,7 @@ interface EditorToolbarProps {
 }
 
 const ghostBtn =
-  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-on-surface/80 bg-surface-container-low border border-outline-variant hover:bg-surface-container hover:border-outline active:scale-95 transition-all duration-100 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed"
+  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-on-surface/80 bg-surface-container-low border border-outline-variant hover:bg-surface-container-high hover:border-primary/50 hover:text-on-surface active:scale-95 transition-all duration-100 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed"
 
 const primaryBtn =
   "flex items-center gap-[5px] h-7 px-[10px] rounded-lg font-semibold text-[11px] tracking-[0.04em] text-primary-foreground bg-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:brightness-[0.95] active:scale-95 active:brightness-[0.88] transition-all duration-100 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"

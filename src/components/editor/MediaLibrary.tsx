@@ -321,7 +321,7 @@ export function MediaLibrary() {
   return (
     <div
       ref={dropZoneRef}
-      className="flex flex-col h-full w-96 overflow-hidden relative border-l border-dark-border shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_4px_12px_rgba(26,26,31,0.05),0_16px_32px_rgba(26,26,31,0.05)]"
+      className="flex flex-col h-full w-96 overflow-hidden relative border-l border-outline-variant shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.08)]"
       style={{
         backdropFilter: "blur(24px) saturate(150%)",
         WebkitBackdropFilter: "blur(24px) saturate(150%)",
@@ -349,8 +349,8 @@ export function MediaLibrary() {
       )}
 
       {/* Panel header */}
-      <div className="flex items-center shrink-0 h-10 my-1 mx-3 px-2">
-        <span className="flex-1 text-[10px] font-semibold tracking-[0.12em] uppercase text-muted">
+      <div className="flex items-center shrink-0 h-10 px-3 border-b border-outline-variant/30">
+        <span className="flex-1 text-[10px] font-semibold tracking-[0.12em] uppercase text-muted-foreground">
           Media
         </span>
         <button
@@ -421,7 +421,7 @@ export function MediaLibrary() {
                 className={[
                   "min-w-0 h-auto self-start overflow-hidden relative rounded-lg transition-shadow duration-120",
                   isSelected
-                    ? "ring-1 ring-[#ff4f4f] shadow-[0_0_0_1px_rgba(255,79,79,0.35)]"
+                    ? "ring-1 ring-primary shadow-[0_0_0_1px_rgba(99,14,212,0.35)]"
                     : "",
                 ].join(" ")}
                 onClick={() =>

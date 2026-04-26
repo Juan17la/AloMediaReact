@@ -32,10 +32,16 @@ function formatSize(bytes: number): string {
 }
 
 function getTypeBadgeClass(type: Media["type"]): string {
-  if (type === "video") return "bg-[#f0d4d4]"
-  if (type === "audio") return "bg-[#e8f0e8]"
-  if (type === "subtitles") return "bg-[#faf2d8]"
-  return "bg-[#f2e4d8]"
+  switch (type) {
+    case "video":
+      return "bg-primary/15 text-primary"
+    case "image":
+      return "bg-secondary/15 text-secondary"
+    case "audio":
+      return "bg-tertiary/15 text-tertiary"
+    default:
+      return "bg-surface-container-high text-muted-foreground"
+  }
 }
 
 function getTypeBadgeLabel(type: Media["type"]): string {
@@ -61,9 +67,9 @@ function MediaThumbnail({ media, objectUrl }: { media: Media; objectUrl: string 
   }
   if (media.type === "subtitles") {
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[linear-gradient(135deg,#faf2d8,#f8ead0)]">
-        <FileText size={20} className="text-[#c97341]" />
-        <span className="text-[9px] font-semibold tracking-[0.08em] text-[#a86b3c]">SUBTITLE FILE</span>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-secondary/10">
+        <FileText size={20} className="text-secondary" />
+        <span className="text-[9px] font-semibold tracking-[0.08em] text-secondary">SUBTITLE FILE</span>
       </div>
     )
   }
@@ -73,7 +79,7 @@ function MediaThumbnail({ media, objectUrl }: { media: Media; objectUrl: string 
       <svg width="48" height="28" viewBox="0 0 48 28">
         {[0, 1, 2, 3, 4, 5, 6].map(i => {
           const h = i % 3 === 0 ? 18 : i % 3 === 1 ? 10 : 5
-          return <rect key={i} x={4 + i * 6} y={(28 - h) / 2} width={4} height={h} fill="#8a8a9a" rx="0" />
+          return <rect key={i} x={4 + i * 6} y={(28 - h) / 2} width={4} height={h} fill="currentColor" rx="0" className="text-muted-foreground" />
         })}
       </svg>
     </div>
@@ -141,52 +147,52 @@ export function MediaCard({
         onDragEnd={() => {
           window.dispatchEvent(new CustomEvent("alomedia:drag-end"))
         }}
-        className="group relative flex flex-col w-full min-h-36 h-auto bg-dark-card border border-dark-border rounded-lg p-2 shadow-[0_2px_6px_rgba(26,26,31,0.08)] cursor-pointer overflow-hidden select-none transition-[background,border-color] duration-120 ease-out hover:bg-dark-elevated hover:border-dark-border-light"
+        className="group relative flex flex-col w-full min-h-36 h-auto bg-surface-container border border-outline-variant rounded-lg p-2 shadow-[0_2px_6px_rgba(0,0,0,0.08)] cursor-pointer overflow-hidden select-none transition-[background,border-color] duration-120 ease-out hover:bg-surface-container-high hover:border-outline"
       >
         <button
           type="button"
           aria-label="Open media options"
           onClick={handleOpenMenuClick}
-          className="absolute top-3 right-3 z-20 h-6 w-6 rounded-md border border-dark-border bg-dark/90 text-accent-white/75 flex items-center justify-center transition-colors duration-100 hover:bg-dark hover:text-accent-white"
+          className="absolute top-3 right-3 z-20 h-6 w-6 rounded-md border border-outline-variant bg-surface-container/90 text-on-surface/75 flex items-center justify-center transition-colors duration-100 hover:bg-surface-container-high hover:text-on-surface"
         >
           <MoreHorizontal size={14} />
         </button>
 
         {/* Thumbnail area — 16:9 */}
-        <div className="relative aspect-video bg-dark overflow-hidden rounded-md">
+        <div className="relative aspect-video bg-surface overflow-hidden rounded-md">
           <MediaThumbnail media={media} objectUrl={objectUrl} />
 
           {/* Type badge — top-left */}
           <div className={`absolute top-1 left-0 h-3.5 px-1.25 flex items-center ${getTypeBadgeClass(media.type)}`}>
-            <span className="text-[8px] font-bold tracking-[0.08em] text-accent-white/85">
+            <span className="text-[8px] font-bold tracking-[0.08em] text-on-primary/90">
               {getTypeBadgeLabel(media.type)}
             </span>
           </div>
 
           {/* Hover overlay with Plus icon */}
           <div
-            className="absolute inset-0 bg-[rgba(212,80,90,0.12)] flex items-center justify-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-120"
+            className="absolute inset-0 bg-primary/10 flex items-center justify-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-120"
             onClick={isSubtitles ? onImportSubtitles : onInsertAtPlayhead}
           >
             {isSubtitles ? (
-              <span className="text-[10px] font-semibold tracking-[0.08em] text-accent-white">
+              <span className="text-[10px] font-semibold tracking-[0.08em] text-on-primary">
                 {isImportingSubtitles ? "Importing..." : "Import"}
               </span>
             ) : (
-              <Plus size={20} className="text-accent-white" />
+              <Plus size={20} className="text-on-primary" />
             )}
           </div>
         </div>
 
         {/* Info strip */}
-        <div className="pt-2 px-0.5 flex flex-col gap-1.5 relative">
-          <span className="text-[10px] text-accent-white overflow-hidden text-ellipsis whitespace-nowrap pr-8">
+        <div className="pt-1.5 px-0 flex flex-col gap-0.5 relative">
+          <span className="text-[10px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap pr-8">
             {media.name}
           </span>
-          <div className="flex flex-wrap items-center gap-1 text-[9px] text-muted">
-            <span className="rounded bg-dark px-1.5 py-0.5 uppercase tracking-[0.06em]">{media.format || media.type}</span>
-            <span className="rounded bg-dark px-1.5 py-0.5 font-mono">{formatDuration(media)}</span>
-            <span className="rounded bg-dark px-1.5 py-0.5 font-mono">{formatSize(media.size)}</span>
+          <div className="flex flex-wrap items-center gap-1 text-[9px] text-muted-foreground">
+            <span className="rounded bg-surface-container-high/60 px-1 py-0.5 uppercase tracking-[0.06em]">{media.format || media.type}</span>
+            <span className="rounded bg-surface-container-high/60 px-1 py-0.5 font-mono">{formatDuration(media)}</span>
+            <span className="rounded bg-surface-container-high/60 px-1 py-0.5 font-mono">{formatSize(media.size)}</span>
           </div>
 
         </div>
@@ -211,14 +217,14 @@ export function MediaCard({
 
 export function LoadingCard({ fileName }: { fileName: string }) {
   return (
-    <div className="relative flex flex-col w-full min-h-36 h-auto bg-dark-card border border-dark-border rounded-lg p-1.5 shadow-[0_2px_6px_rgba(26,26,31,0.08)] cursor-pointer overflow-hidden select-none">
+    <div className="relative flex flex-col w-full min-h-36 h-auto bg-surface-container border border-outline-variant rounded-lg p-1.5 shadow-[0_2px_6px_rgba(0,0,0,0.08)] cursor-pointer overflow-hidden select-none">
       {/* Thumbnail placeholder — 16:9 */}
-      <div className="relative aspect-video bg-dark flex items-center justify-center rounded-sm">
-        <div className="w-5 h-5 rounded-full border-2 border-dark-border border-t-accent-red animate-spin" />
+      <div className="relative aspect-video bg-surface flex items-center justify-center rounded-sm">
+        <div className="w-5 h-5 rounded-full border-2 border-outline-variant border-t-primary animate-spin" />
       </div>
       {/* Info strip */}
       <div className="h-7 px-1.5 flex items-center justify-between gap-1 relative">
-        <span className="text-[10px] text-muted overflow-hidden text-ellipsis whitespace-nowrap">
+        <span className="text-[10px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
           {fileName}
         </span>
       </div>

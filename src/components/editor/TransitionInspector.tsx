@@ -21,15 +21,15 @@ const gridBtnBase = [
 ].join(" ")
 
 const gridBtnActive =
-    "border-[rgba(166,60,74,0.75)] bg-[rgba(212,80,90,0.14)] text-accent-white"
+    "border-primary/75 bg-primary/80 text-on-primary"
 
 const gridBtnIdle =
-    "border-dark-border bg-dark text-accent-white/72 hover:border-dark-border-light hover:bg-dark-card hover:text-accent-white"
+    "border-outline-variant bg-surface-container text-on-surface/72 hover:border-outline hover:bg-surface-container-high hover:text-on-surface"
 
 const sectionLabel = "mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted"
 const toggleBtn = "rounded-md border px-2.5 py-1.5 text-[11px] font-semibold transition-colors duration-100"
-const toggleActive = "border-[rgba(166,60,74,0.75)] bg-[rgba(212,80,90,0.14)] text-accent-white"
-const toggleIdle = "border-dark-border bg-dark text-accent-white/72 hover:border-dark-border-light hover:bg-dark-card"
+const toggleActive = "border-primary/75 bg-primary/85 text-primary-foreground"
+const toggleIdle = "border-outline-variant bg-surface-container text-on-surface/72 hover:border-outline hover:bg-surface-container-high"
 const warningBox = "rounded-md border border-amber-500/30 bg-amber-500/8 p-2 text-[11px] text-amber-300/80"
 
 function TransitionSection({
@@ -115,7 +115,7 @@ function TransitionSection({
                                 if (!Number.isFinite(nextDuration)) return
                                 onChange({ ...transition, duration: nextDuration })
                             }}
-                            className="w-full accent-(--color-accent-red)"
+                            className="w-full accent-primary"
                         />
                     </div>
                 </>

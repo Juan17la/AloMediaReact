@@ -12,15 +12,15 @@ interface TransitionBadgeProps {
 const badgeBase = [
     "absolute top-1/2 z-6 -translate-x-1/2 -translate-y-1/2",
     "h-5 min-w-7 px-2 rounded-md border text-[10px] font-semibold uppercase tracking-[0.05em]",
-    "backdrop-blur-sm cursor-pointer select-none",
+    "cursor-pointer select-none",
     "transition-[background-color,border-color,color,box-shadow] duration-100",
 ].join(" ")
 
 const badgeSelected =
-    "bg-[rgba(180,20,20,0.34)] border-[rgba(230,56,56,0.85)] text-accent-white shadow-[0_0_0_2px_rgba(180,20,20,0.36)]"
+    "bg-primary/85 border-primary text-on-primary shadow-[0_0_0_2px_rgba(99,14,212,0.35)]"
 
 const badgeUnselected =
-    "bg-black/45 border-dark/16 text-accent-white/78 hover:bg-dark/12 hover:border-dark/26 hover:text-accent-white"
+    "bg-surface-container-high/85 border-outline-variant text-on-surface hover:bg-primary/85 hover:border-primary hover:text-on-primary"
 
 export function TransitionBadge({ clipId, transition, left, position, isSelected, onSelect }: TransitionBadgeProps) {
     const posLabel = position === "in" ? "in" : "out"

@@ -28,13 +28,13 @@ const trackControlBtn =
   "flex items-center justify-center w-5 h-5 shrink-0 rounded-md border-0 bg-transparent p-0 cursor-pointer transition-[opacity,color] duration-[120ms]"
 
 const trackControlBtnActive =
-  "text-accent-red"
+  "text-error"
 
 const trackControlBtnNormal =
-  "text-muted-light hover:text-accent-white"
+  "text-muted-foreground hover:text-on-surface"
 
 const trackControlBtnDanger =
-  "text-muted-light hover:text-[var(--color-accent-red)]"
+  "text-muted-foreground hover:text-error"
 
 const trackControlBtnHidden =
   "opacity-0 group-hover:opacity-100"
@@ -267,8 +267,8 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={[
-        "flex min-w-full box-border overflow-hidden border-b border-b-dark-border timeline-track-row",
-        isOver ? "bg-dark-card" : "odd:bg-dark even:bg-dark-card/55",
+        "flex min-w-full box-border overflow-hidden border-b border-outline-variant/50 timeline-track-row",
+        isOver ? "bg-surface-container-high" : "odd:bg-surface even:bg-surface-container/60",
       ].filter(Boolean).join(" ")}
       style={{ height: rowHeight }}
     >
@@ -276,8 +276,8 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
       <div
         data-track-header="true"
         className={[
-          "group sticky left-0 z-4 h-full shrink-0 flex items-center justify-between pr-1.5 box-border gap-1 border-r border-r-dark-border bg-dark",
-          reorderOver ? "ring-1 ring-inset ring-accent-red/80" : "",
+          "group sticky left-0 z-4 h-full shrink-0 flex items-center justify-between pr-1.5 box-border gap-1 border-r border-outline-variant bg-surface-container",
+          reorderOver ? "ring-1 ring-inset ring-error/80" : "",
         ].filter(Boolean).join(" ")}
         style={{ width: TRACK_HEADER_WIDTH }}
       >
@@ -291,14 +291,14 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
           onDragEnd={() => setReorderOver(false)}
           className="w-3.5 h-full shrink-0 cursor-grab select-none"
           style={{
-            background: "repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, var(--color-dark-border-light) 2px, var(--color-dark-border-light) 3px)",
+            background: "repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, var(--color-outline-variant) 2px, var(--color-outline-variant) 3px)",
           }}
         />
 
         {/* Type icon + label */}
         <div className="flex w-full items-center justify-center gap-1 flex-1 min-w-0">
-          <TypeIcon size={11} className="text-muted shrink-0" />
-          <span className="text-[11px] font-semibold tracking-[0.06em] uppercase text-muted overflow-hidden text-ellipsis whitespace-nowrap">
+          <TypeIcon size={11} className="text-muted-foreground shrink-0" />
+          <span className="text-[11px] font-semibold tracking-[0.06em] uppercase text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
             {trackLabel}
           </span>
         </div>
@@ -345,7 +345,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
         {/* Snap indicator */}
         {snapIndicatorX !== null && (
           <div
-            className="absolute top-0 w-0.5 h-full bg-warning pointer-events-none z-5"
+            className="absolute top-0 w-0.5 h-full bg-primary pointer-events-none z-5"
             style={{ left: snapIndicatorX }}
           />
         )}

@@ -118,7 +118,7 @@ function TransportBtn({
 }) {
   const btnClass = primary
     ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[rgba(170,58,74,0.18)] bg-[var(--color-accent-red)] text-accent-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:brightness-[0.95] active:scale-95 transition-all duration-100 cursor-pointer"
-    : "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-dark-border bg-dark-card text-muted hover:bg-dark-elevated hover:text-accent-white active:text-[var(--color-accent-red)] active:scale-95 transition-all duration-100 cursor-pointer"
+    : "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-outline-variant bg-surface-container text-on-surface hover:bg-surface-container-high hover:border-primary/40 hover:text-primary transition-all duration-150"
 
   const spanClass = primary
     ? "flex items-center w-4 h-4"

@@ -269,7 +269,7 @@ export function Timeline() {
 
   return (
     <div
-      className="flex flex-1 flex-col overflow-hidden border-t border-t-white/15 shadow-[inset_0_-1px_0_rgba(255,255,255,0.05),0_-4px_16px_rgba(0,0,0,0.25)] backdrop-blur-2xl"
+      className="flex flex-1 flex-col overflow-hidden border-t border-outline-variant shadow-[0_-4px_16px_rgba(0,0,0,0.12)] bg-surface"
     >
       {/* Scrollable timeline area */}
       <div
@@ -284,14 +284,14 @@ export function Timeline() {
             <div
               ref={tracksAreaRef}
               onMouseDown={handleTracksMouseDown}
-            className="relative bg-dark/2 border-t border-t-white/7 backdrop-blur-4xl"
+            className="relative bg-surface-container/50 border-t border-outline-variant/50"
           >
             {/* Major gridlines */}
             <div className="absolute top-0 bottom-0 left-0 right-0 pointer-events-none z-1">
               {majorTickTimes.map(t => (
                 <div
                   key={t}
-                  className="absolute top-0 bottom-0 w-px bg-dark-border opacity-30"
+                  className="absolute top-0 bottom-0 w-px bg-outline-variant opacity-60"
                   style={{ left: TRACK_HEADER_WIDTH + timeToPx(t, timelineScale) }}
                 />
               ))}
@@ -299,7 +299,7 @@ export function Timeline() {
 
             {/* Playhead needle — 1px, full height */}
             <div
-              className="absolute top-0 w-px h-full bg-accent-red pointer-events-none z-3"
+              className="absolute top-0 w-px h-full bg-primary pointer-events-none z-3"
               style={{ left: TRACK_HEADER_WIDTH + timeToPx(playhead, timelineScale) }}
             />
 
@@ -318,7 +318,7 @@ export function Timeline() {
 
             {marquee && (
               <div
-                className="absolute z-20 border-2 border-accent-red/70 bg-accent-red/15 pointer-events-none"
+                className="absolute z-20 border-2 border-primary/70 bg-primary/15 pointer-events-none"
                 style={{
                   left: Math.min(marquee.startX, marquee.currentX),
                   top: Math.min(marquee.startY, marquee.currentY),

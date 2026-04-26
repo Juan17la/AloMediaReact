@@ -41,7 +41,7 @@ export default function HelpPage() {
 
       {/* Search */}
       <div className="relative group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-light group-focus-within:text-accent-white transition-colors duration-150" />
         <input
           type="text"
           value={searchQuery}
@@ -53,34 +53,34 @@ export default function HelpPage() {
 
       {/* Getting Started */}
       <SectionCard title={t("help.gettingStarted")} icon={<BookOpen className="w-4 h-4" />}>
-        <p className="text-sm text-white/55 leading-relaxed">{t("help.gettingStartedText")}</p>
+        <p className="text-sm text-muted leading-relaxed">{t("help.gettingStartedText")}</p>
       </SectionCard>
 
       {/* FAQ */}
       <SectionCard title={t("help.faq")}>
         <div className="space-y-2">
           {filtered.length === 0 ? (
-            <p className="text-sm text-white/40 py-3">{t("common:states.noResults")}</p>
+            <p className="py-3 text-sm text-muted">{t("common:states.noResults")}</p>
           ) : (
             filtered.map((faq, idx) => {
               const isOpen = openFaq === idx;
               return (
-                <div key={idx} className="border border-white/8 rounded-lg overflow-hidden">
+                <div key={idx} className="overflow-hidden rounded-lg border border-dark-border">
                   <button
                     type="button"
                     onClick={() => setOpenFaq(isOpen ? null : idx)}
-                    className="flex items-center justify-between w-full px-4 py-3 text-left text-sm font-medium text-white/80 hover:bg-white/5 transition-colors duration-150"
+                    className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-accent-white/80 transition-colors duration-150 hover:bg-dark-card"
                   >
                     <span>{faq.q}</span>
                     {isOpen ? (
-                      <ChevronUp className="w-4 h-4 text-white/40 shrink-0 ml-3" />
+                      <ChevronUp className="ml-3 h-4 w-4 shrink-0 text-muted-light" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-white/40 shrink-0 ml-3" />
+                      <ChevronDown className="ml-3 h-4 w-4 shrink-0 text-muted-light" />
                     )}
                   </button>
                   {isOpen && (
                     <div className="px-4 pb-3 animate-slide-up">
-                      <p className="text-sm text-white/50 leading-relaxed">{faq.a}</p>
+                      <p className="text-sm leading-relaxed text-muted">{faq.a}</p>
                     </div>
                   )}
                 </div>
@@ -92,10 +92,10 @@ export default function HelpPage() {
 
       {/* Need More Help */}
       <SectionCard title={t("help.needMoreHelp")} icon={<MessageSquare className="w-4 h-4" />}>
-        <p className="text-sm text-white/55 mb-3">{t("help.needMoreHelpText")}</p>
+        <p className="mb-3 text-sm text-muted">{t("help.needMoreHelpText")}</p>
         <Link
           to="/contact"
-          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/70 hover:bg-white/8 transition-colors duration-150"
+          className="inline-flex items-center gap-2 rounded-lg border border-dark-border bg-dark-card px-4 py-2 text-sm font-semibold text-accent-white/70 transition-colors duration-150 hover:bg-dark-elevated"
         >
           <MessageSquare className="w-4 h-4" />
           {t("contact.title")}

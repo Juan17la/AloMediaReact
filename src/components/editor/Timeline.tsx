@@ -284,7 +284,7 @@ export function Timeline() {
             <div
               ref={tracksAreaRef}
               onMouseDown={handleTracksMouseDown}
-            className="relative bg-white/2 border-t border-t-white/7 backdrop-blur-4xl"
+            className="relative bg-dark/2 border-t border-t-white/7 backdrop-blur-4xl"
           >
             {/* Major gridlines */}
             <div className="absolute top-0 bottom-0 left-0 right-0 pointer-events-none z-1">

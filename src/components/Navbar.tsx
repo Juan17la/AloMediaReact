@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import UserMenuModal from "./UserMenuModal";
 import { useAuth } from "../hooks/useAuth";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface NavLink {
   icon: React.ComponentType<{ className?: string }>;
@@ -60,10 +61,11 @@ export default function Navbar() {
 
           {/* Right: User avatar + New */}
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <button
               type="button"
               onClick={() => navigate("/editor/new")}
-              className="flex items-center gap-2 bg-linear-to-r from-blood-red to-crimson hover:brightness-[0.85] active:scale-[0.97] active:brightness-[0.78] text-accent-white font-semibold text-sm py-2 px-4 rounded-xl transition-all duration-120 ease-out shadow-md shadow-blood-red/20 cursor-pointer"
+              className="flex items-center gap-2 bg-linear-to-r from-[#8f3e4b] via-[#a63c4a] to-[#c84855] hover:brightness-[0.96] active:scale-[0.97] active:brightness-[0.9] text-accent-white font-semibold text-sm py-2 px-4 rounded-xl transition-all duration-120 ease-out shadow-md shadow-blood-red/20 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">{t("nav.newProject")}</span>

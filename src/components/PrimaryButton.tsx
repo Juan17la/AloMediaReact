@@ -31,7 +31,7 @@ export default function PrimaryButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-2 bg-linear-to-r from-blood-red to-crimson hover:brightness-[0.85] active:scale-[0.97] active:brightness-[0.78] text-accent-white font-semibold rounded-xl transition-all duration-120 ease-out shadow-md shadow-blood-red/20 cursor-pointer ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center gap-2 bg-linear-to-r from-[#8f3e4b] via-[#a63c4a] to-[#c84855] hover:brightness-[0.96] active:scale-[0.97] active:brightness-[0.9] text-accent-white font-semibold rounded-xl transition-all duration-120 ease-out shadow-md shadow-blood-red/20 cursor-pointer ${sizeStyles[size]} ${className}`}
     >
       {Icon && <Icon className="w-4 h-4" />}
       {children}

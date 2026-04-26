@@ -41,21 +41,21 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdmin
   return (
     <div
       ref={ref}
-      className="absolute right-0 top-full z-50 flex-col mt-2 w-60 border border-white/10 bg-[rgba(12,13,16,0.96)] p-1 shadow-[0_16px_40px_rgba(0,0,0,0.35)]"
+      className="absolute right-0 top-full z-50 flex-col mt-2 w-60 border border-dark-border bg-dark p-1 shadow-[0_16px_40px_rgba(26,26,31,0.12)]"
       style={{
         backdropFilter: "none",
         WebkitBackdropFilter: "none",
         borderRadius: 14,
       }}
     >
-      <div className="px-3 py-3 border-b border-white/10 mb-1">
+      <div className="px-3 py-3 border-b border-dark-border mb-1">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-12 items-center justify-center border border-white/10 bg-white/5 text-sm font-bold text-white rounded-sm">
+          <div className="flex h-10 w-12 items-center justify-center border border-dark-border bg-dark-card text-sm font-bold text-accent-white rounded-sm">
             {initial}
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-accent-white">{fullName}</p>
-            <p className="truncate text-xs text-white/45">{userEmail}</p>
+            <p className="truncate text-xs text-muted">{userEmail}</p>
           </div>
         </div>
       </div>
@@ -63,7 +63,7 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdmin
       <button
         type="button"
         onClick={() => { onClose(); navigate("/profile"); }}
-        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer"
+        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-accent-white/70 hover:text-accent-white hover:bg-dark-card rounded-md transition-colors cursor-pointer"
       >
         <User className="w-4 h-4" />
         {t("userMenu.profile")}
@@ -73,7 +73,7 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdmin
         <button
           type="button"
           onClick={onAdminDashboard}
-          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer"
+          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-accent-white/70 hover:text-accent-white hover:bg-dark-card rounded-md transition-colors cursor-pointer"
         >
           <Shield className="w-4 h-4" />
           {t("nav.adminDashboard")}
@@ -82,12 +82,12 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdmin
 
       {children}
 
-      <div className="border-t my-1 border-white/10" />
+      <div className="border-t my-1 border-dark-border" />
 
       <button
         type="button"
         onClick={() => { onClose(); navigate("/about"); }}
-        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer"
+        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-accent-white/70 hover:text-accent-white hover:bg-dark-card rounded-md transition-colors cursor-pointer"
       >
         <Info className="w-4 h-4" />
         {t("labels.about", "About")}
@@ -95,7 +95,7 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdmin
       <button
         type="button"
         onClick={() => { onClose(); navigate("/help"); }}
-        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer"
+        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-accent-white/70 hover:text-accent-white hover:bg-dark-card rounded-md transition-colors cursor-pointer"
       >
         <HelpCircle className="w-4 h-4" />
         {t("labels.help", "Help")}
@@ -103,13 +103,13 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdmin
       <button
         type="button"
         onClick={() => { onClose(); navigate("/contact"); }}
-        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 rounded-md transition-colors cursor-pointer"
+        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-accent-white/70 hover:text-accent-white hover:bg-dark-card rounded-md transition-colors cursor-pointer"
       >
         <Mail className="w-4 h-4" />
         {t("labels.contact", "Contact")}
       </button>
 
-      <div className="border-t my-1 border-white/10" />
+      <div className="border-t my-1 border-dark-border" />
 
       <button
         type="button"

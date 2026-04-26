@@ -7,9 +7,10 @@ interface ProjectCardProps {
   thumbnail?: string | null;
   date: string;
   style?: React.CSSProperties;
+  onClick : React.MouseEventHandler<HTMLButtonElement>,
 }
 
-export default function ProjectCard({ id, name, thumbnail, date, style, onClick }: ProjectCardProps) {
+export default function ProjectCard({ id, name, thumbnail, date, onClick }: ProjectCardProps) {
   const navigate = useNavigate();
 
   return (

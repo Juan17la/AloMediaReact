@@ -46,7 +46,7 @@ export default function RecoverRequestPage() {
       <div className="auth-glass-card py-5 px-6 sm:py-7 sm:px-12 max-w-130 mx-auto w-full animate-slide-up flex flex-col items-center gap-4 text-center">
         <MailCheck className="w-14 h-14 text-accent-red" />
         <h1 className="text-2xl font-extrabold tracking-[-0.02em] text-gradient-red">{t("recover.sentTitle")}</h1>
-        <p className="text-white/40 text-sm max-w-xs">
+        <p className="text-accent-white/40 text-sm max-w-xs">
           <Trans
             i18nKey="recover.sentMessage"
             ns="auth"
@@ -69,17 +69,17 @@ export default function RecoverRequestPage() {
       <h1 className="text-3xl font-extrabold text-center mb-1 tracking-[-0.02em] text-gradient-red">
         {t("recover.title")}
       </h1>
-      <p className="text-[13px] text-white/40 text-center mb-8 tracking-wide">
+      <p className="text-[13px] text-accent-white/40 text-center mb-8 tracking-wide">
         {t("recover.subtitle")}
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="recover-email" className="text-[13px] text-white/50 tracking-wide pl-1">
+          <label htmlFor="recover-email" className="text-[13px] text-accent-white/50 tracking-wide pl-1">
             {t("recover.emailLabel")}
           </label>
           <div className="relative group">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-accent-white/30 group-focus-within:text-accent-white/70 transition-colors duration-150" />
             <input
               id="recover-email"
               type="email"
@@ -118,7 +118,7 @@ export default function RecoverRequestPage() {
           {isPending ? t("recover.submitting") : t("recover.submit")}
         </button>
 
-        <p className="text-center text-white/45 text-sm">
+        <p className="text-center text-accent-white/45 text-sm">
           {t("recover.rememberPassword")}{" "}
           <Link
             to="/auth/login"

@@ -28,11 +28,11 @@ function PasswordField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={name} className="text-[13px] text-white/50 tracking-wide pl-1">
+      <label htmlFor={name} className="text-[13px] text-accent-white/50 tracking-wide pl-1">
         {label}
       </label>
       <div className="relative group">
-        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150 pointer-events-none" />
+        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-accent-white/30 group-focus-within:text-accent-white/70 transition-colors duration-150 pointer-events-none" />
         <input
           id={name}
           type={show ? "text" : "password"}
@@ -54,7 +54,7 @@ function PasswordField({
           onClick={() => setShow((v) => !v)}
           tabIndex={-1}
           aria-label={show ? t("aria.hidePassword") : t("aria.showPassword")}
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors duration-150 cursor-pointer"
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-accent-white/30 hover:text-accent-white/70 transition-colors duration-150 cursor-pointer"
         >
           {show ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
         </button>
@@ -147,7 +147,7 @@ export default function RegisterPage() {
       <h1 className="text-3xl font-extrabold text-center mb-1 tracking-[-0.02em] text-gradient-red">
         {t("register.title")}
       </h1>
-      <p className="text-[13px] text-white/40 text-center mb-8 tracking-wide">
+      <p className="text-[13px] text-accent-white/40 text-center mb-8 tracking-wide">
         {t("register.subtitle")}
       </p>
 
@@ -157,11 +157,11 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-5">
           {/* Email */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="email" className="text-[13px] text-white/50 tracking-wide pl-1">
+            <label htmlFor="email" className="text-[13px] text-accent-white/50 tracking-wide pl-1">
               {t("register.emailLabel")}
             </label>
             <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-accent-white/30 group-focus-within:text-accent-white/70 transition-colors duration-150" />
               <input
                 id="email"
                 type="email"
@@ -188,11 +188,11 @@ export default function RegisterPage() {
           {/* Name fields */}
           <div className="flex gap-3">
             <div className="flex flex-col gap-1.5 flex-1">
-              <label htmlFor="firstName" className="text-[13px] text-white/50 tracking-wide pl-1">
+              <label htmlFor="firstName" className="text-[13px] text-accent-white/50 tracking-wide pl-1">
                 {t("register.firstNameLabel")}
               </label>
               <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-accent-white/30 group-focus-within:text-accent-white/70 transition-colors duration-150" />
                 <input
                   id="firstName"
                   type="text"
@@ -218,11 +218,11 @@ export default function RegisterPage() {
             </div>
 
             <div className="flex flex-col gap-1.5 flex-1">
-              <label htmlFor="lastName" className="text-[13px] text-white/50 tracking-wide pl-1">
+              <label htmlFor="lastName" className="text-[13px] text-accent-white/50 tracking-wide pl-1">
                 {t("register.lastNameLabel")}
               </label>
               <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-accent-white/30 group-focus-within:text-accent-white/70 transition-colors duration-150" />
                 <input
                   id="lastName"
                   type="text"
@@ -308,7 +308,7 @@ export default function RegisterPage() {
 
         {/* Right: OAuth */}
         <div className="flex flex-col gap-2.5 sm:flex-1 sm:justify-center">
-          <span className="text-white/35 text-[11px] font-semibold uppercase tracking-[0.08em] text-center mb-1">
+          <span className="text-accent-white/35 text-[11px] font-semibold uppercase tracking-[0.08em] text-center mb-1">
             {t("register.oauthContinue")}
           </span>
           <button
@@ -316,21 +316,21 @@ export default function RegisterPage() {
             className="auth-btn-secondary flex items-center justify-center gap-3 w-full border border-dark-border text-accent-white font-semibold py-3.5 rounded-lg text-sm group cursor-pointer"
             onClick={handleOAuthSignUpGoogle}
           >
-            <Chrome className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-150" />
+            <Chrome className="w-5 h-5 text-accent-white/30 group-hover:text-accent-white/70 transition-colors duration-150" />
             {t("register.oauthGoogle")}
           </button>
           <button
             type="button"
             className="auth-btn-secondary flex items-center justify-center gap-3 w-full border border-dark-border text-accent-white font-semibold py-3.5 rounded-lg text-sm group cursor-pointer"
           >
-            <Github className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-150" />
+            <Github className="w-5 h-5 text-accent-white/30 group-hover:text-accent-white/70 transition-colors duration-150" />
             {t("register.oauthGithub")}
           </button>
         </div>
 
       </div>
 
-      <p className="text-center text-white/45 text-sm mt-8">
+      <p className="text-center text-accent-white/45 text-sm mt-8">
         {t("register.hasAccount")}{" "}
         <Link
           to="/auth/login"

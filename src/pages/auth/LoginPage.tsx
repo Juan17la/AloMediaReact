@@ -63,7 +63,7 @@ export default function LoginPage() {
       <h1 className="text-3xl font-extrabold text-center mb-1 tracking-[-0.02em] text-gradient-red">
         {t("login.title")}
       </h1>
-      <p className="text-[13px] text-white/40 text-center mb-8 tracking-wide">
+      <p className="text-[13px] text-accent-white/40 text-center mb-8 tracking-wide">
         {t("login.subtitle")}
       </p>
 
@@ -73,11 +73,11 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-5">
           {/* Email */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="email" className="text-[13px] text-white/50 tracking-wide pl-1">
+            <label htmlFor="email" className="text-[13px] text-accent-white/50 tracking-wide pl-1">
               {t("login.emailLabel")}
             </label>
             <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-accent-white/30 group-focus-within:text-accent-white/70 transition-colors duration-150" />
               <input
                 id="email"
                 type="email"
@@ -103,11 +103,11 @@ export default function LoginPage() {
 
           {/* Password */}
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="password" className="text-[13px] text-white/50 tracking-wide pl-1">
+            <label htmlFor="password" className="text-[13px] text-accent-white/50 tracking-wide pl-1">
               {t("login.passwordLabel")}
             </label>
             <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white/70 transition-colors duration-150 pointer-events-none" />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-accent-white/30 group-focus-within:text-accent-white/70 transition-colors duration-150 pointer-events-none" />
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
@@ -128,7 +128,7 @@ export default function LoginPage() {
                 onClick={() => setShowPassword((v) => !v)}
                 tabIndex={-1}
                 aria-label={showPassword ? t("common:aria.hidePassword") : t("common:aria.showPassword")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-colors duration-150 cursor-pointer"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-accent-white/30 hover:text-accent-white/70 transition-colors duration-150 cursor-pointer"
               >
                 {showPassword ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
               </button>
@@ -160,13 +160,13 @@ export default function LoginPage() {
           <div className="flex items-center justify-between text-xs px-1">
             <Link
               to="/auth/recover/request"
-              className="text-white/40 hover:text-white/60 font-bold transition-colors duration-150 underline underline-offset-2"
+              className="text-accent-white/40 hover:text-accent-white/60 font-bold transition-colors duration-150 underline underline-offset-2"
             >
               {t("login.forgotPassword")}
             </Link>
             <a
               href="#"
-              className="text-white/40 hover:text-white/60 font-bold transition-colors duration-150 underline underline-offset-2"
+              className="text-accent-white/40 hover:text-accent-white/60 font-bold transition-colors duration-150 underline underline-offset-2"
             >
               {t("login.termsAndConditions")}
             </a>
@@ -180,7 +180,7 @@ export default function LoginPage() {
 
         {/* Right: OAuth */}
         <div className="flex flex-col gap-2.5 sm:flex-1 sm:justify-center">
-          <span className="text-white/35 text-[11px] font-semibold uppercase tracking-[0.08em] text-center mb-1">
+          <span className="text-accent-white/35 text-[11px] font-semibold uppercase tracking-[0.08em] text-center mb-1">
             {t("login.oauthContinue")}
           </span>
           <button
@@ -188,21 +188,21 @@ export default function LoginPage() {
             className="auth-btn-secondary flex items-center justify-center gap-3 w-full border border-dark-border text-accent-white font-semibold py-3.5 rounded-lg text-sm group cursor-pointer"
             onClick={handleOAuthLoginGoogle}
           >
-            <Chrome className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-150" />
+            <Chrome className="w-5 h-5 text-accent-white/30 group-hover:text-accent-white/70 transition-colors duration-150" />
             {t("login.oauthGoogle")}
           </button>
           <button
             type="button"
             className="auth-btn-secondary flex items-center justify-center gap-3 w-full border border-dark-border text-accent-white font-semibold py-3.5 rounded-lg text-sm group cursor-pointer"
           >
-            <Github className="w-5 h-5 text-white/30 group-hover:text-white/70 transition-colors duration-150" />
+            <Github className="w-5 h-5 text-accent-white/30 group-hover:text-accent-white/70 transition-colors duration-150" />
             {t("login.oauthGithub")}
           </button>
         </div>
 
       </div>
 
-      <p className="text-center text-white/45 text-sm mt-8">
+      <p className="text-center text-accent-white/45 text-sm mt-8">
         {t("login.noAccount")}{" "}
         <Link
           to="/auth/register"

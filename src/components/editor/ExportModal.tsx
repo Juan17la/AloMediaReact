@@ -74,7 +74,7 @@ export function ExportModal({
         className="modal-panel w-120 flex flex-col gap-5"
         onClick={e => e.stopPropagation()}
       >
-        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "rgba(255, 255, 255, 0.92)", marginBottom: 0 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--color-accent-white)", marginBottom: 0 }}>
           {inProgress ? 'Exporting…' : isDone ? 'Export complete' : 'Export video'}
         </h2>
 
@@ -83,15 +83,15 @@ export function ExportModal({
           <>
             {/* Format */}
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.40)" }}>Format</label>
+              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted)" }}>Format</label>
               <div className="flex gap-2">
                 {AVAILABLE_FORMATS.map(f => (
                   <button
                     key={f}
                     onClick={() => setFormat(f)}
                     className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors duration-120 ${format === f
-                      ? 'bg-accent-red border-accent-red text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
-                      : 'bg-white/5 border-white/10 text-white/60 hover:text-accent-white hover:border-white/18 hover:bg-white/9'
+                      ? 'bg-accent-red border-accent-red text-accent-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
+                      : 'bg-dark border-dark-border text-muted hover:text-accent-white hover:border-dark-border-light hover:bg-dark-card'
                       }`}
                   >
                     {f.toUpperCase()}
@@ -102,7 +102,7 @@ export function ExportModal({
 
             {/* Resolution */}
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.40)" }}>Resolution</label>
+              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted)" }}>Resolution</label>
               <div className="flex gap-2 flex-wrap">
                 {[
                   { label: '1280×720', w: 1280, h: 720 },
@@ -115,8 +115,8 @@ export function ExportModal({
                       key={r.label}
                       onClick={() => setResolution({ width: r.w, height: r.h })}
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors duration-120 ${selected
-                        ? 'bg-accent-red border-accent-red text-white'
-                        : 'border-white/10 text-muted hover:text-accent-white hover:border-white/20'
+                        ? 'bg-accent-red border-accent-red text-accent-white'
+                        : 'border-dark-border text-muted hover:text-accent-white hover:border-dark-border-light hover:bg-dark-card'
                         }`}
                     >
                       {r.label}
@@ -128,15 +128,15 @@ export function ExportModal({
 
             {/* FPS */}
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.40)" }}>Frame rate</label>
+              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted)" }}>Frame rate</label>
               <div className="flex gap-2">
                 {[24, 30, 60].map(f => (
                   <button
                     key={f}
                     onClick={() => setFps(f)}
                     className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors duration-120 ${fps === f
-                      ? 'bg-accent-red border-accent-red text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
-                      : 'bg-white/5 border-white/10 text-white/60 hover:text-accent-white hover:border-white/18 hover:bg-white/9'
+                      ? 'bg-accent-red border-accent-red text-accent-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]'
+                      : 'bg-dark border-dark-border text-muted hover:text-accent-white hover:border-dark-border-light hover:bg-dark-card'
                       }`}
                   >
                     {f} fps
@@ -147,7 +147,7 @@ export function ExportModal({
 
             {/* File name */}
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255, 255, 255, 0.40)" }}>File name</label>
+              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted)" }}>File name</label>
               <div className="flex items-center gap-2">
                 <input
                   value={fileName}
@@ -163,14 +163,13 @@ export function ExportModal({
             <div className="flex justify-end gap-2.5" style={{ marginTop: 8 }}>
               <button
                 onClick={onClose}
-                className="btn-ghost px-4 py-2 rounded-lg text-sm border border-white/10 bg-white/5"
-                style={{ color: "rgba(255, 255, 255, 0.80)" }}
+                className="btn-ghost px-4 py-2 rounded-lg text-sm border border-dark-border bg-dark-card text-accent-white/80 hover:border-dark-border-light hover:bg-dark-elevated"
               >
                 Cancel
               </button>
               <button
                 onClick={handleStart}
-                className="btn-accent px-5 py-2 rounded-lg text-sm font-semibold bg-accent-red text-white"
+                className="btn-accent px-5 py-2 rounded-lg text-sm font-semibold bg-accent-red text-accent-white"
               >
                 Export
               </button>
@@ -207,7 +206,7 @@ export function ExportModal({
               {isDone && (
                 <button
                   onClick={onClose}
-                  className="btn-accent px-5 py-2 rounded-lg text-sm font-semibold bg-accent-red text-white"
+                  className="btn-accent px-5 py-2 rounded-lg text-sm font-semibold bg-accent-red text-accent-white"
                 >
                   Close
                 </button>
@@ -215,8 +214,7 @@ export function ExportModal({
               {(inProgress || isError) && (
                 <button
                   onClick={onCancel}
-                  className="btn-ghost px-4 py-2 rounded-lg text-sm border border-white/10 bg-white/5"
-                style={{ color: "rgba(255, 255, 255, 0.80)" }}
+                  className="btn-ghost px-4 py-2 rounded-lg text-sm border border-dark-border bg-dark-card text-accent-white/80 hover:border-dark-border-light hover:bg-dark-elevated"
                 >
                   Cancel
                 </button>

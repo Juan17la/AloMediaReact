@@ -7,7 +7,7 @@ interface ProjectCardProps {
   thumbnail?: string | null;
   date: string;
   style?: React.CSSProperties;
-  onClick : React.MouseEventHandler<HTMLButtonElement>,
+  onClick? : React.MouseEventHandler<HTMLButtonElement>,
 }
 
 export default function ProjectCard({ id, name, thumbnail, date, onClick }: ProjectCardProps) {

@@ -21,7 +21,7 @@ const TYPE_LABEL: Record<string, string> = { video: "Video", audio: "Audio" }
 
 // Icon button constant
 // const iconBtn =
-//   "p-1.5 rounded-md bg-transparent text-white/55 hover:bg-white/7 hover:text-white/90 active:text-[var(--color-accent-red)] active:scale-95 transition-all duration-100"
+//   "p-1.5 rounded-md bg-transparent text-accent-white/55 hover:bg-dark/7 hover:text-accent-white/90 active:text-[var(--color-accent-red)] active:scale-95 transition-all duration-100"
 
 // Track action button constant
 const trackControlBtn =
@@ -31,10 +31,10 @@ const trackControlBtnActive =
   "text-accent-red"
 
 const trackControlBtnNormal =
-  "text-white/35 hover:text-white/75"
+  "text-muted-light hover:text-accent-white"
 
 const trackControlBtnDanger =
-  "text-white/35 hover:text-red-400"
+  "text-muted-light hover:text-[var(--color-accent-red)]"
 
 const trackControlBtnHidden =
   "opacity-0 group-hover:opacity-100"
@@ -267,8 +267,8 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={[
-        "flex min-w-full box-border overflow-hidden border-b border-b-white/5 timeline-track-row",
-        isOver ? "bg-white/6" : "odd:bg-white/2 even:bg-black/12",
+        "flex min-w-full box-border overflow-hidden border-b border-b-dark-border timeline-track-row",
+        isOver ? "bg-dark-card" : "odd:bg-dark even:bg-dark-card/55",
       ].filter(Boolean).join(" ")}
       style={{ height: rowHeight }}
     >
@@ -276,7 +276,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
       <div
         data-track-header="true"
         className={[
-          "group sticky left-0 z-4 h-full shrink-0 flex items-center justify-between pr-1.5 box-border gap-1 border-r border-r-white/8 bg-white/5",
+          "group sticky left-0 z-4 h-full shrink-0 flex items-center justify-between pr-1.5 box-border gap-1 border-r border-r-dark-border bg-dark",
           reorderOver ? "ring-1 ring-inset ring-accent-red/80" : "",
         ].filter(Boolean).join(" ")}
         style={{ width: TRACK_HEADER_WIDTH }}
@@ -298,7 +298,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
         {/* Type icon + label */}
         <div className="flex w-full items-center justify-center gap-1 flex-1 min-w-0">
           <TypeIcon size={11} className="text-muted shrink-0" />
-          <span className="text-[11px] font-semibold tracking-[0.06em] uppercase text-white/50 overflow-hidden text-ellipsis whitespace-nowrap">
+          <span className="text-[11px] font-semibold tracking-[0.06em] uppercase text-muted overflow-hidden text-ellipsis whitespace-nowrap">
             {trackLabel}
           </span>
         </div>

@@ -33,12 +33,12 @@ export function IconButton({
 }: IconButtonProps) {
   const variantCls =
     variant === "solid"
-      ? "bg-accent-red text-accent-white hover:brightness-110"
+      ? "bg-primary text-primary-foreground hover:brightness-110"
       : variant === "danger"
-        ? "text-muted hover:bg-red-500/10 hover:text-red-500"
+        ? "text-muted-foreground hover:bg-error-container hover:text-error"
         : active
-          ? "text-accent-red bg-[rgba(212,80,90,0.12)]"
-          : "text-muted hover:text-accent-white hover:bg-dark-card"
+          ? "text-primary bg-primary/10"
+          : "text-muted-foreground hover:text-on-surface hover:bg-surface-container"
 
   return (
     <button

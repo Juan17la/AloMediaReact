@@ -41,7 +41,7 @@ const labelRow =
   "flex justify-between items-center"
 
 const labelText =
-    "text-xs text-muted select-none"
+    "text-xs text-muted-foreground select-none"
 
 // Slider and input wrapper
 const sliderInputWrapper =
@@ -52,14 +52,14 @@ const sliderFlex =
 
 // Input styling
 const inputValue =
-    "w-9 h-5 bg-dark border border-dark-border rounded-md px-1 text-[10px] font-mono text-right text-accent-white placeholder:text-muted-light focus:border-[var(--color-accent-red)]/55 focus:ring-2 focus:ring-[var(--color-accent-red)]/12 transition-all duration-150 box-border outline-none"
+    "w-9 h-5 bg-surface-container border border-outline-variant rounded-md px-1 text-[10px] font-mono text-right text-on-surface placeholder:text-muted-foreground focus:border-primary/55 focus:ring-2 focus:ring-primary/12 transition-all duration-150 box-border outline-none"
 
 // Reset button styling
 const resetButtonBase =
   "p-1 rounded-sm editor-transition group"
 
 const resetButtonActive =
-    "opacity-60 hover:opacity-100 hover:bg-dark-card cursor-pointer"
+    "opacity-60 hover:opacity-100 hover:bg-surface-container cursor-pointer"
 
 const resetButtonDisabled =
   "opacity-20 cursor-default"

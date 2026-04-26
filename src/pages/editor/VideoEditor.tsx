@@ -243,7 +243,7 @@ export default function VideoEditor() {
 
   if (isLoadingProject) {
     return (
-      <div className="flex h-screen items-center justify-center bg-dark text-accent-white">
+      <div className="flex h-screen items-center justify-center bg-background text-accent-white">
         <p className="text-sm text-muted">Loading project…</p>
       </div>
     )
@@ -251,11 +251,11 @@ export default function VideoEditor() {
 
   if (loadError) {
     return (
-      <div className="flex h-screen items-center justify-center bg-dark text-accent-white flex-col gap-4">
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background text-accent-white">
         <p className="text-sm text-red-400">{loadError}</p>
         <button
           onClick={() => navigate('/dashboard')}
-          className="px-4 py-2 rounded-lg text-[13px] border border-white/10 bg-white/5 backdrop-blur-sm text-white/80"
+          className="rounded-lg border border-dark-border bg-dark-card px-4 py-2 text-[13px] text-accent-white/80 backdrop-blur-sm"
         >
           Back to dashboard
         </button>
@@ -264,7 +264,7 @@ export default function VideoEditor() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden text-accent-white font-sans select-none cursor-default relative z-0">
+    <div className="relative z-0 flex h-screen flex-col overflow-hidden bg-background font-sans text-accent-white select-none cursor-default">
 
       {/* Atmospheric glow 1 — bottom-left
       <div className="absolute bottom-1/2 left-2/5 w-175 h-175 rounded-full bg-[rgba(180,20,20,0.15)] blur-[160px] pointer-events-none" />
@@ -273,14 +273,14 @@ export default function VideoEditor() {
 
       {/* ── Topbar ── */}
       <header
-        className="flex items-center shrink-0 h-12.5 bg-white/4 border-b border-b-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.40),0_8px_24px_rgba(0,0,0,0.25)]"
+        className="flex h-12.5 shrink-0 items-center border-b border-dark-border bg-dark/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_4px_12px_rgba(26,26,31,0.04),0_8px_24px_rgba(26,26,31,0.04)]"
         style={{
           backdropFilter: "blur(28px) saturate(160%)",
           WebkitBackdropFilter: "blur(28px) saturate(160%)",
         }}
       >
         {/* Logo */}
-        <div className="flex items-center shrink-0 px-3 w-32 h-full border-r border-r-dark-border">
+        <div className="flex h-full w-32 shrink-0 items-center border-r border-r-dark-border px-3">
           <button
             type="button"
             onClick={() => navigate('/dashboard')}
@@ -291,7 +291,7 @@ export default function VideoEditor() {
         </div>
 
         {/* Project title */}
-        <div className="flex items-center px-3 h-full border-r-dark-border">
+        <div className="flex h-full items-center border-r border-r-dark-border px-3">
           {isEditingTitle ? (
             <input
               autoFocus
@@ -299,12 +299,12 @@ export default function VideoEditor() {
               onChange={e => setTitleDraft(e.target.value)}
               onBlur={commitTitle}
               onKeyDown={e => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur() }}
-              className="bg-transparent text-[13px] font-medium text-accent-white border-0 border-b border-b-accent-red outline-none w-48 cursor-text"
+              className="w-48 cursor-text border-0 border-b border-b-accent-red bg-transparent text-[13px] font-medium text-accent-white outline-none"
             />
           ) : (
             <button
               onDoubleClick={() => { setTitleDraft(project.name); setIsEditingTitle(true) }}
-              className="bg-transparent border-0 text-[13px] font-medium text-accent-white cursor-text max-w-48 overflow-hidden text-ellipsis whitespace-nowrap"
+              className="max-w-48 cursor-text overflow-hidden whitespace-nowrap border-0 bg-transparent text-[13px] font-medium text-accent-white text-ellipsis"
               title="Double-click to rename"
             >
               {project.name}
@@ -329,13 +329,13 @@ export default function VideoEditor() {
       <EditorErrorBoundary onReset={resetProject}>
         <div className="flex flex-1 min-h-0 overflow-hidden gap-0">
           <aside
-            className="shrink-0 flex flex-col overflow-hidden border-r border-white/10 w-96"
+            className="flex w-96 shrink-0 flex-col overflow-hidden border-r border-dark-border bg-dark/90"
           >
             <MediaLibrary />
           </aside>
 
           <div
-            className="flex flex-1 min-h-0 overflow-hidden min-w-120"
+            className="flex min-w-120 flex-1 min-h-0 overflow-hidden bg-background"
           >
             <PreviewPlayer />
           </div>
@@ -349,7 +349,7 @@ export default function VideoEditor() {
         <Toolbar />
 
         {/* ── Timeline ── */}
-        <div className="flex flex-col shrink-0 overflow-hidden" style={{ height: 260 }}>
+        <div className="flex shrink-0 flex-col overflow-hidden border-t border-dark-border bg-dark/95" style={{ height: 260 }}>
           <Timeline />
         </div>
       </EditorErrorBoundary>
@@ -371,18 +371,18 @@ export default function VideoEditor() {
             right: 24,
             zIndex: 50,
             padding: "12px 18px",
-            background: "rgba(18, 20, 24, 0.95)",
+            background: "rgba(255, 255, 255, 0.96)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
-            border: "1px solid rgba(255, 255, 255, 0.10)",
+            border: "1px solid rgba(26, 26, 31, 0.08)",
             borderLeft: toast.type === 'success'
               ? "3px solid rgba(60, 200, 100, 0.80)"
               : "3px solid var(--color-accent-red)",
             borderRadius: 10,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
+            boxShadow: "0 8px 24px rgba(26,26,31,0.10)",
             fontSize: 13,
             fontWeight: 500,
-            color: "rgba(255, 255, 255, 0.88)",
+            color: "rgba(26, 26, 31, 0.88)",
           }}
         >
           {toast.message}

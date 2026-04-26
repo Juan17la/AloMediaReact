@@ -5,6 +5,7 @@ import Cookies from "js-cookie";
 import { useAuth } from "../../hooks/useAuth";
 import AloMediaLogo from "../../assets/AloMediaLogo.webp";
 import Footer from "../../components/common/Footer";
+import { ThemeToggle } from "../../components/ThemeToggle";
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -19,25 +20,26 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-hidden bg-[#080a0d] text-white">
+    <div className="relative min-h-screen flex flex-col overflow-hidden bg-dark text-accent-white">
       {/* Background gradients */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(122,26,26,0.18)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(45,10,20,0.26)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute -top-[15%] -right-[10%] w-125 h-125 rounded-full bg-blood-red/9 blur-[120px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(212,80,90,0.10)_0%,transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(245,229,235,0.72)_0%,transparent_55%)]" />
+      <div className="pointer-events-none absolute -top-[15%] -right-[10%] h-125 w-125 rounded-full bg-blood-red/10 blur-[120px]" />
 
       {/* Navbar */}
-      <header className="relative z-20 border-b border-white/8">
+      <header className="relative z-20 border-b border-dark-border/80">
         <div className="max-w-7xl mx-auto px-6 sm:px-10">
           <nav className="h-16 flex items-center justify-between">
             <div className="flex items-center gap-2 py-2">
               <img src={AloMediaLogo} alt="AloMedia" className="h-18" />
             </div>
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               {hasToken ? (
                 <button
                   type="button"
                   onClick={() => navigate("/dashboard")}
-                  className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-4 py-2.5 text-sm font-semibold text-white"
+                  className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-4 py-2.5 text-sm font-semibold text-accent-white"
                 >
                   {t("landing.ctaLoggedIn")}
                   <ArrowRight className="w-4 h-4" />
@@ -47,14 +49,14 @@ export default function LandingPage() {
                   <button
                     type="button"
                     onClick={() => navigate("/auth/login")}
-                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 hover:bg-white/8 transition-colors duration-150"
+                    className="rounded-lg border border-dark-border bg-dark-card px-4 py-2 text-sm font-semibold text-accent-white/80 hover:bg-dark-elevated transition-colors duration-150"
                   >
                     Sign In
                   </button>
                   <button
                     type="button"
                     onClick={() => navigate("/auth/register")}
-                    className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-4 py-2.5 text-sm font-semibold text-white"
+                    className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-4 py-2.5 text-sm font-semibold text-accent-white"
                   >
                     Sign Up
                   </button>
@@ -76,7 +78,7 @@ export default function LandingPage() {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-[-0.03em] text-gradient-red max-w-3xl mx-auto leading-tight">
               {t("landing.heroTitle")}
             </h1>
-            <p className="mt-5 text-base sm:text-lg text-white/55 max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-5 text-base sm:text-lg text-muted max-w-2xl mx-auto leading-relaxed">
               {t("landing.heroDescription")}
             </p>
 
@@ -85,7 +87,7 @@ export default function LandingPage() {
                 <button
                   type="button"
                   onClick={() => navigate("/dashboard")}
-                  className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-6 py-3 text-sm font-semibold text-white"
+                  className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-6 py-3 text-sm font-semibold text-accent-white"
                 >
                   {t("landing.ctaLoggedIn")}
                   <ArrowRight className="w-4 h-4" />
@@ -94,7 +96,7 @@ export default function LandingPage() {
                 <button
                   type="button"
                   onClick={() => navigate("/auth/register")}
-                  className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-6 py-3 text-sm font-semibold text-white"
+                  className="auth-btn-primary inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-blood-red to-crimson px-6 py-3 text-sm font-semibold text-accent-white"
                 >
                   {t("landing.cta")}
                   <ArrowRight className="w-4 h-4" />
@@ -105,19 +107,19 @@ export default function LandingPage() {
 
           {/* Features */}
           <section className="pb-20">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-white/40 text-center mb-8">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted text-center mb-8">
               {t("landing.features")}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {features.map((f, idx) => (
                 <div key={idx} className="auth-glass-card rounded-md px-5 py-6 text-center">
                   <div className="flex items-center justify-center mb-4">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-accent-red">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-dark-border bg-dark-card text-accent-red">
                       {f.icon}
                     </div>
                   </div>
-                  <h3 className="text-sm font-semibold text-white/90 mb-2">{f.title}</h3>
-                  <p className="text-xs text-white/50 leading-relaxed">{f.desc}</p>
+                  <h3 className="mb-2 text-sm font-semibold text-accent-white">{f.title}</h3>
+                  <p className="text-xs leading-relaxed text-muted">{f.desc}</p>
                 </div>
               ))}
             </div>

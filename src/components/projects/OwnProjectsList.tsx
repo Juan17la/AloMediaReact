@@ -23,10 +23,10 @@ export function OwnProjectsList() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="glass-card rounded-2xl overflow-hidden animate-pulse">
-            <div className="aspect-video bg-dark-elevated" />
-            <div className="px-4 py-3.5 border-t border-glass-border space-y-2">
-              <div className="h-3 bg-dark-border rounded w-3/4" />
-              <div className="h-2 bg-dark-border rounded w-1/3" />
+            <div className="aspect-video bg-surface-container" />
+            <div className="px-4 py-3.5 border-t border-outline-variant space-y-2">
+              <div className="h-3 bg-outline-variant rounded w-3/4" />
+              <div className="h-2 bg-outline-variant rounded w-1/3" />
             </div>
           </div>
         ))}
@@ -35,13 +35,13 @@ export function OwnProjectsList() {
   }
 
   if (error && !data) {
-    return <p className="text-red-400 text-sm">{error}</p>
+    return <p className="text-error text-sm">{error}</p>
   }
 
   const projects = data?.content ?? []
 
   if (projects.length === 0) {
-    return <p className="text-muted text-sm">No projects yet. Create your first project!</p>
+    return <p className="text-muted-foreground text-sm">No projects yet. Create your first project!</p>
   }
 
   return (
@@ -63,17 +63,17 @@ export function OwnProjectsList() {
           <button
             disabled={page === 0}
             onClick={() => setPage(p => p - 1)}
-            className="p-1.5 rounded border border-dark-border text-muted hover:text-accent-white disabled:opacity-35 transition-colors"
+            className="p-1.5 rounded border border-outline-variant text-muted-foreground hover:text-on-surface disabled:opacity-35 transition-colors"
           >
             <ChevronLeft size={14} />
           </button>
-          <span className="text-muted text-xs">
+          <span className="text-muted-foreground text-xs">
             {page + 1} / {data.totalPages}
           </span>
           <button
             disabled={page >= data.totalPages - 1}
             onClick={() => setPage(p => p + 1)}
-            className="p-1.5 rounded border border-dark-border text-muted hover:text-accent-white disabled:opacity-35 transition-colors"
+            className="p-1.5 rounded border border-outline-variant text-muted-foreground hover:text-on-surface disabled:opacity-35 transition-colors"
           >
             <ChevronRight size={14} />
           </button>

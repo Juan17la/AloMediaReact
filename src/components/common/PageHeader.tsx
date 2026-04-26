@@ -15,15 +15,15 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, subtitle, icon, breadcrumb }: PageHeaderProps) {
   return (
-    <div className="border-b border-white/8 pb-4">
+    <div className="border-b border-dark-border/80 pb-4">
       {breadcrumb && breadcrumb.length > 0 && (
-        <nav className="flex items-center gap-1.5 mb-3 text-xs text-white/40">
+        <nav className="mb-3 flex items-center gap-1.5 text-xs text-muted">
           {breadcrumb.map((item, idx) => (
             <span key={idx} className="flex items-center gap-1.5">
               {idx > 0 && <ChevronRight className="w-3 h-3" />}
               <Link
                 to={item.href}
-                className="hover:text-white/60 transition-colors duration-150"
+                className="transition-colors duration-150 hover:text-accent-white/70"
               >
                 {item.label}
               </Link>
@@ -33,7 +33,7 @@ export default function PageHeader({ title, subtitle, icon, breadcrumb }: PageHe
       )}
       <div className="flex items-center gap-3">
         {icon && (
-          <div className="flex h-11 w-11 items-center justify-center border border-white/10 bg-white/5 rounded-lg">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-dark-border bg-dark-card">
             {icon}
           </div>
         )}
@@ -42,7 +42,7 @@ export default function PageHeader({ title, subtitle, icon, breadcrumb }: PageHe
             {title}
           </h1>
           {subtitle && (
-            <p className="text-sm text-white/45 mt-0.5">{subtitle}</p>
+            <p className="mt-0.5 text-sm text-muted">{subtitle}</p>
           )}
         </div>
       </div>

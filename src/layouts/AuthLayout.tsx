@@ -1,8 +1,11 @@
 import { Outlet } from "react-router";
-
+import { ThemeToggle } from "../components/ThemeToggle";
 export default function AuthLayout() {
   return (
-    <div className="relative min-h-screen w-full font-sans flex items-center justify-center overflow-hidden bg-[#080a0d]">
+    <div className="relative min-h-screen w-full font-sans flex items-center justify-center overflow-hidden bg-background transition-colors duration-200">
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       {/* Offset radial gradient — origin top-left */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(122,26,26,0.18)_0%,transparent_55%)]" />
       {/* Deep burgundy tint — origin bottom-right */}

@@ -22,11 +22,11 @@ const clipBase =
 
 // Clip selected state: brighter, higher contrast
 const clipSelected =
-  "bg-[rgba(180,20,20,0.22)] border border-[rgba(220,40,40,0.75)] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_2px_6px_rgba(0,0,0,0.30)] ring-2 ring-[rgba(180,20,20,0.40)]"
+  "bg-[rgba(138,24,36,0.42)] border border-[rgba(138,24,36,0.88)] shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_2px_6px_rgba(0,0,0,0.24)] ring-2 ring-[rgba(138,24,36,0.45)]"
 
 // Clip unselected state: dimmer, lower contrast
 const clipUnselected =
-  "bg-[rgba(180,20,20,0.10)] border border-[rgba(180,20,20,0.20)] border-t-[rgba(180,20,20,0.38)] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_2px_6px_rgba(0,0,0,0.30)]"
+  "bg-[rgba(166,44,60,0.28)] border border-[rgba(138,24,36,0.62)] border-t-[rgba(138,24,36,0.78)] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_2px_6px_rgba(0,0,0,0.22)]"
 
 // Clip cursor states
 const clipCursorGrabbing = "cursor-grabbing opacity-70"
@@ -128,7 +128,7 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
         <div className="absolute left-0 top-0 bottom-0 w-0.75 bg-dark-border-light shrink-0" />
 
         {/* Clip label */}
-        <span className="absolute top-1/2 -translate-y-1/2 left-0.75 right-3.5 block text-[11px] font-medium px-1.5 whitespace-nowrap overflow-hidden text-ellipsis leading-none text-white/85">
+        <span className="absolute top-1/2 -translate-y-1/2 left-0.75 right-3.5 block text-[11px] font-semibold px-1.5 whitespace-nowrap overflow-hidden text-ellipsis leading-none text-black/85">
           {getClipLabel()}
         </span>
 

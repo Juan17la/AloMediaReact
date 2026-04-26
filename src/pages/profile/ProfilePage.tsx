@@ -82,16 +82,16 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#080a0d] text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(122,26,26,0.18)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(45,10,20,0.26)_0%,transparent_55%)]" />
+    <div className="relative min-h-screen overflow-hidden bg-dark text-accent-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(212,80,90,0.10)_0%,transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(245,229,235,0.72)_0%,transparent_55%)]" />
 
       <main className="relative z-10 px-4 py-10 sm:px-8">
         <div className="mx-auto max-w-2xl space-y-5">
           <button
             type="button"
             onClick={() => navigate("/dashboard")}
-            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/60 transition-colors duration-150 mb-2"
+            className="mb-2 flex items-center gap-1.5 text-xs text-muted transition-colors duration-150 hover:text-accent-white/70"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Dashboard
@@ -107,7 +107,7 @@ export default function ProfilePage() {
           <SectionCard title={t("profile.personalInfo")} icon={<User className="w-4 h-4" />}>
             <form onSubmit={handleSave} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="firstName" className="text-[13px] text-white/50 tracking-wide pl-1">
+                <label htmlFor="firstName" className="text-[13px] text-muted tracking-wide pl-1">
                   {t("profile.firstName")}
                 </label>
                 <input
@@ -122,7 +122,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="lastName" className="text-[13px] text-white/50 tracking-wide pl-1">
+                <label htmlFor="lastName" className="text-[13px] text-muted tracking-wide pl-1">
                   {t("profile.lastName")}
                 </label>
                 <input
@@ -137,32 +137,32 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="email" className="text-[13px] text-white/50 tracking-wide pl-1">
+                <label htmlFor="email" className="text-[13px] text-muted tracking-wide pl-1">
                   {t("profile.email")}
                 </label>
                 <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-light" />
                   <input
                     id="email"
                     type="email"
                     value={user?.email ?? ""}
                     disabled
-                    className="auth-input w-full rounded-lg py-3 pl-12 pr-4 text-white/40 text-sm font-medium cursor-not-allowed"
+                    className="auth-input w-full rounded-lg py-3 pl-12 pr-4 text-muted-light text-sm font-medium cursor-not-allowed"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] text-white/50 tracking-wide pl-1">
+                <label className="text-[13px] text-muted tracking-wide pl-1">
                   {t("profile.role")}
                 </label>
                 <div className="relative group">
-                  <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                  <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-light" />
                   <input
                     type="text"
                     value={user?.role ?? ""}
                     disabled
-                    className="auth-input w-full rounded-lg py-3 pl-12 pr-4 text-white/40 text-sm font-medium cursor-not-allowed"
+                    className="auth-input w-full rounded-lg py-3 pl-12 pr-4 text-muted-light text-sm font-medium cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -185,14 +185,14 @@ export default function ProfilePage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="auth-btn-primary rounded-lg bg-linear-to-r from-blood-red to-crimson px-5 py-2.5 text-sm font-semibold text-white"
+                  className="auth-btn-primary rounded-lg bg-linear-to-r from-blood-red to-crimson px-5 py-2.5 text-sm font-semibold text-accent-white"
                 >
                   {saving ? t("profile.saving") : t("profile.save")}
                 </button>
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="rounded-lg border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white/70 hover:bg-white/8 transition-colors duration-150"
+                  className="rounded-lg border border-dark-border bg-dark-card px-5 py-2.5 text-sm font-semibold text-accent-white/70 hover:bg-dark-elevated transition-colors duration-150"
                 >
                   {t("common:actions.cancel")}
                 </button>
@@ -202,7 +202,7 @@ export default function ProfilePage() {
 
           {/* Security */}
           <SectionCard title={t("profile.security")} icon={<Lock className="w-4 h-4" />}>
-            <p className="text-sm text-white/50 mb-4">{t("profile.securityDescription")}</p>
+            <p className="mb-4 text-sm text-muted">{t("profile.securityDescription")}</p>
             {passwordRequested ? (
               <div className="flex items-center gap-1.5 animate-slide-up">
                 <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
@@ -212,7 +212,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={handleChangePassword}
-                className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white/70 hover:bg-white/8 transition-colors duration-150"
+                className="rounded-lg border border-dark-border bg-dark-card px-4 py-2.5 text-sm font-semibold text-accent-white/70 hover:bg-dark-elevated transition-colors duration-150"
               >
                 {t("profile.changePassword")}
               </button>

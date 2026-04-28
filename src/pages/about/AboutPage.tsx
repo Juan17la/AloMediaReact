@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { Info, Target, Users, Cpu } from "lucide-react";
+import { Link } from "react-router";
+import { Info, Target, Users, Cpu, ArrowLeft } from "lucide-react";
 import PageHeader from "../../components/common/PageHeader";
 import SectionCard from "../../components/common/SectionCard";
 import Footer from "../../components/common/Footer";
@@ -25,6 +26,14 @@ export default function AboutPage() {
 
       <main className="relative z-10 px-4 py-10 sm:px-8">
         <div className="max-w-3xl mx-auto space-y-5 animate-fade-in">
+          <Link
+            to="/"
+            className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground transition-colors duration-150 hover:text-on-surface"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Home
+          </Link>
+
           <PageHeader
             title={t("about.title")}
             subtitle={t("about.subtitle")}

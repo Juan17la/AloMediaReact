@@ -118,16 +118,13 @@ function SharedRow({
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-on-surface">{project.name}</p>
-            <p className="mt-0.5 text-xs text-on-surface-variant">{owner}</p>
           </div>
           <div className="hidden items-center gap-2 text-xs text-on-surface-variant md:flex">
             <CalendarDays className="h-3.5 w-3.5" />
             {formatDate(project.updatedAt, i18n.language)}
           </div>
         </div>
-        <div className="mt-2 h-1 overflow-hidden bg-surface-container">
-          <div className="h-full bg-primary/80" style={{ width: progress }} />
-        </div>
+        <div className="mt-2 h-0.5 overflow-hidden bg-surface-container"></div>
       </div>
 
       <ArrowRight className="h-4 w-4 text-on-surface-variant" />

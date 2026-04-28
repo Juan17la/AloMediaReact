@@ -147,7 +147,7 @@ export function MediaCard({
         onDragEnd={() => {
           window.dispatchEvent(new CustomEvent("alomedia:drag-end"))
         }}
-        className="group relative flex flex-col w-full min-h-36 h-auto bg-surface-container border border-outline-variant rounded-lg p-2 shadow-[0_2px_6px_rgba(0,0,0,0.08)] cursor-pointer overflow-hidden select-none transition-[background,border-color] duration-120 ease-out hover:bg-surface-container-high hover:border-outline"
+        className="group relative flex flex-col w-full h-full bg-surface-container border border-outline-variant rounded-lg p-2 shadow-[0_2px_6px_rgba(0,0,0,0.08)] cursor-pointer overflow-hidden select-none transition-[background,border-color] duration-120 ease-out hover:bg-surface-container-high hover:border-outline"
       >
         <button
           type="button"
@@ -158,8 +158,8 @@ export function MediaCard({
           <MoreHorizontal size={14} />
         </button>
 
-        {/* Thumbnail area — 16:9 */}
-        <div className="relative aspect-video bg-surface overflow-hidden rounded-md">
+        {/* Thumbnail area — 16:9, flex-grow to fill available space */}
+        <div className="relative aspect-video bg-surface overflow-hidden rounded-md shrink-0">
           <MediaThumbnail media={media} objectUrl={objectUrl} />
 
           {/* Type badge — top-left */}
@@ -184,9 +184,9 @@ export function MediaCard({
           </div>
         </div>
 
-        {/* Info strip */}
-        <div className="pt-1.5 px-0 flex flex-col gap-0.5 relative">
-          <span className="text-[10px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap pr-8">
+        {/* Info strip — consistent height to align cards */}
+        <div className="pt-1.5 px-0 flex flex-col gap-0.5 relative min-h-12">
+          <span className="text-[10px] text-on-surface overflow-hidden text-ellipsis whitespace-nowrap pr-8 leading-tight">
             {media.name}
           </span>
           <div className="flex flex-wrap items-center gap-1 text-[9px] text-muted-foreground">
@@ -194,7 +194,6 @@ export function MediaCard({
             <span className="rounded bg-surface-container-high/60 px-1 py-0.5 font-mono">{formatDuration(media)}</span>
             <span className="rounded bg-surface-container-high/60 px-1 py-0.5 font-mono">{formatSize(media.size)}</span>
           </div>
-
         </div>
       </div>
 
@@ -217,14 +216,14 @@ export function MediaCard({
 
 export function LoadingCard({ fileName }: { fileName: string }) {
   return (
-    <div className="relative flex flex-col w-full min-h-36 h-auto bg-surface-container border border-outline-variant rounded-lg p-1.5 shadow-[0_2px_6px_rgba(0,0,0,0.08)] cursor-pointer overflow-hidden select-none">
+    <div className="relative flex flex-col w-full h-full bg-surface-container border border-outline-variant rounded-lg p-2 shadow-[0_2px_6px_rgba(0,0,0,0.08)] cursor-pointer overflow-hidden select-none">
       {/* Thumbnail placeholder — 16:9 */}
-      <div className="relative aspect-video bg-surface flex items-center justify-center rounded-sm">
+      <div className="relative aspect-video bg-surface flex items-center justify-center rounded-md shrink-0">
         <div className="w-5 h-5 rounded-full border-2 border-outline-variant border-t-primary animate-spin" />
       </div>
-      {/* Info strip */}
-      <div className="h-7 px-1.5 flex items-center justify-between gap-1 relative">
-        <span className="text-[10px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
+      {/* Info strip — consistent height to match MediaCard */}
+      <div className="pt-1.5 px-0 flex flex-col gap-0.5 relative min-h-12">
+        <span className="text-[10px] text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap pr-8 leading-tight">
           {fileName}
         </span>
       </div>

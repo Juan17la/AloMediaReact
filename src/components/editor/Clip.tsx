@@ -24,9 +24,9 @@ const clipBase =
 const clipSelected =
   "bg-linear-to-b from-primary/90 to-primary border border-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_2px_8px_rgba(99,14,212,0.35)] ring-2 ring-primary/40"
 
-// Clip unselected state - subtle purple with gradient for depth
+// Clip unselected state - stronger purple for better contrast in light theme
 const clipUnselected =
-  "bg-linear-to-b from-primary/70 to-primary/55 border border-primary/50 border-t-primary/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_3px_rgba(0,0,0,0.15)]"
+  "bg-linear-to-b from-primary/85 to-primary/75 border border-primary/60 border-t-primary/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_1px_3px_rgba(0,0,0,0.15)]"
 
 // Clip cursor states
 const clipCursorGrabbing = "cursor-grabbing opacity-70"

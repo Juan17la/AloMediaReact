@@ -83,7 +83,7 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-surface text-on-surface">
+    <div className="relative min-h-screen flex flex-col overflow-hidden bg-surface text-on-surface">
       {/* Light theme gradients */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(124,58,237,0.08)_0%,transparent_55%)] dark:hidden" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(99,14,212,0.06)_0%,transparent_55%)] dark:hidden" />
@@ -91,7 +91,7 @@ export default function AdminPage() {
       <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_20%_10%,rgba(167,139,250,0.12)_0%,transparent_55%)]" />
       <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_80%_90%,rgba(206,189,255,0.08)_0%,transparent_55%)]" />
 
-      <main className="relative z-10 px-4 py-10 sm:px-8">
+      <main className="relative z-10 flex-1 px-4 py-10 sm:px-8">
         <div className="mx-auto max-w-4xl space-y-5">
           <button
             type="button"
@@ -179,7 +179,7 @@ export default function AdminPage() {
         </div>
       </main>
 
-      <div className="relative z-10">
+      <div className="relative z-10 mt-auto">
         <Footer />
       </div>
     </div>

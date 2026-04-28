@@ -167,20 +167,22 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[13px] text-muted-foreground tracking-wide pl-1">
-                  {t("profile.role")}
-                </label>
-                <div className="relative group">
-                  <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={user?.role ?? ""}
-                    disabled
-                    className="w-full rounded-lg py-3 pl-12 pr-4 bg-surface-container/50 border border-outline-variant/50 text-muted-foreground text-sm font-medium cursor-not-allowed"
-                  />
+              {user?.role === "ADMIN" && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[13px] text-muted-foreground tracking-wide pl-1">
+                    {t("profile.role")}
+                  </label>
+                  <div className="relative group">
+                    <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={user?.role ?? ""}
+                      disabled
+                      className="w-full rounded-lg py-3 pl-12 pr-4 bg-surface-container/50 border border-outline-variant/50 text-muted-foreground text-sm font-medium cursor-not-allowed"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {error && (
                 <div className="flex items-center gap-1.5 pl-1 animate-error-slide">

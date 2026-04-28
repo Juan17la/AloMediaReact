@@ -272,6 +272,18 @@ export const createProjectTimelineActions: StateCreator<EditorStore, [], [], Pro
 
     const fallbackTrack = state.project.tracks.find(t => t.type === "audio") ?? get().addTrack("audio")
 
+    // Check for collision before extracting
+    const hasOverlap = fallbackTrack.clips.some(
+      clip =>
+        sourceClip.timelineStart < clip.timelineEnd &&
+        sourceClip.timelineEnd > clip.timelineStart,
+    )
+    if (hasOverlap) {
+      // Optionally: could show a toast/alert here, or place on a different track
+      console.warn("Cannot extract audio: overlapping clip exists on audio track")
+      return
+    }
+
     const newClip: Clip = {
       id: generateId(),
       type: "audio",

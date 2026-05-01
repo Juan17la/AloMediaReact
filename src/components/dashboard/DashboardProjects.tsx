@@ -95,11 +95,7 @@ function SharedRow({
   onOpenProject: (id: number) => void;
   userId?: number;
 }) {
-  const { t, i18n } = useTranslation("dashboard");
-  const progress = progressFromProject(project, index);
-  const owner = userId != null && project.ownerId === userId
-    ? t("projects.ownerYou")
-    : t("projects.ownerOther", { id: project.ownerId });
+  const { i18n } = useTranslation("dashboard");
   const tone = CARD_TONES[(index + 1) % CARD_TONES.length];
 
   return (

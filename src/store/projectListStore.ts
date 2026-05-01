@@ -3,8 +3,8 @@ import { getOwnProjects, getSharedProjects } from '../services/projectService'
 import type { ApiProject, PaginatedResponse } from '../types/projectApiTypes'
 
 interface ProjectListState {
-  ownCache: Record<number, PaginatedResponse<ApiProject>>
-  sharedCache: Record<number, PaginatedResponse<ApiProject>>
+  ownData: Record<number, PaginatedResponse<ApiProject>>
+  sharedData: Record<number, PaginatedResponse<ApiProject>>
   isLoadingOwn: boolean
   isLoadingShared: boolean
   ownError: string | null
@@ -13,31 +13,29 @@ interface ProjectListState {
   fetchShared: (page: number) => Promise<void>
 }
 
-export const useProjectListStore = create<ProjectListState>((set, get) => ({
-  ownCache: {},
-  sharedCache: {},
+export const useProjectListStore = create<ProjectListState>((set) => ({
+  ownData: {},
+  sharedData: {},
   isLoadingOwn: false,
   isLoadingShared: false,
   ownError: null,
   sharedError: null,
 
   async fetchOwn(page) {
-    if (get().ownCache[page]) return
     set({ isLoadingOwn: true, ownError: null })
     try {
       const data = await getOwnProjects(page, 8, 'updatedAt,desc')
-      set(s => ({ ownCache: { ...s.ownCache, [page]: data }, isLoadingOwn: false }))
+      set(s => ({ ownData: { ...s.ownData, [page]: data }, isLoadingOwn: false }))
     } catch {
       set({ ownError: 'Failed to load projects.', isLoadingOwn: false })
     }
   },
 
   async fetchShared(page) {
-    if (get().sharedCache[page]) return
     set({ isLoadingShared: true, sharedError: null })
     try {
       const data = await getSharedProjects(page, 8)
-      set(s => ({ sharedCache: { ...s.sharedCache, [page]: data }, isLoadingShared: false }))
+      set(s => ({ sharedData: { ...s.sharedData, [page]: data }, isLoadingShared: false }))
     } catch {
       set({ sharedError: 'Failed to load shared projects.', isLoadingShared: false })
     }

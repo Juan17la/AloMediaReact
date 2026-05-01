@@ -63,18 +63,18 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(26,26,31,0.10)]"
       style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
       onPointerDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="modal-panel w-130">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold tracking-[-0.01em] text-white/92">
+          <h2 className="text-base font-bold tracking-[-0.01em] text-accent-white">
             Keyboard Shortcuts
           </h2>
           <button
             onClick={onClose}
-            className="flex items-center bg-transparent border-0 rounded-md p-1.5 text-white/55 cursor-pointer transition-[color,background] duration-100 hover:text-white/90 hover:bg-white/7"
+            className="flex items-center rounded-md border-0 bg-transparent p-1.5 text-muted cursor-pointer transition-[color,background] duration-100 hover:bg-dark-card hover:text-accent-white"
           >
             <X size={14} />
           </button>
@@ -84,8 +84,8 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
             <div key={ci} className="flex flex-col gap-0.5">
               {col.map(({ keys, action }) => (
                 <div key={keys} className="flex items-center justify-between py-0.5">
-                  <span className="text-[13px] text-white/80">{action}</span>
-                  <kbd className="text-[10px] font-mono bg-black/30 border border-white/8 rounded-md px-2 py-0.5 text-white/60 ml-3 shrink-0">
+                  <span className="text-[13px] text-accent-white/80">{action}</span>
+                  <kbd className="ml-3 shrink-0 rounded-md border border-dark-border bg-dark-card px-2 py-0.5 font-mono text-[10px] text-accent-white/70">
                     {keys}
                   </kbd>
                 </div>
@@ -125,10 +125,10 @@ function ToolbarBtn({
   const btnClass = [
     "flex items-center justify-center w-7 h-7 shrink-0 rounded-md border-0 transition-[background-color,color] duration-100",
     disabled
-      ? "opacity-35 cursor-not-allowed text-dark-border-light"
+      ? "opacity-60 cursor-not-allowed text-muted bg-dark-card/45"
       : snapOn || active
         ? "bg-[rgba(192,57,43,0.12)] text-accent-red cursor-pointer"
-        : "bg-transparent text-white/55 hover:bg-white/7 hover:text-white/90 cursor-pointer",
+        : "bg-transparent text-accent-white/75 hover:bg-dark-card hover:text-accent-white cursor-pointer",
   ].join(" ")
 
   return (
@@ -166,7 +166,7 @@ function TrackBtn({
       type="button"
       title={label}
       onClick={onClick}
-      className="flex items-center gap-1.25 h-7 px-2 shrink-0 rounded-md border-0 text-[10px] font-semibold tracking-[0.04em] text-muted-light hover:bg-white/7 hover:text-accent-red cursor-pointer transition-[background-color,color] duration-100 font-[inherit]"
+      className="flex h-7 shrink-0 items-center gap-1.25 rounded-md border-0 px-2 font-[inherit] text-[10px] font-semibold tracking-[0.04em] text-muted cursor-pointer transition-[background-color,color] duration-100 hover:bg-dark-card hover:text-accent-red"
     >
       <span className="flex items-center w-3.5 h-3.5">
         {icon}
@@ -374,7 +374,7 @@ export function Toolbar() {
           onPointerCancel={clearZoomOut}
         />
         {/* Zoom percentage display */}
-        <div className="w-11 text-center text-[10px] font-mono text-muted shrink-0">
+        <div className="w-11 text-center text-[10px] font-mono text-accent-white/75 shrink-0">
           {zoomPercent}%
         </div>
         <ToolbarBtn

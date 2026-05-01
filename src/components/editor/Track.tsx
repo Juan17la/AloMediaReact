@@ -21,20 +21,20 @@ const TYPE_LABEL: Record<string, string> = { video: "Video", audio: "Audio" }
 
 // Icon button constant
 // const iconBtn =
-//   "p-1.5 rounded-md bg-transparent text-white/55 hover:bg-white/7 hover:text-white/90 active:text-[var(--color-accent-red)] active:scale-95 transition-all duration-100"
+//   "p-1.5 rounded-md bg-transparent text-accent-white/55 hover:bg-dark/7 hover:text-accent-white/90 active:text-[var(--color-accent-red)] active:scale-95 transition-all duration-100"
 
 // Track action button constant
 const trackControlBtn =
   "flex items-center justify-center w-5 h-5 shrink-0 rounded-md border-0 bg-transparent p-0 cursor-pointer transition-[opacity,color] duration-[120ms]"
 
 const trackControlBtnActive =
-  "text-accent-red"
+  "text-error"
 
 const trackControlBtnNormal =
-  "text-white/35 hover:text-white/75"
+  "text-muted-foreground hover:text-on-surface"
 
 const trackControlBtnDanger =
-  "text-white/35 hover:text-red-400"
+  "text-muted-foreground hover:text-error"
 
 const trackControlBtnHidden =
   "opacity-0 group-hover:opacity-100"
@@ -161,6 +161,20 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
     }
   }, [project, selectedTransitionClipId, setSelectedTransitionClip, track.clips])
 
+  useEffect(() => {
+    const clearReorderState = () => setReorderOver(false)
+    window.addEventListener("dragend", clearReorderState)
+    window.addEventListener("drop", clearReorderState)
+    return () => {
+      window.removeEventListener("dragend", clearReorderState)
+      window.removeEventListener("drop", clearReorderState)
+    }
+  }, [])
+
+  function isTrackReorderDrag(e: DragEvent<HTMLDivElement>): boolean {
+    return e.dataTransfer.types.includes("reordertrackid") || e.dataTransfer.types.includes("reorderTrackId")
+  }
+
   function isCompatibleDrop(mediaType: MediaType, trackType: TrackType): boolean {
     if (mediaType === "subtitles") return false
     if (mediaType === "audio") return trackType === "audio"
@@ -168,7 +182,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
   }
 
   function handleDragOver(e: DragEvent<HTMLDivElement>) {
-    if (e.dataTransfer.types.includes('reordertrackid')) {
+    if (isTrackReorderDrag(e)) {
       e.preventDefault()
       e.dataTransfer.dropEffect = 'move'
       setReorderOver(true)
@@ -183,7 +197,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
 
   function handleDragEnter(e: DragEvent<HTMLDivElement>) {
     e.preventDefault()
-    if (e.dataTransfer.types.includes('reordertrackid')) return
+    if (isTrackReorderDrag(e)) return
     setDragOverTrack(track.id)
   }
 
@@ -202,6 +216,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
     const sourceId = e.dataTransfer.getData('reorderTrackId')
     if (sourceId && sourceId !== track.id) {
       reorderTrack(sourceId, track.id)
+      setDragOverTrack(undefined)
       return
     }
 
@@ -252,15 +267,18 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={[
-        "flex min-w-full box-border overflow-hidden border-b border-b-white/5 timeline-track-row",
-        isOver ? "bg-white/6" : "odd:bg-white/2 even:bg-black/12",
-        reorderOver ? "border-t-2 border-t-accent-red" : "",
+        "flex min-w-full box-border overflow-hidden border-b border-outline-variant/50 timeline-track-row",
+        isOver ? "bg-surface-container-high" : "odd:bg-surface even:bg-surface-container/60",
       ].filter(Boolean).join(" ")}
       style={{ height: rowHeight }}
     >
       {/* Track header — sticky left */}
       <div
-        className="group sticky left-0 z-4 h-full shrink-0 flex items-center justify-between pr-1.5 box-border gap-1 border-r border-r-white/8 bg-white/5"
+        data-track-header="true"
+        className={[
+          "group sticky left-0 z-4 h-full shrink-0 flex items-center justify-between pr-1.5 box-border gap-1 border-r border-outline-variant bg-surface-container",
+          reorderOver ? "ring-1 ring-inset ring-error/80" : "",
+        ].filter(Boolean).join(" ")}
         style={{ width: TRACK_HEADER_WIDTH }}
       >
         {/* Grip handle — dotted texture on far left */}
@@ -270,16 +288,17 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
             e.dataTransfer.setData('reorderTrackId', track.id)
             e.dataTransfer.effectAllowed = 'move'
           }}
+          onDragEnd={() => setReorderOver(false)}
           className="w-3.5 h-full shrink-0 cursor-grab select-none"
           style={{
-            background: "repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, var(--color-dark-border-light) 2px, var(--color-dark-border-light) 3px)",
+            background: "repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, var(--color-outline-variant) 2px, var(--color-outline-variant) 3px)",
           }}
         />
 
         {/* Type icon + label */}
         <div className="flex w-full items-center justify-center gap-1 flex-1 min-w-0">
-          <TypeIcon size={11} className="text-muted shrink-0" />
-          <span className="text-[11px] font-semibold tracking-[0.06em] uppercase text-white/50 overflow-hidden text-ellipsis whitespace-nowrap">
+          <TypeIcon size={11} className="text-muted-foreground shrink-0" />
+          <span className="text-[11px] font-semibold tracking-[0.06em] uppercase text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
             {trackLabel}
           </span>
         </div>
@@ -326,7 +345,7 @@ export function TrackComponent({ track, dragOverTrackId, setDragOverTrack, onDro
         {/* Snap indicator */}
         {snapIndicatorX !== null && (
           <div
-            className="absolute top-0 w-0.5 h-full bg-warning pointer-events-none z-5"
+            className="absolute top-0 w-0.5 h-full bg-primary pointer-events-none z-5"
             style={{ left: snapIndicatorX }}
           />
         )}

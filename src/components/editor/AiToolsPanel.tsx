@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Wand2, FileText, AlertCircle, CheckCircle2, Loader2, MousePointerClick } from "lucide-react"
 import type { Media } from "../../project/projectTypes"
 import { fileMap, useEditorStore } from "../../store/editorStore"
@@ -11,25 +11,34 @@ type Status = "idle" | "processing" | "success" | "error"
 
 interface AiToolsPanelProps {
   selectedMedia: Media | null
+  initialTool?: AiTool
 }
 
 const sectionLabel =
-  "text-[10px] font-semibold tracking-[0.1em] uppercase text-white/40 mb-1.5"
+  "text-[9px] font-semibold tracking-[0.06em] uppercase text-muted mb-1"
 
-export function AiToolsPanel({ selectedMedia }: AiToolsPanelProps) {
+export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPanelProps) {
   const addMedia = useEditorStore((s) => s.addMedia)
 
-  const [activeTool, setActiveTool] = useState<AiTool>("clean")
+  const [activeTool, setActiveTool] = useState<AiTool>(initialTool)
   const [status, setStatus] = useState<Status>("idle")
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [resultName, setResultName] = useState<string | null>(null)
   const processingRef = useRef(false)
 
+  useEffect(() => {
+    if (processingRef.current) return
+    setActiveTool(initialTool)
+    setStatus("idle")
+    setErrorMsg(null)
+    setResultName(null)
+  }, [initialTool, selectedMedia?.id])
+
   // ── No media selected ───────────────────────────────────────────────────────
   if (!selectedMedia) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
-        <MousePointerClick size={22} className="text-white/25" />
+        <MousePointerClick size={22} className="text-muted-light" />
         <p className="text-[11px] text-muted leading-relaxed">
           Click a file in the Library tab<br />to use AI tools on it
         </p>
@@ -41,7 +50,7 @@ export function AiToolsPanel({ selectedMedia }: AiToolsPanelProps) {
   if (selectedMedia.type === "image") {
     return (
       <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
-        <AlertCircle size={22} className="text-white/25" />
+        <AlertCircle size={22} className="text-muted-light" />
         <p className="text-[11px] text-muted">AI tools are not available for images</p>
       </div>
     )
@@ -50,7 +59,7 @@ export function AiToolsPanel({ selectedMedia }: AiToolsPanelProps) {
   if (selectedMedia.type === "video") {
     return (
       <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
-        <AlertCircle size={22} className="text-white/25" />
+        <AlertCircle size={22} className="text-muted-light" />
         <p className="text-[11px] text-muted leading-relaxed">
           Audio extraction from video is not yet supported.<br />
           Add the audio track separately to use AI tools.
@@ -62,7 +71,7 @@ export function AiToolsPanel({ selectedMedia }: AiToolsPanelProps) {
   if (selectedMedia.type === "subtitles") {
     return (
       <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
-        <AlertCircle size={22} className="text-white/25" />
+        <AlertCircle size={22} className="text-muted-light" />
         <p className="text-[11px] text-muted leading-relaxed">
           Subtitle files can be imported into the timeline, but AI tools are not available for them.
         </p>
@@ -143,92 +152,93 @@ export function AiToolsPanel({ selectedMedia }: AiToolsPanelProps) {
   const runLabel = activeTool === "clean" ? "Clean Audio" : "Transcribe"
 
   return (
-    <div className="flex flex-col gap-3.5 p-3">
-      {/* Selected file */}
-      <div>
-        <p className={sectionLabel}>Selected File</p>
-        <div className="flex items-center gap-2 px-2.5 py-2 bg-white/4 border border-white/8 rounded-lg">
-          <span className="text-[11px] text-accent-white truncate">{selectedMedia.name}</span>
-        </div>
-      </div>
-
-      {/* Tool selector */}
-      <div>
-        <p className={sectionLabel}>Tool</p>
-        <div className="flex gap-1">
-          <ToolButton
-            active={activeTool === "clean"}
-            disabled={isProcessing}
-            onClick={() => handleToolChange("clean")}
-            icon={<Wand2 size={12} />}
-            label="Clean Audio"
-          />
-          <ToolButton
-            active={activeTool === "transcribe"}
-            disabled={isProcessing}
-            onClick={() => handleToolChange("transcribe")}
-            icon={<FileText size={12} />}
-            label="Transcribe"
-          />
-        </div>
-      </div>
-
-      {/* Description */}
-      <div className="px-2.5 py-2 bg-white/3 border border-white/6 rounded-lg">
-        <p className="text-[11px] text-muted leading-relaxed">
-          {activeTool === "clean"
-            ? "Removes background noise and enhances speech clarity. The result is added to your library."
-            : "Generates a timed subtitle file (.srt) from spoken audio. The result is added to your library."}
-        </p>
-      </div>
-
-      {/* Success */}
-      {status === "success" && resultName && (
-        <div className="flex items-start gap-2 px-2.5 py-2 bg-[#0f2b14] border border-[#1d5c28] rounded-lg">
-          <CheckCircle2 size={13} className="text-green-400 shrink-0 mt-0.5" />
-          <div className="min-w-0">
-            <p className="text-[11px] text-green-300 font-medium">Done</p>
-            <p className="text-[10px] text-green-400/70 mt-0.5 break-all">{resultName}</p>
+    <div className="flex flex-col h-full">
+      {/* Scrollable content - compact padding */}
+      <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5">
+        {/* Selected file */}
+        <div>
+          <p className={sectionLabel}>Selected File</p>
+          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-dark-card/50 border border-dark-border rounded-md">
+            <span className="text-[11px] text-accent-white truncate">{selectedMedia.name}</span>
           </div>
         </div>
-      )}
 
-      {/* Error */}
-      {status === "error" && errorMsg && (
-        <div className="flex items-start gap-2 px-2.5 py-2 bg-[#2d1414] border border-[#6a2d2d] rounded-lg">
-          <AlertCircle size={13} className="text-red-400 shrink-0 mt-0.5" />
-          <p className="text-[11px] text-red-300 leading-relaxed">{errorMsg}</p>
+        {/* Tool selector - compact segmented control style */}
+        <div>
+          <p className={sectionLabel}>Tool</p>
+          <div className="flex gap-1 p-1 bg-dark-card/50 border border-dark-border rounded-lg">
+            <ToolTab
+              active={activeTool === "clean"}
+              disabled={isProcessing}
+              onClick={() => handleToolChange("clean")}
+              icon={<Wand2 size={12} />}
+              label="Clean"
+            />
+            <ToolTab
+              active={activeTool === "transcribe"}
+              disabled={isProcessing}
+              onClick={() => handleToolChange("transcribe")}
+              icon={<FileText size={12} />}
+              label="Transcribe"
+            />
+          </div>
         </div>
-      )}
 
-      {/* Run button */}
-      <button
-        onClick={handleRun}
-        disabled={isProcessing}
-        className="flex items-center justify-center gap-2 h-8 rounded-lg text-[11px] font-semibold bg-accent-red text-white disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98] transition-all duration-100 cursor-pointer"
-      >
-        {isProcessing ? (
-          <>
-            <Loader2 size={13} className="animate-spin" />
-            Processing…
-          </>
-        ) : status === "error" ? (
-          <>
-            <Wand2 size={13} />
-            Retry
-          </>
-        ) : (
-          <>
-            <Wand2 size={13} />
-            {runLabel}
-          </>
+        {/* Description - compact */}
+        <p className="text-[11px] text-muted leading-snug px-0.5">
+          {activeTool === "clean"
+            ? "Remove background noise and enhance speech clarity."
+            : "Generate a subtitle file (.srt) from spoken audio."}
+        </p>
+
+        {/* Status Messages - inline compact */}
+        {status === "success" && resultName && (
+          <div className="flex items-start gap-2 px-2 py-2 bg-green-500/10 border border-green-500/30 rounded-md">
+            <CheckCircle2 size={14} className="text-green-400 shrink-0 mt-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] text-green-300 font-medium">Success</p>
+              <p className="text-[10px] text-green-400/70 break-all">{resultName}</p>
+            </div>
+          </div>
         )}
-      </button>
+        {status === "error" && errorMsg && (
+          <div className="flex items-start gap-2 px-2 py-2 bg-red-500/10 border border-red-500/30 rounded-md">
+            <AlertCircle size={14} className="text-red-400 shrink-0 mt-0" />
+            <p className="text-[11px] text-red-300 leading-snug flex-1">{errorMsg}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Fixed action bar - compact */}
+      <div className="shrink-0 p-2.5 border-t border-dark-border/50 bg-dark-card/10">
+        <button
+          onClick={handleRun}
+          disabled={isProcessing}
+          className="w-full flex items-center justify-center gap-1.5 h-8 rounded-md text-[12px] font-semibold bg-accent-red text-accent-white disabled:opacity-60 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98] transition-all duration-100 cursor-pointer"
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              Processing…
+            </>
+          ) : status === "error" ? (
+            <>
+              <Wand2 size={14} />
+              Retry
+            </>
+          ) : (
+            <>
+              <Wand2 size={14} />
+              {runLabel}
+            </>
+          )}
+        </button>
+      </div>
     </div>
   )
 }
 
-interface ToolButtonProps {
+interface ToolTabProps {
   active: boolean
   disabled: boolean
   onClick: () => void
@@ -236,16 +246,16 @@ interface ToolButtonProps {
   label: string
 }
 
-function ToolButton({ active, disabled, onClick, icon, label }: ToolButtonProps) {
+function ToolTab({ active, disabled, onClick, icon, label }: ToolTabProps) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       className={[
-        "flex items-center gap-1.5 flex-1 h-8 px-2.5 rounded-lg text-[11px] font-semibold border transition-all duration-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+        "flex items-center justify-center gap-1.5 flex-1 h-7 px-2 rounded-md text-[11px] font-medium transition-all duration-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
         active
-          ? "bg-accent-red/15 border-accent-red/40 text-accent-white"
-          : "bg-white/4 border-white/10 text-muted hover:bg-white/7 hover:text-white/70",
+          ? "bg-accent-red text-accent-white shadow-sm"
+          : "text-muted hover:text-accent-white hover:bg-dark-card",
       ].join(" ")}
     >
       {icon}

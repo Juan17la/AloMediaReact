@@ -11,7 +11,7 @@ const ALLOWED_AUDIO_MIMES = new Set([
   "audio/mp4",    // m4a
 ])
 
-const ALLOWED_AUDIO_EXTENSIONS = new Set(["wav", "mp3", "ogg", "flac", "m4a"])
+const ALLOWED_AUDIO_EXTENSIONS = new Set(["wav", "mp3", "mpeg", "mpga", "ogg", "flac", "m4a"])
 
 export type ValidationResult = { ok: true } | { ok: false; error: string }
 
@@ -27,7 +27,7 @@ export function validateAudioFile(file: File): ValidationResult {
   if (!ALLOWED_AUDIO_MIMES.has(file.type) && !ALLOWED_AUDIO_EXTENSIONS.has(ext)) {
     return {
       ok: false,
-      error: "Unsupported format. Accepted: wav, mp3, ogg, flac, m4a",
+      error: "Unsupported format. Accepted: wav, mp3/mpeg, ogg, flac, m4a",
     }
   }
 

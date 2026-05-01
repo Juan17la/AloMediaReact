@@ -3,6 +3,7 @@ import { me, signout } from "../services/authService";
 import type { MeResponse } from "../types/authTypes";
 import type { User } from "../types/userTypes";
 import { AuthContext } from "./authContext"
+import { useProjectListStore } from "../store/projectListStore";
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -40,6 +41,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   /** Called after loginRequest / registerRequest succeeds. */
   const login = useCallback((u: User) => {
     setUser(u);
+    useProjectListStore.setState({ ownData: {}, sharedData: {} });
   }, []);
 
   /** Logout: hit the backend then wipe local state. */
@@ -48,6 +50,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       await signout();
     } finally {
       setUser(null);
+      useProjectListStore.setState({ ownData: {}, sharedData: {} });
     }
   }, []);
 

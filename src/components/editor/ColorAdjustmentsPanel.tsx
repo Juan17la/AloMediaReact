@@ -5,11 +5,11 @@ import { InspectorSliderRow } from "../ui/InspectorSliderRow"
 
 // Glass card constant
 const glassCard =
-  "w-full bg-white/[0.03] border border-white/[0.07] rounded-lg p-3 mb-3"
+  "w-full bg-dark border border-dark-border rounded-lg p-3 mb-3"
 
 // Section label constant
 const sectionLabel =
-  "text-[11px] font-semibold tracking-[0.06em] uppercase text-white/40"
+  "text-[11px] font-semibold tracking-[0.06em] uppercase text-muted"
 
 function getStepDecimals(step: number): number {
   const stepString = step.toString()

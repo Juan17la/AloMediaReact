@@ -32,8 +32,8 @@ export interface FilterGraphResult {
 
 function buildVideoSegmentFilters(
   seg: RenderSegment,
-  scaledW: number,
-  scaledH: number,
+  canvasW: number,
+  canvasH: number,
   fps: number,
   inputFilePath: string,
 ): string[] {
@@ -63,9 +63,22 @@ function buildVideoSegmentFilters(
     }
   }
 
-  // Keep alpha for image overlays (e.g. PNG/GIF transparency), use yuv420p for videos.
-  const pixelFormat = isStaticVisual ? 'rgba' : 'yuv420p'
-  filters.push(`scale=${scaledW}:${scaledH},format=${pixelFormat}`)
+  // Keep strict aspect-ratio preservation only for videos.
+  // Images are intentionally allowed to stretch to any authored transform size.
+  if (seg.type === 'text') {
+    filters.push(`scale=${canvasW}:${canvasH}:flags=bicubic`)
+    filters.push(`setsar=1`)
+    filters.push(`format=rgba`)
+  } else if (seg.type === 'image') {
+    filters.push(`scale=${canvasW}:${canvasH}:flags=lanczos`)
+    filters.push(`setsar=1`)
+    filters.push(`format=rgba`)
+  } else {
+    filters.push(`scale=${canvasW}:${canvasH}:force_original_aspect_ratio=decrease:flags=lanczos`)
+    filters.push(`pad=${canvasW}:${canvasH}:(ow-iw)/2:(oh-ih)/2:color=black@0`)
+    filters.push(`setsar=1`)
+    filters.push(`format=rgba`)
+  }
 
   if (seg.colorAdjustments) {
     const eq = buildEqFilter(seg.colorAdjustments)
@@ -148,10 +161,10 @@ function buildAudioSegmentFilters(seg: RenderSegment, overrideTimelineStart?: nu
 
 function buildVideoSegmentFiltersForXfadeChain(
   seg: RenderSegment,
-  scaledW: number,
-  scaledH: number,
-  scaledX: number,
-  scaledY: number,
+  canvasW: number,
+  canvasH: number,
+  canvasX: number,
+  canvasY: number,
   fps: number,
   inputFilePath: string,
   canvasWidth: number,
@@ -189,7 +202,17 @@ function buildVideoSegmentFiltersForXfadeChain(
     }
   }
 
-  filters.push(`scale=${scaledW}:${scaledH}`)
+  if (seg.type === 'text') {
+    filters.push(`scale=${canvasW}:${canvasH}:flags=bicubic`)
+    filters.push(`setsar=1`)
+  } else if (seg.type === 'image') {
+    filters.push(`scale=${canvasW}:${canvasH}:flags=lanczos`)
+    filters.push(`setsar=1`)
+  } else {
+    filters.push(`scale=${canvasW}:${canvasH}:force_original_aspect_ratio=decrease:flags=lanczos`)
+    filters.push(`pad=${canvasW}:${canvasH}:(ow-iw)/2:(oh-ih)/2:color=black@0`)
+    filters.push(`setsar=1`)
+  }
   if (seg.colorAdjustments) {
     const eq = buildEqFilter(seg.colorAdjustments)
     const shadow = buildShadowFilter(seg.colorAdjustments)
@@ -220,7 +243,7 @@ function buildVideoSegmentFiltersForXfadeChain(
   filters.push(`format=rgba`)
   filters.push(`fps=${fps}`)
   filters.push(`settb=1/90000`)
-  filters.push(`pad=${canvasWidth}:${canvasHeight}:${scaledX}:${scaledY}:color=black@0`)
+  filters.push(`pad=${canvasWidth}:${canvasHeight}:${canvasX}:${canvasY}:color=black@0`)
   return filters
 }
 
@@ -233,8 +256,8 @@ export function buildFilterGraph(
   const fps = job.fps
   const duration = job.projectDuration
 
-  const scaleX = W / CANVAS_WIDTH
-  const scaleY = H / CANVAS_HEIGHT
+  const compositionWidth = CANVAS_WIDTH
+  const compositionHeight = CANVAS_HEIGHT
 
   // Visual segments sorted background → foreground (highest trackOrder first)
   const visualSegments = job.segments
@@ -256,7 +279,7 @@ export function buildFilterGraph(
   }
 
   const baseArgs: string[] = hasVideo
-    ? ['-f', 'lavfi', '-i', `color=c=black:s=${W}x${H}:d=${duration}:r=${fps}`]
+    ? ['-f', 'lavfi', '-i', `color=c=black:s=${compositionWidth}x${compositionHeight}:d=${duration}:r=${fps}`]
     : []
 
   const inputs: FFmpegInputArg[] = []
@@ -329,23 +352,23 @@ export function buildFilterGraph(
         const seg = visualSegments[idx]
         const inputIdx = idx + 1
         const t = seg.transform
-        const scaledW = Math.round((t?.width ?? CANVAS_WIDTH) * scaleX / 2) * 2
-        const scaledH = Math.round((t?.height ?? CANVAS_HEIGHT) * scaleY / 2) * 2
-        const scaledX = Math.round((t?.x ?? 0) * scaleX)
-        const scaledY = Math.round((t?.y ?? 0) * scaleY)
+        const canvasW = Math.max(1, Math.round(t?.width ?? CANVAS_WIDTH))
+        const canvasH = Math.max(1, Math.round(t?.height ?? CANVAS_HEIGHT))
+        const canvasX = Math.round(t?.x ?? 0)
+        const canvasY = Math.round(t?.y ?? 0)
         const inputFilePath = fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}`
 
         const prepLabel = `xprep_${idx}`
         const prepFilters = buildVideoSegmentFiltersForXfadeChain(
           seg,
-          scaledW,
-          scaledH,
-          scaledX,
-          scaledY,
+          canvasW,
+          canvasH,
+          canvasX,
+          canvasY,
           fps,
           inputFilePath,
-          W,
-          H,
+          compositionWidth,
+          compositionHeight,
           outgoingHandleByIndex.get(idx) ?? 0,
         )
         filterParts.push(`[${inputIdx}:v]${prepFilters.join(',')}[${prepLabel}]`)
@@ -384,14 +407,13 @@ export function buildFilterGraph(
       const inputIdx = i + 1 // +1 because input 0 is base canvas
 
       const t = seg.transform
-      // Round to nearest even number: libx264 rejects odd-sized dimensions
-      const scaledW = Math.round((t?.width ?? CANVAS_WIDTH) * scaleX / 2) * 2
-      const scaledH = Math.round((t?.height ?? CANVAS_HEIGHT) * scaleY / 2) * 2
-      const scaledX = Math.round((t?.x ?? 0) * scaleX)
-      const scaledY = Math.round((t?.y ?? 0) * scaleY)
+      const canvasW = Math.max(1, Math.round(t?.width ?? CANVAS_WIDTH))
+      const canvasH = Math.max(1, Math.round(t?.height ?? CANVAS_HEIGHT))
+      const canvasX = Math.round(t?.x ?? 0)
+      const canvasY = Math.round(t?.y ?? 0)
       const inputFilePath = fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}`
 
-      const segFilters = buildVideoSegmentFilters(seg, scaledW, scaledH, fps, inputFilePath)
+      const segFilters = buildVideoSegmentFilters(seg, canvasW, canvasH, fps, inputFilePath)
       const vLabel = `v${i}`
       filterParts.push(`[${inputIdx}:v]${segFilters.join(',')}[${vLabel}]`)
 
@@ -400,8 +422,8 @@ export function buildFilterGraph(
         timelineStart: seg.timelineStart,
         timelineEnd: seg.timelineEnd,
         trackOrder: seg.trackOrder,
-        x: scaledX,
-        y: scaledY,
+        x: canvasX,
+        y: canvasY,
       })
     }
 
@@ -424,10 +446,13 @@ export function buildFilterGraph(
   // Ensure final composed video stream has a pixel format compatible with
   // common encoders (e.g. libx264 expects yuv420p). Intermediate image
   // overlays keep alpha (rgba) so PNG transparency is preserved during
-  // composition; convert to yuv420p after all overlays are applied.
+  // composition; convert to the requested output resolution after all overlays
+  // are applied so preview-space transforms are preserved without stretching.
   let videoOutputLabel: string | null = hasVideo ? '[vout]' : null
   if (hasVideo) {
-    filterParts.push(`[vout]format=yuv420p[vout_final]`)
+    filterParts.push(
+      `[vout]scale=${W}:${H}:force_original_aspect_ratio=decrease:flags=bicubic,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[vout_final]`,
+    )
     videoOutputLabel = '[vout_final]'
   }
 

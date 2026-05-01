@@ -16,6 +16,8 @@ import { getActiveVideoClip } from "../../player/timeline/activeClipResolver"
 import { DEFAULT_SPEED } from "../../constants/speed"
 import { compileUnifiedTransitions } from "../../engine/transitionCompiler"
 
+// Toggle this to enable/disable the transition debug overlay
+const transitionDebug = false
 
 // ======================================================
 // REMOVE: This is a playground for testing out the preview player and related features. It's not currently used in the app, but it can be useful for development and experimentation.
@@ -115,8 +117,8 @@ function TransportBtn({
   primary?: boolean
 }) {
   const btnClass = primary
-    ? "flex items-center justify-center w-8 h-8 shrink-0 rounded-md border-0 bg-[var(--color-accent-red)] text-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] hover:brightness-[0.86] active:scale-95 transition-all duration-100 cursor-pointer"
-    : "flex items-center justify-center w-7 h-7 shrink-0 rounded-md border-0 bg-transparent text-white/55 hover:bg-white/7 hover:text-white/90 active:text-[var(--color-accent-red)] active:scale-95 transition-all duration-100 cursor-pointer"
+    ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-primary-foreground/30 bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:brightness-[0.95] active:scale-95 transition-all duration-100 cursor-pointer"
+    : "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-outline-variant bg-surface-container text-on-surface hover:bg-surface-container-high hover:border-primary/40 hover:text-primary transition-all duration-150"
 
   const spanClass = primary
     ? "flex items-center w-4 h-4"
@@ -196,7 +198,7 @@ export function PreviewPlayer() {
   })
 
   const sortedTracks = useMemo(
-    () => [...project.tracks].sort((a, b) => b.order - a.order),
+    () => [...project.tracks].sort((a, b) => a.order - b.order),
     [project.tracks],
   )
 
@@ -244,15 +246,16 @@ export function PreviewPlayer() {
     return (project.clipGroups ?? []).find(group => group.memberClipIds.includes(selectedClipId))?.id
   }, [project.clipGroups, selectedClipId])
 
-  const trackOrderMap = useMemo(
-    () => new Map(project.tracks.map(t => [t.id, t.order])),
-    [project.tracks],
+  const trackLayerIndexMap = useMemo(
+    () => new Map(sortedTracks.map((t, index) => [t.id, index])),
+    [sortedTracks],
   )
-  const maxOrder = useMemo(
-    () => Math.max(0, ...project.tracks.map(t => t.order)),
-    [project.tracks],
-  )
-  const zIndex = (trackId: string) => maxOrder - (trackOrderMap.get(trackId) ?? 0) + 1
+  const zIndex = (trackId: string) => {
+    const layerIndex = trackLayerIndexMap.get(trackId)
+    if (layerIndex === undefined) return 1
+    // First track in timeline order should be visually on top.
+    return sortedTracks.length - layerIndex
+  }
 
   const primaryVideoClip = useMemo(
     () => getActiveVideoClip(project.tracks, playhead),
@@ -272,6 +275,7 @@ export function PreviewPlayer() {
   // ======================================================
 
   const activeTransitionDebug = useMemo<ActiveTransitionDebugView | null>(() => {
+    if (!transitionDebug) return null
     const compiled = compileUnifiedTransitions(project)
     const active = compiled.transitions
       .filter(transition => playhead >= transition.startTimeS - CLIP_EPSILON && playhead <= transition.endTimeS + CLIP_EPSILON)
@@ -495,7 +499,7 @@ export function PreviewPlayer() {
           onMouseDown={handleCanvasMouseDown}
           onClick={handleCanvasClick}
           onDoubleClick={handleCanvasDoubleClick}
-          className="relative bg-(--color-background-base) overflow-hidden cursor-default aspect-video h-full max-w-full w-auto border-2 border-white/7 border-b-glass"
+          className="relative bg-(--color-background-base) overflow-hidden cursor-default aspect-video h-full max-w-full w-auto border-2 border-dark/7 border-b-glass"
         >
           <div
             ref={innerCanvasRef}
@@ -542,8 +546,8 @@ export function PreviewPlayer() {
                 const s = clip.style ?? DEFAULT_TEXT_STYLE
                 const justifyContent =
                   s.textAlign === "center" ? "center"
-                  : s.textAlign === "right" ? "flex-end"
-                  : "flex-start"
+                    : s.textAlign === "right" ? "flex-end"
+                      : "flex-start"
                 return (
                   <div
                     key={clip.id}
@@ -699,8 +703,8 @@ export function PreviewPlayer() {
           // ====================================================== */}
 
           {activeTransitionDebug && (
-            <div className="absolute left-2 top-2 z-20 min-w-68 rounded-md border border-white/20 bg-black/62 px-2.5 py-2 text-[11px] text-white/86 backdrop-blur-sm">
-              <div className="mb-1 font-semibold uppercase tracking-[0.06em] text-white/70">Transition Debug</div>
+            <div className="absolute left-2 top-2 z-20 min-w-68 rounded-md border border-dark/20 bg-black/62 px-2.5 py-2 text-[11px] text-accent-white/86 backdrop-blur-sm">
+              <div className="mb-1 font-semibold uppercase tracking-[0.06em] text-accent-white/70">Transition Debug</div>
               <div>ID: {activeTransitionDebug.transitionId}</div>
               <div>A: {activeTransitionDebug.sourceA}</div>
               <div>B: {activeTransitionDebug.sourceB}</div>
@@ -738,7 +742,7 @@ export function PreviewPlayer() {
 
         {/* Timecode */}
         <div
-          className="font-mono text-sm text-white/70 px-2.5 shrink-0 whitespace-nowrap min-w-22"
+          className="font-mono text-sm text-accent-white/70 px-2.5 shrink-0 whitespace-nowrap min-w-22"
           aria-live="polite"
           aria-atomic="true"
         >

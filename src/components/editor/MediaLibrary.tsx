@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { FilePlus2, Plus, Search } from "lucide-react";
 import { useEditorStore, fileMap } from "../../store/editorStore";
 import { MediaCard, LoadingCard } from "./MediaCard";
-import { AiToolsPanel } from "./AiToolsPanel";
+import { AiToolsModal } from "./AiToolsModal";
 import { generateId } from "../../utils/id";
 import { generateProxy } from "../../engine/proxyEngine";
 import type { Clip, Media, Track } from "../../project/projectTypes";
@@ -18,18 +18,17 @@ interface PendingMedia {
   fileName: string;
 }
 
+type AiTool = "clean" | "transcribe";
+
+const ACCEPTED_AUDIO_EXTENSIONS = new Set(["wav", "mp3", "mpeg", "mpga", "ogg", "flac", "m4a", "aac", "opus"]);
+const ACCEPTED_VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm", "avi", "mkv", "m4v"]);
+const ACCEPTED_IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "tiff", "svg"]);
+
 // Shared trigger ref is imported from utils to avoid exporting non-component
 // values from a component file (required by react-refresh plugin).
 
 const ghostBtn =
-  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-white/80 bg-white/5 border border-white/10 hover:bg-white/9 hover:border-white/[0.18] active:scale-95 transition-all duration-100 cursor-pointer";
-
-const tabBase =
-  "h-full px-3.5 text-[11px] font-semibold bg-transparent border-0 border-b-2 rounded-none cursor-pointer transition-[color] duration-120";
-const tabActive = "text-accent-white border-b-accent-red";
-const tabInactive = "text-muted border-b-transparent";
-
-type LibraryTab = "library" | "ai-tools";
+  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-on-surface/80 bg-surface-container-low border border-outline-variant hover:bg-surface-container hover:border-outline active:scale-95 transition-all duration-100 cursor-pointer";
 
 export function MediaLibrary() {
   const addMedia = useEditorStore((s) => s.addMedia);
@@ -47,8 +46,8 @@ export function MediaLibrary() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [dropError, setDropError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<LibraryTab>("library");
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
+  const [aiModalState, setAiModalState] = useState<{ mediaId: string; tool: AiTool } | null>(null);
   const [subtitleImportingIds, setSubtitleImportingIds] = useState<Set<string>>(new Set());
   const dropZoneRef = useRef<HTMLDivElement>(null);
   // One object URL per mediaId, revoked on unmount
@@ -85,6 +84,12 @@ export function MediaLibrary() {
     }
   }, [media, selectedMediaId]);
 
+  useEffect(() => {
+    if (aiModalState && !media.find((m) => m.id === aiModalState.mediaId)) {
+      setAiModalState(null);
+    }
+  }, [aiModalState, media]);
+
   function isSubtitleFile(file: File): boolean {
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
     const mime = file.type.toLowerCase();
@@ -93,6 +98,24 @@ export function MediaLibrary() {
 
   function isSubtitleMedia(mediaItem: Media): boolean {
     return mediaItem.type === "subtitles";
+  }
+
+  function isAcceptedMediaFile(file: File): boolean {
+    if (
+      file.type.startsWith("video/") ||
+      file.type.startsWith("audio/") ||
+      file.type.startsWith("image/") ||
+      isSubtitleFile(file)
+    ) {
+      return true;
+    }
+
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    return (
+      ACCEPTED_AUDIO_EXTENSIONS.has(ext) ||
+      ACCEPTED_VIDEO_EXTENSIONS.has(ext) ||
+      ACCEPTED_IMAGE_EXTENSIONS.has(ext)
+    );
   }
 
   async function handleFiles(files: FileList | null) {
@@ -160,12 +183,7 @@ export function MediaLibrary() {
       const rejected: string[] = [];
 
       Array.from(e.dataTransfer.files).forEach((file) => {
-        if (
-          file.type.startsWith("video/") ||
-          file.type.startsWith("audio/") ||
-          file.type.startsWith("image/") ||
-          isSubtitleFile(file)
-        ) {
+        if (isAcceptedMediaFile(file)) {
           accepted.push(file);
         } else {
           rejected.push(file.name);
@@ -296,14 +314,14 @@ export function MediaLibrary() {
       )
     : media;
 
-  const selectedMedia = selectedMediaId
-    ? (media.find((m) => m.id === selectedMediaId) ?? null)
+  const aiModalMedia = aiModalState
+    ? media.find((m) => m.id === aiModalState.mediaId && m.type === "audio") ?? null
     : null;
 
   return (
     <div
       ref={dropZoneRef}
-      className="flex flex-col h-full w-80 overflow-hidden relative border-l border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.35),0_16px_32px_rgba(0,0,0,0.20)]"
+      className="flex flex-col h-full w-96 overflow-hidden relative border-l border-outline-variant shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.08)]"
       style={{
         backdropFilter: "blur(24px) saturate(150%)",
         WebkitBackdropFilter: "blur(24px) saturate(150%)",
@@ -315,9 +333,9 @@ export function MediaLibrary() {
     >
       {/* Drop overlay */}
       {isDragOver && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 pointer-events-none bg-[rgba(34,34,48,0.85)] border-2 border-accent-red">
-          <FilePlus2 size={28} className="text-accent-red" />
-          <span className="text-[11px] font-semibold text-accent-white">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 pointer-events-none bg-primary/15 border-2 border-primary backdrop-blur-sm">
+          <FilePlus2 size={28} className="text-primary" />
+          <span className="text-[11px] font-semibold text-on-surface">
             Drop files here
           </span>
         </div>
@@ -325,60 +343,41 @@ export function MediaLibrary() {
 
       {/* Drop error */}
       {dropError && (
-        <div className="absolute bottom-2 left-2 right-2 z-20 pointer-events-none rounded bg-dark-elevated border border-[#7f1d1d] px-2 py-1 text-[10px] text-red-400">
+        <div className="absolute bottom-2 left-2 right-2 z-20 pointer-events-none rounded bg-surface-container-high border border-error/30 px-2 py-1 text-[10px] text-error">
           {dropError}
         </div>
       )}
 
       {/* Panel header */}
-      <div className="flex items-center shrink-0 h-10 my-1 mx-3 px-2">
-        <span className="flex-1 text-[10px] font-semibold tracking-[0.12em] uppercase text-muted">
+      <div className="flex items-center shrink-0 h-10 px-3 border-b border-outline-variant/30">
+        <span className="flex-1 text-[10px] font-semibold tracking-[0.12em] uppercase text-muted-foreground">
           Media
         </span>
-        {activeTab === "library" && (
-          <button
-            onClick={() => inputRef.current?.click()}
-            title="Add media"
-            className={ghostBtn}
-          >
-            <Plus size={14} />
-            Add Files
-          </button>
-        )}
-      </div>
-
-      {/* Tab row */}
-      <div className="flex shrink-0 h-8 border-b border-b-white/7 mx-3">
         <button
-          onClick={() => setActiveTab("library")}
-          className={[tabBase, activeTab === "library" ? tabActive : tabInactive].join(" ")}
+          onClick={() => inputRef.current?.click()}
+          title="Add media"
+          className={ghostBtn}
         >
-          Library
-        </button>
-        <button
-          onClick={() => setActiveTab("ai-tools")}
-          className={[tabBase, activeTab === "ai-tools" ? tabActive : tabInactive].join(" ")}
-        >
-          AI Tools
+          <Plus size={14} />
+          Add Files
         </button>
       </div>
 
-      {/* Search bar — library tab only */}
-      {activeTab === "library" && hasItems && (
+      {hasItems && (
         <div
-          className="flex items-center shrink-0 gap-1.5 my-1 mx-3 px-3 py-2 bg-black/30 border border-white/8 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,box-shadow] duration-150 focus-within:border-accent-red/55 focus-within:ring-2 focus-within:ring-accent-red/12"
+          className="flex items-center shrink-0 gap-1.5 my-1 mx-3 px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-[border-color,box-shadow] duration-150 focus-within:border-primary/55 focus-within:ring-2 focus-within:ring-primary/12"
           style={{
             backdropFilter: "blur(16px) saturate(140%)",
             WebkitBackdropFilter: "blur(16px) saturate(140%)",
           }}
         >
-          <Search size={11} className="text-white/30 shrink-0" />
+          <Search size={11} className="text-muted-foreground shrink-0" />
           <input
             type="text"
             placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent border-0 outline-none! text-[11px] text-accent-white font-[inherit] placeholder-white/40 focus:outline-none focus:ring-0 border-none! shadow-none! focus:shadow-none!"
+            className="flex-1 bg-transparent border-0 outline-none! text-[11px] text-on-surface font-[inherit] placeholder:text-muted-foreground focus:outline-none focus:ring-0 border-none! shadow-none! focus:shadow-none!"
           />
         </div>
       )}
@@ -395,81 +394,76 @@ export function MediaLibrary() {
         }}
       />
 
-      {/* ── Library tab ────────────────────────────────────────────────────── */}
-      {activeTab === "library" && (
-        <>
-          {/* Empty state */}
-          {!hasItems && (
-            <div className="flex flex-col items-center justify-center flex-1 gap-3 p-4">
-              <div
-                className="border-2 border-dashed border-dark-border w-full flex-1 flex flex-col items-center justify-center gap-2 cursor-pointer"
-                onClick={() => inputRef.current?.click()}
-              >
-                <FilePlus2 size={24} className="text-muted" />
-                <span className="text-[10px] text-muted text-center">
-                  Click or drop
-                  <br />
-                  video, audio or images
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Media grid — 2 cols, gap acts as border */}
-          {hasItems && (
-            <div className="flex-1 overflow-y-auto my-1 mx-3 grid grid-cols-2 gap-0.5 content-start">
-              {filteredMedia.map((item) => {
-                const isSelected = selectedMediaId === item.id;
-                return (
-                  <div
-                    key={item.id}
-                    className={[
-                      "min-w-0 overflow-hidden relative rounded-lg transition-shadow duration-120",
-                      isSelected
-                        ? "ring-2 ring-accent-red/70 ring-offset-1 ring-offset-transparent"
-                        : "",
-                    ].join(" ")}
-                    onClick={() =>
-                      setSelectedMediaId(isSelected ? null : item.id)
-                    }
-                    onDoubleClick={() => insertMediaAtPlayhead(item)}
-                  >
-                    <MediaCard
-                      media={item}
-                      objectUrl={getObjectUrl(item.id)}
-                      proxyStatus={proxyMap[item.id]?.status}
-                      onInsertAtPlayhead={() => insertMediaAtPlayhead(item)}
-                      onImportSubtitles={() => void handleSubtitleImport(item)}
-                      isImportingSubtitles={subtitleImportingIds.has(item.id)}
-                    />
-                    {idbResolvedMediaIds.has(item.id) && (
-                      <div
-                        title="Loaded from local cache"
-                        className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-green-400 pointer-events-none"
-                      />
-                    )}
-                  </div>
-                );
-              })}
-              {pending.map((p) => (
-                <div key={p.tempId} className="min-w-0 overflow-hidden">
-                  <LoadingCard fileName={p.fileName} />
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+      {/* Empty state */}
+      {!hasItems && (
+        <div className="flex flex-col items-center justify-center flex-1 gap-3 p-4 min-h-0">
+          <div
+            className="border-2 border-dashed border-outline-variant w-full flex-1 flex flex-col items-center justify-center gap-2 cursor-pointer bg-surface-container-low rounded-lg hover:border-outline hover:bg-surface-container transition-colors"
+            onClick={() => inputRef.current?.click()}
+          >
+            <FilePlus2 size={24} className="text-muted-foreground" />
+            <span className="text-[10px] text-muted-foreground text-center">
+              Click or drop
+              <br />
+              video, audio or images
+            </span>
+          </div>
+        </div>
       )}
 
-      {/* ── AI Tools tab ───────────────────────────────────────────────────── */}
-      {activeTab === "ai-tools" && (
-        <div className="flex flex-col flex-1 overflow-y-auto">
-          {/* Re-mount when selected media changes to reset internal state */}
-          <AiToolsPanel
-            key={selectedMediaId ?? "none"}
-            selectedMedia={selectedMedia}
-          />
+      {hasItems && (
+        <div className="flex-1 min-h-0 overflow-y-auto my-1 mx-3 py-2 px-1 grid grid-cols-2 gap-2 content-start items-start auto-rows-max">
+          {filteredMedia.map((item) => {
+            const isSelected = selectedMediaId === item.id;
+            return (
+              <div
+                key={item.id}
+                className={[
+                  "min-w-0 h-auto self-start overflow-hidden relative rounded-lg transition-shadow duration-120",
+                  isSelected
+                    ? "ring-1 ring-primary shadow-[0_0_0_1px_rgba(99,14,212,0.35)]"
+                    : "",
+                ].join(" ")}
+                onClick={() =>
+                  setSelectedMediaId(isSelected ? null : item.id)
+                }
+                onDoubleClick={() => insertMediaAtPlayhead(item)}
+              >
+                <MediaCard
+                  media={item}
+                  objectUrl={getObjectUrl(item.id)}
+                  proxyStatus={proxyMap[item.id]?.status}
+                  onInsertAtPlayhead={() => insertMediaAtPlayhead(item)}
+                  onImportSubtitles={() => void handleSubtitleImport(item)}
+                  onOpenAiTools={(tool) => {
+                    if (item.type !== "audio") return;
+                    setAiModalState({ mediaId: item.id, tool });
+                  }}
+                  isImportingSubtitles={subtitleImportingIds.has(item.id)}
+                />
+                {idbResolvedMediaIds.has(item.id) && (
+                  <div
+                    title="Loaded from local cache"
+                    className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-green-400 pointer-events-none"
+                  />
+                )}
+              </div>
+            );
+          })}
+          {pending.map((p) => (
+            <div key={p.tempId} className="min-w-0 h-auto self-start overflow-hidden">
+              <LoadingCard fileName={p.fileName} />
+            </div>
+          ))}
         </div>
+      )}
+
+      {aiModalMedia && (
+        <AiToolsModal
+          media={aiModalMedia}
+          initialTool={aiModalState?.tool}
+          onClose={() => setAiModalState(null)}
+        />
       )}
     </div>
   );

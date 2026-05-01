@@ -34,8 +34,6 @@ function clearTransitionStyles(outgoingEl: HTMLVideoElement, incomingEl: HTMLVid
     incomingEl.style.removeProperty("scale")
     outgoingEl.style.filter = ""
     incomingEl.style.filter = ""
-    outgoingEl.style.zIndex = ""
-    incomingEl.style.zIndex = ""
 }
 
 interface RunTransitionApproximationArgs {
@@ -82,8 +80,6 @@ export function runTransitionApproximation({
     incomingEl.style.removeProperty("scale")
     outgoingEl.style.filter = ""
     incomingEl.style.filter = ""
-    outgoingEl.style.zIndex = "1"
-    incomingEl.style.zIndex = "2"
     outgoingEl.style.opacity = "1"
     incomingEl.style.opacity = "0" // always hidden until the rAF commits initial state
 

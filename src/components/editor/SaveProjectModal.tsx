@@ -10,17 +10,11 @@ interface SaveProjectModalProps {
 const overlayClass =
   "fixed inset-0 z-50 flex items-center justify-center modal-glass-card"
 
-const titleClass =
-  "text-lg font-bold tracking-[-0.02em] text-white/92"
-
-const sectionLabelClass =
-  "text-[11px] font-semibold uppercase tracking-[0.06em] text-white/40"
-
 const ghostBtn =
-  "rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition-all duration-100 hover:border-white/[0.18] hover:bg-white/9 disabled:cursor-not-allowed disabled:opacity-35"
+  "rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2 text-sm text-on-surface/80 transition-all duration-100 hover:border-outline hover:bg-surface-container transition-all"
 
 const primaryBtn =
-  "rounded-lg bg-[var(--color-accent-red)] px-5 py-2 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] transition-all duration-100 hover:brightness-[0.86] disabled:cursor-not-allowed disabled:opacity-35"
+  "rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-100 hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-35"
 
 export function SaveProjectModal({ initialName, onConfirm, onCancel, isSaving }: SaveProjectModalProps) {
   const [name, setName] = useState(initialName)
@@ -39,15 +33,15 @@ export function SaveProjectModal({ initialName, onConfirm, onCancel, isSaving }:
         className="modal-panel w-120 flex flex-col gap-5"
         onClick={e => e.stopPropagation()}
       >
-        <h2 className={titleClass}>Save project</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--color-on-surface)" }}>Save project</h2>
         <div className="flex flex-col gap-1.5">
-          <label className={sectionLabelClass}>Project name</label>
+          <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted-foreground)" }}>Project name</label>
           <input
             autoFocus
             value={name}
             onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleConfirm() }}
-            className="w-full box-border rounded-lg border border-white/8 bg-black/30 px-3 py-2 text-sm text-accent-white placeholder:text-white/25 transition-all duration-150 focus:border-accent-red/55 focus:ring-2 focus:ring-accent-red/12 focus:outline-none"
+            className="editor-input w-full px-3 py-2 text-sm text-on-surface"
             spellCheck={false}
           />
         </div>

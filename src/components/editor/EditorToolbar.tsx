@@ -1,5 +1,6 @@
-import { FolderOpen, Save, Share2, Film } from 'lucide-react'
+import { FolderOpen, Save, Share2, Film, Download } from 'lucide-react'
 import type { ApiProject } from '../../types/projectApiTypes'
+import { ThemeToggle } from '../ThemeToggle'
 
 interface EditorToolbarProps {
   apiProject: ApiProject | null
@@ -29,7 +30,8 @@ export function EditorToolbar({
   const shareDisabled = !apiProject
 
   return (
-    <div className="flex items-center gap-1 px-2">
+    <div className="flex items-center gap-2 px-2">
+      
       <button onClick={onLoad} className={ghostBtn}>
         <FolderOpen size={12} />
         Load
@@ -54,6 +56,19 @@ export function EditorToolbar({
         Share
       </button>
 
+
+      <div className="w-px h-6 bg-outline-variant/50 mx-1" />
+
+      {/* Non-functional download button */}
+      <button
+        className={ghostBtn}
+        title="Download (coming soon)"
+        onClick={() => { }}
+      >
+        <Download size={12} />
+        Download
+      </button>
+
       <button
         onClick={onExport}
         disabled={isExporting}
@@ -62,6 +77,11 @@ export function EditorToolbar({
         <Film size={12} />
         Export
       </button>
+
+      <div className="w-px h-6 bg-outline-variant/50 mx-1" />
+
+      {/* Theme toggle */}
+      <ThemeToggle />
     </div>
   )
 }

@@ -16,17 +16,17 @@ interface ClipProps {
 // Audio waveform: static decorative SVG as CSS background
 const AUDIO_WAVEFORM_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Crect x='2' y='6' width='2' height='8' fill='rgba(100,200,100,0.18)' /%3E%3Crect x='6' y='3' width='2' height='14' fill='rgba(100,200,100,0.18)' /%3E%3Crect x='10' y='7' width='2' height='6' fill='rgba(100,200,100,0.18)' /%3E%3Crect x='14' y='4' width='2' height='12' fill='rgba(100,200,100,0.18)' /%3E%3Crect x='18' y='8' width='2' height='4' fill='rgba(100,200,100,0.18)' /%3E%3C/svg%3E")`
 
-// Clip base styling
+// Clip base styling - no glass effects
 const clipBase =
-  "absolute top-0.5 bottom-0.5 rounded-md overflow-hidden box-border select-none transition-[background,border-color,box-shadow] duration-[120ms] ease-out backdrop-blur-sm"
+  "absolute top-0.5 bottom-0.5 rounded-md overflow-hidden box-border select-none transition-[background,border-color,box-shadow] duration-[120ms] ease-out"
 
-// Clip selected state: brighter, higher contrast
+// Clip selected state - solid primary color with subtle gradient
 const clipSelected =
-  "bg-[rgba(180,20,20,0.22)] border border-[rgba(220,40,40,0.75)] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_2px_6px_rgba(0,0,0,0.30)] ring-2 ring-[rgba(180,20,20,0.40)]"
+  "bg-linear-to-b from-primary/90 to-primary border border-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_2px_8px_rgba(99,14,212,0.35)] ring-2 ring-primary/40"
 
-// Clip unselected state: dimmer, lower contrast
+// Clip unselected state - stronger purple for better contrast in light theme
 const clipUnselected =
-  "bg-[rgba(180,20,20,0.10)] border border-[rgba(180,20,20,0.20)] border-t-[rgba(180,20,20,0.38)] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_2px_6px_rgba(0,0,0,0.30)]"
+  "bg-linear-to-b from-primary/85 to-primary/75 border border-primary/60 border-t-primary/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_1px_3px_rgba(0,0,0,0.15)]"
 
 // Clip cursor states
 const clipCursorGrabbing = "cursor-grabbing opacity-70"
@@ -125,10 +125,10 @@ export function ClipComponent({ clip, scale, isSelected, onSelect, onDragStart, 
         }}
       >
         {/* Left edge in-point indicator */}
-        <div className="absolute left-0 top-0 bottom-0 w-0.75 bg-dark-border-light shrink-0" />
+        <div className="absolute left-0 top-0 bottom-0 w-0.75 bg-on-surface/30 shrink-0" />
 
         {/* Clip label */}
-        <span className="absolute top-1/2 -translate-y-1/2 left-0.75 right-3.5 block text-[11px] font-medium px-1.5 whitespace-nowrap overflow-hidden text-ellipsis leading-none text-white/85">
+        <span className="absolute top-1/2 -translate-y-1/2 left-0.75 right-3.5 block text-[11px] font-semibold px-1.5 whitespace-nowrap overflow-hidden text-ellipsis leading-none text-on-primary">
           {getClipLabel()}
         </span>
 

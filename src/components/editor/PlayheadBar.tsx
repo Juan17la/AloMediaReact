@@ -56,7 +56,7 @@ export function PlayheadBar({ totalWidth, duration, majorInterval }: PlayheadBar
     <div
       ref={rulerRef}
       onMouseDown={handleMouseDown}
-      className="sticky top-0 z-30 h-6 shrink-0 border-b border-b-white/8 cursor-pointer select-none bg-white/3"
+      className="sticky top-0 z-30 h-6 shrink-0 border-b border-outline-variant cursor-pointer select-none bg-surface-container"
       style={{ minWidth: totalWidth }}
     >
       {ticks.map(({ t, isMajor }) => (
@@ -67,11 +67,11 @@ export function PlayheadBar({ totalWidth, duration, majorInterval }: PlayheadBar
         >
           {/* Tick mark */}
           <div
-            className={`w-px bg-white/15 ${isMajor ? "opacity-100" : "opacity-50"}`}
+            className={`w-px bg-outline-variant ${isMajor ? "opacity-100" : "opacity-70"}`}
             style={{ height: isMajor ? 10 : 5 }}
           />
           {isMajor && (
-            <span className="text-[10px] font-mono text-white/35 tracking-[0.03em] ml-0.5 leading-none">
+            <span className="text-[10px] font-mono text-muted-foreground tracking-[0.03em] ml-0.5 leading-none">
               {formatTimecode(t)}
             </span>
           )}
@@ -80,7 +80,7 @@ export function PlayheadBar({ totalWidth, duration, majorInterval }: PlayheadBar
 
       {/* Playhead handle — 8px circle at ruler */}
       <div
-        className="absolute w-2 h-2 bg-accent-red rounded-full cursor-ew-resize z-20 pointer-events-none"
+        className="absolute w-2 h-2 bg-primary rounded-full cursor-ew-resize z-20 pointer-events-none ring-2 ring-surface shadow-[0_0_4px_rgba(0,0,0,0.5)]"
         style={{ left: TRACK_HEADER_WIDTH + playheadLeft - 4, top: 8 }}
       />
     </div>

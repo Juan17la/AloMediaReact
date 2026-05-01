@@ -12,9 +12,9 @@ export default function SectionCard({ title, children, icon, action, className =
       {(title || icon || action) && (
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            {icon && <span className="text-white/50">{icon}</span>}
+            {icon && <span className="text-muted">{icon}</span>}
             {title && (
-              <h2 className="text-base font-semibold text-white/90">{title}</h2>
+              <h2 className="text-base font-semibold text-accent-white">{title}</h2>
             )}
           </div>
           {action && <div>{action}</div>}

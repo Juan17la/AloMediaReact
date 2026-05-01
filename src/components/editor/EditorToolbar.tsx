@@ -1,5 +1,6 @@
-import { FolderOpen, Save, Share2, Film } from 'lucide-react'
+import { FolderOpen, Save, Share2, Film, Download } from 'lucide-react'
 import type { ApiProject } from '../../types/projectApiTypes'
+import { ThemeToggle } from '../ThemeToggle'
 
 interface EditorToolbarProps {
   apiProject: ApiProject | null
@@ -12,10 +13,10 @@ interface EditorToolbarProps {
 }
 
 const ghostBtn =
-  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-white/80 bg-white/5 border border-white/10 hover:bg-white/9 hover:border-white/[0.18] active:scale-95 transition-all duration-100 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
+  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-on-surface/80 bg-surface-container-low border border-outline-variant hover:bg-surface-container-high hover:border-primary/50 hover:text-on-surface active:scale-95 transition-all duration-100 cursor-pointer disabled:opacity-55 disabled:cursor-not-allowed"
 
 const primaryBtn =
-  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg font-semibold text-[11px] tracking-[0.04em] text-white bg-[var(--color-accent-red)] shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] hover:brightness-[0.86] active:scale-95 active:brightness-[0.78] transition-all duration-100 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
+  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg font-semibold text-[11px] tracking-[0.04em] text-primary-foreground bg-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:brightness-[0.95] active:scale-95 active:brightness-[0.88] transition-all duration-100 cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
 
 export function EditorToolbar({
   apiProject,
@@ -29,7 +30,8 @@ export function EditorToolbar({
   const shareDisabled = !apiProject
 
   return (
-    <div className="flex items-center gap-1 px-2">
+    <div className="flex items-center gap-2 px-2">
+      
       <button onClick={onLoad} className={ghostBtn}>
         <FolderOpen size={12} />
         Load
@@ -54,6 +56,19 @@ export function EditorToolbar({
         Share
       </button>
 
+
+      <div className="w-px h-6 bg-outline-variant/50 mx-1" />
+
+      {/* Non-functional download button */}
+      <button
+        className={ghostBtn}
+        title="Download (coming soon)"
+        onClick={() => { }}
+      >
+        <Download size={12} />
+        Download
+      </button>
+
       <button
         onClick={onExport}
         disabled={isExporting}
@@ -62,6 +77,11 @@ export function EditorToolbar({
         <Film size={12} />
         Export
       </button>
+
+      <div className="w-px h-6 bg-outline-variant/50 mx-1" />
+
+      {/* Theme toggle */}
+      <ThemeToggle />
     </div>
   )
 }

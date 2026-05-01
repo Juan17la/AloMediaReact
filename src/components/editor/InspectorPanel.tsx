@@ -12,7 +12,7 @@ type InspectorTab = "video" | "audio" | "speed" | "transitions" | "text"
 
 // Inspector header label
 const inspectorLabel =
-  "text-[11px] font-semibold tracking-[0.06em] uppercase text-white/40"
+  "text-[11px] font-semibold tracking-[0.06em] uppercase text-muted"
 
 // Tab styling
 const tabBase =
@@ -50,9 +50,9 @@ export function InspectorPanel() {
   if (selectedTransitionClipId) {
     return (
       <aside
-        className="shrink-0 flex flex-col overflow-hidden w-70 backdrop-blur-2xl border-l border-l-white/8"
+        className="shrink-0 flex flex-col overflow-hidden w-70 backdrop-blur-2xl border-l border-l-dark-border"
       >
-        <div className="flex items-center shrink-0 h-7 px-4 border-b border-b-white/7">
+        <div className="flex items-center shrink-0 h-7 px-4 border-b border-b-dark-border">
           <span className={inspectorLabel}>Transition</span>
         </div>
 
@@ -87,17 +87,17 @@ export function InspectorPanel() {
 
   return (
     <aside
-      className="shrink-0 flex flex-col overflow-hidden w-70 backdrop-blur-2xl border-l border-l-white/8"
+      className="shrink-0 flex flex-col overflow-hidden w-70 backdrop-blur-2xl border-l border-l-dark-border"
     >
       {/* Panel header */}
-      <div className={`flex items-center shrink-0 h-7 px-4 ${showTabs ? "" : "border-b border-b-white/7"}`}>
+      <div className={`flex items-center shrink-0 h-7 px-4 ${showTabs ? "" : "border-b border-b-dark-border"}`}>
         <span className={inspectorLabel}>
           Inspector
         </span>
       </div>
 
       {showTabs && (
-        <div className="flex shrink-0 h-8 border-b border-b-white/7">
+        <div className="flex shrink-0 h-8 border-b border-b-dark-border">
           {tabs.map(tab => {
             const active = effectiveTab === tab
             const label = tab === "video" ? "Video" : tab === "audio" ? "Audio" : tab === "speed" ? "Speed" : tab === "text" ? "Text" : "Trans."

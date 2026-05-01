@@ -28,7 +28,7 @@ const ACCEPTED_IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", 
 // values from a component file (required by react-refresh plugin).
 
 const ghostBtn =
-  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-white/80 bg-white/5 border border-white/10 hover:bg-white/9 hover:border-white/[0.18] active:scale-95 transition-all duration-100 cursor-pointer";
+  "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-on-surface/80 bg-surface-container-low border border-outline-variant hover:bg-surface-container hover:border-outline active:scale-95 transition-all duration-100 cursor-pointer";
 
 export function MediaLibrary() {
   const addMedia = useEditorStore((s) => s.addMedia);
@@ -321,7 +321,7 @@ export function MediaLibrary() {
   return (
     <div
       ref={dropZoneRef}
-      className="flex flex-col h-full w-96 overflow-hidden relative border-l border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.35),0_16px_32px_rgba(0,0,0,0.20)]"
+      className="flex flex-col h-full w-96 overflow-hidden relative border-l border-outline-variant shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_12px_rgba(0,0,0,0.08)]"
       style={{
         backdropFilter: "blur(24px) saturate(150%)",
         WebkitBackdropFilter: "blur(24px) saturate(150%)",
@@ -333,9 +333,9 @@ export function MediaLibrary() {
     >
       {/* Drop overlay */}
       {isDragOver && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 pointer-events-none bg-[rgba(34,34,48,0.85)] border-2 border-accent-red">
-          <FilePlus2 size={28} className="text-accent-red" />
-          <span className="text-[11px] font-semibold text-accent-white">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 pointer-events-none bg-primary/15 border-2 border-primary backdrop-blur-sm">
+          <FilePlus2 size={28} className="text-primary" />
+          <span className="text-[11px] font-semibold text-on-surface">
             Drop files here
           </span>
         </div>
@@ -343,14 +343,14 @@ export function MediaLibrary() {
 
       {/* Drop error */}
       {dropError && (
-        <div className="absolute bottom-2 left-2 right-2 z-20 pointer-events-none rounded bg-dark-elevated border border-[#7f1d1d] px-2 py-1 text-[10px] text-red-400">
+        <div className="absolute bottom-2 left-2 right-2 z-20 pointer-events-none rounded bg-surface-container-high border border-error/30 px-2 py-1 text-[10px] text-error">
           {dropError}
         </div>
       )}
 
       {/* Panel header */}
-      <div className="flex items-center shrink-0 h-10 my-1 mx-3 px-2">
-        <span className="flex-1 text-[10px] font-semibold tracking-[0.12em] uppercase text-muted">
+      <div className="flex items-center shrink-0 h-10 px-3 border-b border-outline-variant/30">
+        <span className="flex-1 text-[10px] font-semibold tracking-[0.12em] uppercase text-muted-foreground">
           Media
         </span>
         <button
@@ -365,19 +365,19 @@ export function MediaLibrary() {
 
       {hasItems && (
         <div
-          className="flex items-center shrink-0 gap-1.5 my-1 mx-3 px-3 py-2 bg-black/30 border border-white/8 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-[border-color,box-shadow] duration-150 focus-within:border-accent-red/55 focus-within:ring-2 focus-within:ring-accent-red/12"
+          className="flex items-center shrink-0 gap-1.5 my-1 mx-3 px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-[border-color,box-shadow] duration-150 focus-within:border-primary/55 focus-within:ring-2 focus-within:ring-primary/12"
           style={{
             backdropFilter: "blur(16px) saturate(140%)",
             WebkitBackdropFilter: "blur(16px) saturate(140%)",
           }}
         >
-          <Search size={11} className="text-white/30 shrink-0" />
+          <Search size={11} className="text-muted-foreground shrink-0" />
           <input
             type="text"
             placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-transparent border-0 outline-none! text-[11px] text-accent-white font-[inherit] placeholder-white/40 focus:outline-none focus:ring-0 border-none! shadow-none! focus:shadow-none!"
+            className="flex-1 bg-transparent border-0 outline-none! text-[11px] text-on-surface font-[inherit] placeholder:text-muted-foreground focus:outline-none focus:ring-0 border-none! shadow-none! focus:shadow-none!"
           />
         </div>
       )}
@@ -398,11 +398,11 @@ export function MediaLibrary() {
       {!hasItems && (
         <div className="flex flex-col items-center justify-center flex-1 gap-3 p-4 min-h-0">
           <div
-            className="border-2 border-dashed border-dark-border w-full flex-1 flex flex-col items-center justify-center gap-2 cursor-pointer"
+            className="border-2 border-dashed border-outline-variant w-full flex-1 flex flex-col items-center justify-center gap-2 cursor-pointer bg-surface-container-low rounded-lg hover:border-outline hover:bg-surface-container transition-colors"
             onClick={() => inputRef.current?.click()}
           >
-            <FilePlus2 size={24} className="text-muted" />
-            <span className="text-[10px] text-muted text-center">
+            <FilePlus2 size={24} className="text-muted-foreground" />
+            <span className="text-[10px] text-muted-foreground text-center">
               Click or drop
               <br />
               video, audio or images
@@ -421,7 +421,7 @@ export function MediaLibrary() {
                 className={[
                   "min-w-0 h-auto self-start overflow-hidden relative rounded-lg transition-shadow duration-120",
                   isSelected
-                    ? "ring-1 ring-[#ff4f4f] shadow-[0_0_0_1px_rgba(255,79,79,0.35)]"
+                    ? "ring-1 ring-primary shadow-[0_0_0_1px_rgba(99,14,212,0.35)]"
                     : "",
                 ].join(" ")}
                 onClick={() =>

@@ -16,16 +16,16 @@ interface MediaContextMenuProps {
 }
 
 const menuPanel =
-  "fixed z-9999 context-menu-enter min-w-50 rounded-[10px] border border-white/10 bg-[rgba(12,13,16,0.95)] p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.45),0_16px_32px_rgba(0,0,0,0.35)] backdrop-blur-2xl"
+  "fixed z-9999 context-menu-enter min-w-50 rounded-lg border border-outline-variant bg-surface-container p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.15),0_16px_32px_rgba(0,0,0,0.15)]"
 
 const menuAction =
   "w-full rounded-md px-3 py-2 text-left text-[13px] transition-[background,color] duration-100"
 
 const menuActionNeutral =
-  "text-white/80 hover:bg-white/8 hover:text-white"
+  "text-on-surface/80 hover:bg-surface-container-high hover:text-on-surface"
 
 const menuActionDanger =
-  "text-[rgba(220,60,60,0.90)] hover:bg-white/8"
+  "text-error hover:bg-error/10"
 
 export function MediaContextMenu({
   mediaId,
@@ -162,10 +162,10 @@ export function MediaContextMenu({
               >
                 Transcript
               </button>
-              <div className="my-1 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
+              <div className="my-1 h-px bg-linear-to-r from-transparent via-outline-variant to-transparent" />
             </>
           )}
-          {!isAudio && <div className="my-1 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />}
+          {!isAudio && <div className="my-1 h-px bg-linear-to-r from-transparent via-outline-variant to-transparent" />}
           <button
             role="menuitem"
             onClick={handleDeleteClick}
@@ -176,19 +176,19 @@ export function MediaContextMenu({
         </>
       ) : (
         <div className="flex flex-col gap-2 px-3 py-2">
-          <p className="m-0 text-xs leading-[1.4] text-white/60">
+          <p className="m-0 text-xs leading-[1.4] text-muted-foreground">
             This will also remove {clipCount} clip{clipCount !== 1 ? 's' : ''}. Confirm?
           </p>
           <div className="flex gap-2">
             <button
               onClick={handleConfirmDelete}
-              className="flex-1 rounded-md border border-[rgba(220,60,60,0.30)] bg-transparent px-2 py-1 text-[11px] text-[rgba(220,60,60,0.90)] transition-colors duration-100 hover:bg-white/8"
+              className="flex-1 rounded-md border border-error/30 bg-transparent px-2 py-1 text-[11px] text-error transition-colors duration-100 hover:bg-error/10"
             >
               Remove
             </button>
             <button
               onClick={() => setConfirmDelete(false)}
-              className="flex-1 rounded-md border border-white/10 bg-transparent px-2 py-1 text-[11px] text-white/60 transition-colors duration-100 hover:bg-white/8"
+              className="flex-1 rounded-md border border-outline-variant bg-transparent px-2 py-1 text-[11px] text-on-surface/70 transition-colors duration-100 hover:bg-surface-container-high"
             >
               Cancel
             </button>

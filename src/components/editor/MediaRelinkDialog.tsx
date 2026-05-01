@@ -10,19 +10,19 @@ interface Props {
 }
 
 const overlayClass =
-  "fixed inset-0 z-100 flex items-center justify-center bg-black/65 backdrop-blur-sm"
+  "fixed inset-0 z-100 flex items-center justify-center bg-[rgba(26,26,31,0.10)] backdrop-blur-sm"
 
 const dialogClass =
-  "w-110 max-h-[78vh] overflow-hidden rounded-3xl border border-white/10 border-t-white/[0.18] bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_8px_rgba(0,0,0,0.35),0_12px_24px_rgba(0,0,0,0.25),0_32px_56px_rgba(0,0,0,0.18)] backdrop-blur-[32px]"
+  "modal-panel w-110 max-h-[78vh] overflow-hidden rounded-3xl"
 
 const sectionLabel =
-  "text-[11px] font-semibold uppercase tracking-[0.06em] text-white/40"
+  "text-[11px] font-semibold uppercase tracking-[0.06em] text-muted"
 
 const primaryBtn =
-  "flex-1 rounded-lg bg-[var(--color-accent-red)] px-0 py-2 text-xs font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] transition-all duration-100 hover:brightness-[0.86] disabled:cursor-not-allowed disabled:opacity-35"
+  "flex-1 rounded-lg bg-[var(--color-accent-red)] px-0 py-2 text-xs font-semibold text-accent-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-100 hover:brightness-[0.96] disabled:cursor-not-allowed disabled:opacity-35"
 
 const ghostBtn =
-  "rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs transition-all duration-100 hover:border-white/[0.18] hover:bg-white/9"
+  "rounded-lg border border-dark-border bg-dark-card px-4 py-2 text-xs text-accent-white/80 transition-all duration-100 hover:border-dark-border-light hover:bg-dark-elevated"
 
 function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
@@ -37,7 +37,7 @@ function TypeLabel({ type }: { type: Media["type"] }) {
     subtitles: "bg-purple-900/70",
   }
   return (
-    <span className={`shrink-0 rounded px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-white/85 ${typeClass[type]}`}>
+    <span className={`shrink-0 rounded px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-accent-white/85 ${typeClass[type]}`}>
       {type}
     </span>
   )
@@ -121,8 +121,8 @@ export function MediaRelinkDialog({ onClose }: Props) {
     <div className={overlayClass}>
       <div className={`flex flex-col ${dialogClass}`}>
         {/* Header */}
-        <div className="flex items-baseline gap-2 border-b border-b-white/7 px-5 pt-4 pb-3">
-          <span className="flex-1 text-base font-bold tracking-[-0.01em] text-white/92">
+        <div className="flex items-baseline gap-2 border-b border-b-dark-border px-5 pt-4 pb-3">
+          <span className="flex-1 text-base font-bold tracking-[-0.01em] text-accent-white">
             Missing Media
           </span>
           <span className={sectionLabel}>
@@ -131,7 +131,7 @@ export function MediaRelinkDialog({ onClose }: Props) {
         </div>
 
         {/* Description */}
-        <p className="m-0 border-b border-b-white/7 px-5 py-2 text-xs leading-6 text-white/50">
+        <p className="m-0 border-b border-b-dark-border px-5 py-2 text-xs leading-6 text-muted">
           These files were not found in the local cache. Select the original files to restore them,
           or skip to open the project with missing clips shown as placeholders.
         </p>
@@ -143,7 +143,7 @@ export function MediaRelinkDialog({ onClose }: Props) {
             return (
               <div
                 key={m.id}
-                className={`flex items-center gap-2.5 border-b border-b-white/5 px-5 py-1.75 ${isMatched ? "opacity-60" : "opacity-100"}`}
+                className={`flex items-center gap-2.5 border-b border-b-dark-border px-5 py-1.75 ${isMatched ? "opacity-60" : "opacity-100"}`}
               >
                 {/* Status dot */}
                 <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${isMatched ? "bg-emerald-400" : "bg-rose-400"}`} />
@@ -177,7 +177,7 @@ export function MediaRelinkDialog({ onClose }: Props) {
         )}
 
         {/* Footer */}
-        <div className={`flex items-center gap-2 border-t border-t-white/7 px-5 py-3 ${unrecognized.length > 0 ? "mt-2" : "mt-0"}`}>
+        <div className={`flex items-center gap-2 border-t border-t-dark-border px-5 py-3 ${unrecognized.length > 0 ? "mt-2" : "mt-0"}`}>
           <button
             onClick={() => inputRef.current?.click()}
             disabled={isProcessing || allResolved}

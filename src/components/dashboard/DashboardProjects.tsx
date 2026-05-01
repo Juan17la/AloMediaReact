@@ -31,12 +31,6 @@ function formatDate(value: string, locale: string): string {
   });
 }
 
-function progressFromProject(project: ApiProject, index: number): string {
-  const seed = project.id * 29 + index * 11 + project.updatedAt.length;
-  const value = 18 + (seed % 68);
-  return `${Math.min(value, 92)}%`;
-}
-
 function ProjectStripCard({
   project,
   index,
@@ -88,7 +82,7 @@ function SharedRow({
   project,
   index,
   onOpenProject,
-  userId,
+  userId: _userId,
 }: {
   project: ApiProject;
   index: number;

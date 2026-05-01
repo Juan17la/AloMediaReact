@@ -10,7 +10,7 @@ interface AiToolsModalProps {
 }
 
 const overlayClass =
-  "fixed inset-0 z-50 flex items-center justify-center bg-[rgba(26,26,31,0.10)] backdrop-blur-sm px-3"
+  "absolute inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm p-2 pt-8"
 
 export function AiToolsModal({ media, initialTool, onClose }: AiToolsModalProps) {
   useEffect(() => {
@@ -27,27 +27,32 @@ export function AiToolsModal({ media, initialTool, onClose }: AiToolsModalProps)
   return (
     <div className={overlayClass} onClick={onClose}>
       <div
-        className="modal-panel w-110 max-w-full max-h-[80vh] overflow-y-auto flex flex-col gap-3"
+        className="modal-panel w-[calc(100%-16px)] max-w-80 flex flex-col overflow-hidden shadow-2xl"
+        style={{ height: "auto", maxHeight: "calc(100% - 32px)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold text-accent-white">AI Audio Tools</h2>
-            <p className="text-[11px] text-muted mt-1">
-              Choose an action for {media.name}
+        {/* Header - compact */}
+        <div className="flex items-center justify-between gap-2 p-2.5 border-b border-dark-border/50 shrink-0">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-accent-white">AI Audio Tools</h2>
+            <p className="text-[10px] text-muted truncate">
+              {media.name}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close AI tools"
-            className="h-7 w-7 rounded-md border border-dark-border bg-dark-card text-accent-white/70 flex items-center justify-center transition-colors duration-100 hover:bg-dark-elevated hover:text-accent-white"
+            className="h-6 w-6 rounded-md border border-dark-border bg-dark-card text-accent-white/70 flex items-center justify-center transition-all duration-100 hover:bg-dark-elevated hover:text-accent-white shrink-0"
           >
             <X size={14} />
           </button>
         </div>
 
-        <AiToolsPanel selectedMedia={media} initialTool={initialTool} />
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          <AiToolsPanel selectedMedia={media} initialTool={initialTool} />
+        </div>
       </div>
     </div>
   )

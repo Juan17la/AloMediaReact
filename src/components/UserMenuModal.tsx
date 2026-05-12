@@ -113,7 +113,7 @@ export default function UserMenuModal({ isOpen, onClose, onLogout, user, onAdmin
       <button
         type="button"
         onClick={onLogout}
-        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-error hover:text-error-foreground hover:bg-error-container rounded-md transition-colors cursor-pointer"
+        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:text-destructive-foreground hover:bg-destructive/10 rounded-md transition-colors cursor-pointer"
       >
         <LogOut className="w-4 h-4" />
         {t("userMenu.logout")}

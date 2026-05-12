@@ -7,6 +7,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { recoverRequest } from "../../services/authService";
 import PageHeader from "../../components/common/PageHeader";
 import SectionCard from "../../components/common/SectionCard";
+import { GeometricBackground } from "../../components/GeometricBackground";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -84,12 +85,7 @@ export default function ProfilePage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-surface text-on-surface">
-      {/* Light theme gradients */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(124,58,237,0.08)_0%,transparent_55%)] dark:hidden" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(99,14,212,0.06)_0%,transparent_55%)] dark:hidden" />
-      {/* Dark theme gradients */}
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_20%_10%,rgba(167,139,250,0.12)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_80%_90%,rgba(206,189,255,0.08)_0%,transparent_55%)]" />
+      <GeometricBackground />
 
       <main className="relative z-10 px-4 py-10 sm:px-8">
         <div className="mx-auto max-w-2xl space-y-5">
@@ -193,8 +189,8 @@ export default function ProfilePage() {
 
               {success && (
                 <div className="flex items-center gap-1.5 pl-1 animate-slide-up">
-                  <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                  <p className="text-xs text-green-500">{t("profile.updateSuccess")}</p>
+                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <p className="text-xs text-emerald-500">{t("profile.updateSuccess")}</p>
                 </div>
               )}
 
@@ -202,14 +198,14 @@ export default function ProfilePage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="rounded-lg bg-linear-to-r from-primary to-primary-container px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 hover:brightness-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? t("profile.saving") : t("profile.save")}
                 </button>
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="rounded-lg border border-outline-variant bg-surface-container px-5 py-2.5 text-sm font-semibold text-on-surface/70 hover:bg-surface-container-high transition-colors duration-150"
+                  className="rounded-md border border-border bg-primary/10 px-5 py-2.5 text-sm font-semibold text-primary hover:bg-primary/20 hover:text-primary transition-colors duration-150"
                 >
                   {t("common:actions.cancel")}
                 </button>
@@ -222,14 +218,14 @@ export default function ProfilePage() {
             <p className="mb-4 text-sm text-muted-foreground">{t("profile.securityDescription")}</p>
             {passwordRequested ? (
               <div className="flex items-center gap-1.5 animate-slide-up">
-                <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                <p className="text-xs text-green-500">Recovery email sent. Check your inbox.</p>
+                <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <p className="text-xs text-emerald-500">Recovery email sent. Check your inbox.</p>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={handleChangePassword}
-                className="rounded-lg border border-outline-variant bg-surface-container px-4 py-2.5 text-sm font-semibold text-on-surface/70 hover:bg-surface-container-high transition-colors duration-150"
+                className="rounded-md border border-border bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/20 hover:text-primary transition-colors duration-150"
               >
                 {t("profile.changePassword")}
               </button>

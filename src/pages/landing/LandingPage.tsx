@@ -6,6 +6,7 @@ import { useAuth } from "../../hooks/useAuth";
 import AloMediaLogo from "../../assets/AloMediaLogo.webp";
 import Footer from "../../components/common/Footer";
 import { ThemeToggle } from "../../components/ThemeToggle";
+import { GeometricBackground } from "../../components/GeometricBackground";
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -21,13 +22,7 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-hidden bg-surface text-on-surface">
-      {/* Background gradients - Light theme */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(124,58,237,0.08)_0%,transparent_55%)] dark:hidden" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(99,14,212,0.06)_0%,transparent_55%)] dark:hidden" />
-      {/* Background gradients - Dark theme */}
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_20%_10%,rgba(167,139,250,0.12)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_80%_90%,rgba(206,189,255,0.08)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute -top-[15%] -right-[10%] h-125 w-125 rounded-full bg-primary/10 blur-[120px]" />
+      <GeometricBackground />
 
       {/* Navbar */}
       <header className="relative z-20 border-b border-outline-variant/80">
@@ -42,7 +37,7 @@ export default function LandingPage() {
                 <button
                   type="button"
                   onClick={() => navigate("/dashboard")}
-                  className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-primary to-primary-container px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 hover:brightness-95 transition-all"
+                  className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
                 >
                   {t("landing.ctaLoggedIn")}
                   <ArrowRight className="w-4 h-4" />
@@ -52,14 +47,14 @@ export default function LandingPage() {
                   <button
                     type="button"
                     onClick={() => navigate("/auth/login")}
-                    className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-sm font-semibold text-on-surface hover:bg-surface-container-low hover:border-outline transition-colors duration-150"
+                    className="inline-flex items-center gap-2 rounded-md border border-border bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/20 hover:text-primary transition-colors duration-150"
                   >
                     Sign In
                   </button>
                   <button
                     type="button"
                     onClick={() => navigate("/auth/register")}
-                    className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-primary to-primary-container px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 hover:brightness-95 transition-all"
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
                   >
                     Sign Up
                   </button>
@@ -90,7 +85,7 @@ export default function LandingPage() {
                 <button
                   type="button"
                   onClick={() => navigate("/dashboard")}
-                  className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-primary to-primary-container px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 hover:brightness-95 transition-all"
+                  className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
                 >
                   {t("landing.ctaLoggedIn")}
                   <ArrowRight className="w-4 h-4" />
@@ -99,7 +94,7 @@ export default function LandingPage() {
                 <button
                   type="button"
                   onClick={() => navigate("/auth/register")}
-                  className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-primary to-primary-container px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 hover:brightness-95 transition-all"
+                  className="inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
                 >
                   {t("landing.cta")}
                   <ArrowRight className="w-4 h-4" />
@@ -115,9 +110,9 @@ export default function LandingPage() {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {features.map((f, idx) => (
-                <div key={idx} className="auth-glass-card rounded-md px-5 py-6 text-center">
+                <div key={idx} className="auth-glass-card rounded-lg px-5 py-6 text-center">
                   <div className="flex items-center justify-center mb-4">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-low text-primary">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-md border border-border bg-primary/10 text-primary">
                       {f.icon}
                     </div>
                   </div>

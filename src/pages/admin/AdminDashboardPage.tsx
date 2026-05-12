@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { Shield, LogOut } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
+import { GeometricBackground } from "../../components/GeometricBackground";
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -13,14 +14,9 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-surface px-4 py-8 text-on-surface">
-      {/* Light theme gradients */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(124,58,237,0.08)_0%,transparent_55%)] dark:hidden" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(99,14,212,0.06)_0%,transparent_55%)] dark:hidden" />
-      {/* Dark theme gradients */}
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_20%_10%,rgba(167,139,250,0.12)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_80%_90%,rgba(206,189,255,0.08)_0%,transparent_55%)]" />
+      <GeometricBackground />
 
-      <div className="relative w-full max-w-2xl px-8 py-7 sm:px-10 bg-surface-container rounded-2xl border border-outline-variant shadow-lg">
+      <div className="relative w-full max-w-2xl px-8 py-7 sm:px-10 bg-card rounded-lg border border-border shadow-md">
         <div className="flex items-center gap-3 border-b border-outline-variant/50 pb-4">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-high">
             <Shield className="h-5 w-5 text-primary" />
@@ -40,14 +36,14 @@ export default function AdminDashboardPage() {
             <button
               type="button"
               onClick={() => navigate("/dashboard")}
-              className="rounded-lg border border-outline-variant bg-surface-container px-4 py-2 text-sm font-semibold text-on-surface/80 transition-colors duration-150 hover:bg-surface-container-high"
+              className="rounded-md border border-border bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/20 hover:text-primary transition-colors duration-150"
             >
               Back to dashboard
             </button>
             <button
               type="button"
               onClick={handleLogout}
-              className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-primary to-primary-container px-4 py-2 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 hover:brightness-95 transition-all"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all"
             >
               <LogOut className="h-4 w-4" />
               Log out

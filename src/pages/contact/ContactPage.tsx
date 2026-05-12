@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import PageHeader from "../../components/common/PageHeader";
 import SectionCard from "../../components/common/SectionCard";
 import Footer from "../../components/common/Footer";
+import { GeometricBackground } from "../../components/GeometricBackground";
 
 export default function ContactPage() {
   const { t } = useTranslation("pages");
@@ -40,12 +41,7 @@ export default function ContactPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-surface text-on-surface">
-      {/* Light theme gradients */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(124,58,237,0.08)_0%,transparent_55%)] dark:hidden" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(99,14,212,0.06)_0%,transparent_55%)] dark:hidden" />
-      {/* Dark theme gradients */}
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_20%_10%,rgba(167,139,250,0.12)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_80%_90%,rgba(206,189,255,0.08)_0%,transparent_55%)]" />
+      <GeometricBackground />
 
       <main className="relative z-10 px-4 py-10 sm:px-8">
         <div className="mx-auto max-w-2xl space-y-5">
@@ -64,9 +60,9 @@ export default function ContactPage() {
 
       <SectionCard title={t("contact.form")}>
         {submitted && (
-          <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-lg border border-green-500/20 bg-green-500/5 animate-slide-up">
-            <Check className="w-4 h-4 text-green-400 shrink-0" />
-            <p className="text-sm text-green-400">{t("contact.successMessage")}</p>
+          <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-md border border-emerald-500/20 bg-emerald-500/5 animate-slide-up">
+            <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+            <p className="text-sm text-emerald-500">{t("contact.successMessage")}</p>
           </div>
         )}
 
@@ -154,7 +150,7 @@ export default function ContactPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-linear-to-r from-primary to-primary-container text-primary-foreground font-semibold py-3.5 rounded-lg text-sm tracking-wide shadow-md shadow-primary/20 hover:brightness-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-primary text-primary-foreground font-semibold py-3.5 rounded-md text-sm tracking-wide hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? t("contact.sending") : t("contact.send")}
           </button>

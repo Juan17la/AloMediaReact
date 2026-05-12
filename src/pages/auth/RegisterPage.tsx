@@ -260,8 +260,8 @@ export default function RegisterPage() {
             />
             {apiError?.fieldMessage("password") && (
               <div className="flex items-center gap-1.5 pl-1 animate-error-slide">
-                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                <p className="text-xs text-red-400">{apiError.fieldMessage("password")}</p>
+                <AlertCircle className="w-3.5 h-3.5 text-error shrink-0" />
+                <p className="text-xs text-error">{apiError.fieldMessage("password")}</p>
               </div>
             )}
           </div>
@@ -295,7 +295,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="w-full bg-linear-to-r from-primary to-primary-container text-primary-foreground font-semibold py-3.5 rounded-lg text-sm tracking-wide cursor-pointer hover:brightness-95 active:scale-[0.98] transition-all disabled:opacity-50"
+            className="w-full bg-primary text-primary-foreground font-semibold py-3.5 rounded-md text-sm tracking-wide cursor-pointer hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
           >
             {isPending ? t("register.submitting") : t("register.submit")}
           </button>
@@ -334,7 +334,7 @@ export default function RegisterPage() {
         {t("register.hasAccount")}{" "}
         <Link
           to="/auth/login"
-          className="text-primary hover:text-primary-foreground font-bold transition-colors duration-150"
+          className="text-primary hover:text-primary/80 font-bold transition-colors duration-150"
         >
           {t("register.signIn")}
         </Link>

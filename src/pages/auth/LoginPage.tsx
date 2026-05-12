@@ -152,7 +152,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="w-full bg-linear-to-r from-primary to-primary-container text-primary-foreground font-semibold py-3.5 rounded-lg text-sm tracking-wide cursor-pointer hover:brightness-95 active:scale-[0.98] transition-all disabled:opacity-50"
+            className="w-full bg-primary text-primary-foreground font-semibold py-3.5 rounded-md text-sm tracking-wide cursor-pointer hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
           >
             {isPending ? t("login.submitting") : t("login.submit")}
           </button>
@@ -160,7 +160,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-between text-xs px-1">
             <Link
               to="/auth/recover/request"
-              className="text-muted-foreground hover:text-on-surface font-bold transition-colors duration-150 underline underline-offset-2"
+              className="text-muted-foreground hover:text-primary font-bold transition-colors duration-150 underline underline-offset-2"
             >
               {t("login.forgotPassword")}
             </Link>
@@ -206,7 +206,7 @@ export default function LoginPage() {
         {t("login.noAccount")}{" "}
         <Link
           to="/auth/register"
-          className="text-primary hover:text-primary-foreground font-bold transition-colors duration-150"
+          className="text-primary hover:text-primary/80 font-bold transition-colors duration-150"
         >
           {t("login.signUp")}
         </Link>

@@ -56,7 +56,7 @@ export default function RecoverRequestPage() {
         </p>
         <Link
           to="/auth/login"
-          className="text-primary hover:text-primary-foreground font-bold text-sm transition-colors duration-150 mt-2"
+          className="text-primary hover:text-primary/80 font-bold text-sm transition-colors duration-150 mt-2"
         >
           {t("recover.backToSignIn")}
         </Link>
@@ -113,7 +113,7 @@ export default function RecoverRequestPage() {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full bg-linear-to-r from-primary to-primary-container text-primary-foreground font-semibold py-3.5 rounded-lg text-sm tracking-wide cursor-pointer hover:brightness-95 active:scale-[0.98] transition-all disabled:opacity-50"
+          className="w-full bg-primary text-primary-foreground font-semibold py-3.5 rounded-md text-sm tracking-wide cursor-pointer hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
         >
           {isPending ? t("recover.submitting") : t("recover.submit")}
         </button>
@@ -122,7 +122,7 @@ export default function RecoverRequestPage() {
           {t("recover.rememberPassword")}{" "}
           <Link
             to="/auth/login"
-            className="text-primary hover:text-primary-foreground font-bold transition-colors duration-150"
+            className="text-primary hover:text-primary/80 font-bold transition-colors duration-150"
           >
             {t("recover.signIn")}
           </Link>

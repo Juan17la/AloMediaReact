@@ -8,6 +8,7 @@ import type { ApiProject } from "../../types/projectApiTypes";
 import AloMediaLogo from "../../assets/AloMediaLogo.webp";
 import { Plus } from "lucide-react";
 import { ThemeToggle } from "../../components/ThemeToggle";
+import { GeometricBackground } from "../../components/GeometricBackground";
 
 const EMPTY_PROJECTS: ApiProject[] = [];
 
@@ -61,12 +62,7 @@ export default function DashboardPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-surface text-on-surface">
-      {/* Light theme gradient */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(124,58,237,0.08)_0%,transparent_55%)] dark:hidden" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(99,14,212,0.06)_0%,transparent_55%)] dark:hidden" />
-      {/* Dark theme gradient */}
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_20%_10%,rgba(167,139,250,0.15)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_80%_90%,rgba(206,189,255,0.08)_0%,transparent_55%)]" />
+      <GeometricBackground />
 
       {/* <DashboardSidebar
         onNewProject={() => navigate("/editor/new")}
@@ -90,7 +86,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="rounded-sm border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs text-on-surface-variant"
+                className="rounded-md border border-border bg-primary/10 px-3 py-2 text-xs text-primary hover:bg-primary/20 hover:text-primary transition-colors"
               >
                 Close
               </button>
@@ -103,7 +99,7 @@ export default function DashboardPage() {
                   setMobileMenuOpen(false);
                   navigate("/editor/new");
                 }}
-                className="w-full rounded-sm border border-outline-variant bg-surface-container-lowest px-3 py-3 text-left text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                className="w-full rounded-md border border-border bg-primary/10 px-3 py-3 text-left text-sm text-primary hover:bg-primary/20 hover:text-primary transition-colors"
               >
                 New project
               </button>
@@ -113,7 +109,7 @@ export default function DashboardPage() {
                   setMobileMenuOpen(false);
                   ongoingSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
-                className="w-full rounded-sm border border-outline-variant bg-surface-container-lowest px-3 py-3 text-left text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                className="w-full rounded-md border border-border bg-primary/10 px-3 py-3 text-left text-sm text-primary hover:bg-primary/20 hover:text-primary transition-colors"
               >
                 Ongoing projects
               </button>
@@ -123,7 +119,7 @@ export default function DashboardPage() {
                   setMobileMenuOpen(false);
                   sharedSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
-                className="w-full rounded-sm border border-outline-variant bg-surface-container-lowest px-3 py-3 text-left text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                className="w-full rounded-md border border-border bg-primary/10 px-3 py-3 text-left text-sm text-primary hover:bg-primary/20 hover:text-primary transition-colors"
               >
                 Shared with me
               </button>
@@ -133,7 +129,7 @@ export default function DashboardPage() {
                   setMobileMenuOpen(false);
                   setAccountOpen(true);
                 }}
-                className="w-full rounded-sm border border-outline-variant bg-surface-container-lowest px-3 py-3 text-left text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                className="w-full rounded-md border border-border bg-primary/10 px-3 py-3 text-left text-sm text-primary hover:bg-primary/20 hover:text-primary transition-colors"
               >
                 Account
               </button>
@@ -154,7 +150,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate("/editor/new")}
-                className="flex h-9 px-2 gap-1 w-fit items-center justify-center rounded-sm border border-outline-variant bg-surface-container-lowest text-sm font-bold text-muted-foreground hover:text-on-surface hover:bg-surface-container-low transition-colors"
+                className="flex h-9 px-2 gap-1 w-fit items-center justify-center rounded-md border border-border bg-primary/10 text-sm font-bold text-primary hover:bg-primary/20 hover:text-primary transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 New Project
@@ -164,7 +160,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setAccountOpen(prev => !prev)}
-                  className="flex h-9 w-9 items-center justify-center rounded-sm border border-outline-variant bg-surface-container-lowest text-sm font-bold text-on-surface hover:bg-surface-container-low transition-colors"
+                  className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-primary/10 text-sm font-bold text-primary hover:bg-primary/20 transition-colors"
                   aria-label="Open account menu"
                 >
                   {userInitials}

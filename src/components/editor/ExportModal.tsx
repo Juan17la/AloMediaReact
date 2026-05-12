@@ -74,7 +74,7 @@ export function ExportModal({
         className="modal-panel w-120 flex flex-col gap-5"
         onClick={e => e.stopPropagation()}
       >
-        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--color-on-surface)", marginBottom: 0 }}>
+        <h2 className="text-lg font-bold tracking-tight text-on-surface mb-0">
           {inProgress ? 'Exporting…' : isDone ? 'Export complete' : 'Export video'}
         </h2>
 
@@ -83,7 +83,7 @@ export function ExportModal({
           <>
             {/* Format */}
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted-foreground)" }}>Format</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Format</label>
               <div className="flex gap-2">
                 {AVAILABLE_FORMATS.map(f => (
                   <button
@@ -102,7 +102,7 @@ export function ExportModal({
 
             {/* Resolution */}
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted-foreground)" }}>Resolution</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Resolution</label>
               <div className="flex gap-2 flex-wrap">
                 {[
                   { label: '1280×720', w: 1280, h: 720 },
@@ -128,7 +128,7 @@ export function ExportModal({
 
             {/* FPS */}
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted-foreground)" }}>Frame rate</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Frame rate</label>
               <div className="flex gap-2">
                 {[24, 30, 60].map(f => (
                   <button
@@ -147,7 +147,7 @@ export function ExportModal({
 
             {/* File name */}
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted-foreground)" }}>File name</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">File name</label>
               <div className="flex items-center gap-2">
                 <input
                   value={fileName}
@@ -160,16 +160,16 @@ export function ExportModal({
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-2.5" style={{ marginTop: 8 }}>
+            <div className="flex justify-end gap-2.5 mt-2">
               <button
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg text-sm border border-outline-variant bg-surface-container-low text-on-surface/80 hover:border-outline hover:bg-surface-container transition-colors"
+                className="px-4 py-2 rounded-md text-sm border border-border bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleStart}
-                className="px-5 py-2 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:brightness-95 transition-colors"
+                className="px-5 py-2 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 Export
               </button>
@@ -181,20 +181,20 @@ export function ExportModal({
         {(inProgress || isDone || isError) && (
           <>
             {/* Stage label */}
-            <p className={`text-sm ${isError ? 'text-red-400' : 'text-accent-white'}`}>
+            <p className={`text-sm ${isError ? 'text-destructive' : 'text-foreground'}`}>
               {isError ? (progress?.errorMessage ?? 'An error occurred') : stageLabel}
             </p>
 
             {/* Progress bar */}
             {!isError && (
               <div className="flex flex-col gap-2">
-                <div className="w-full h-1.5 bg-dark-elevated rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-accent-red rounded-full transition-all duration-300"
+                    className="h-full bg-primary rounded-full transition-all duration-300"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-xs text-muted">
+                <div className="flex justify-between text-xs text-muted-foreground">
                   <span>{pct}%</span>
                   {timeLabel && <span>{timeLabel}</span>}
                 </div>
@@ -202,11 +202,11 @@ export function ExportModal({
             )}
 
             {/* Actions */}
-            <div className="flex justify-end gap-2.5" style={{ marginTop: 8 }}>
+            <div className="flex justify-end gap-2.5 mt-2">
               {isDone && (
                 <button
                   onClick={onClose}
-                  className="btn-accent px-5 py-2 rounded-lg text-sm font-semibold bg-accent-red text-accent-white"
+                  className="px-5 py-2 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
                 >
                   Close
                 </button>
@@ -214,7 +214,7 @@ export function ExportModal({
               {(inProgress || isError) && (
                 <button
                   onClick={onCancel}
-                  className="btn-ghost px-4 py-2 rounded-lg text-sm border border-dark-border bg-dark-card text-accent-white/80 hover:border-dark-border-light hover:bg-dark-elevated"
+                  className="px-4 py-2 rounded-md text-sm border border-border bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary transition-all"
                 >
                   Cancel
                 </button>

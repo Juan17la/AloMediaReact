@@ -20,13 +20,13 @@ const AUDIO_WAVEFORM_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 const clipBase =
   "absolute top-0.5 bottom-0.5 rounded-md overflow-hidden box-border select-none transition-[background,border-color,box-shadow] duration-[120ms] ease-out"
 
-// Clip selected state - solid primary color with subtle gradient
+// Clip selected state - muted primary with subtle presence
 const clipSelected =
-  "bg-linear-to-b from-primary/90 to-primary border border-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_2px_8px_rgba(99,14,212,0.35)] ring-2 ring-primary/40"
+  "bg-linear-to-b from-primary/70 to-primary/60 border border-primary/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_1px_4px_rgba(0,0,0,0.1)] ring-2 ring-primary/30"
 
-// Clip unselected state - stronger purple for better contrast in light theme
+// Clip unselected state - softer, less vibrant
 const clipUnselected =
-  "bg-linear-to-b from-primary/85 to-primary/75 border border-primary/60 border-t-primary/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_1px_3px_rgba(0,0,0,0.15)]"
+  "bg-linear-to-b from-primary/60 to-primary/50 border border-primary/50 border-t-primary/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_1px_2px_rgba(0,0,0,0.08)]"
 
 // Clip cursor states
 const clipCursorGrabbing = "cursor-grabbing opacity-70"

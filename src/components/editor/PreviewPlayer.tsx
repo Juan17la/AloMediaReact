@@ -499,7 +499,7 @@ export function PreviewPlayer() {
           onMouseDown={handleCanvasMouseDown}
           onClick={handleCanvasClick}
           onDoubleClick={handleCanvasDoubleClick}
-          className="relative bg-(--color-background-base) overflow-hidden cursor-default aspect-video h-full max-w-full w-auto border-2 border-dark/7 border-b-glass"
+          className="relative bg-background overflow-hidden cursor-default aspect-video h-full max-w-full w-auto border-2 border-outline/15"
         >
           <div
             ref={innerCanvasRef}
@@ -529,7 +529,7 @@ export function PreviewPlayer() {
                   else secondaryVideoElemsRef.current.delete(clip.id)
                 }}
                 src={getPlaybackUrl(clip.mediaId)}
-                style={{ ...applyTransform(clip.transform), filter: buildCssFilter(clip.colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId), pointerEvents: "none", outline: selectedIdSet.has(clip.id) ? "2px solid rgba(192,57,43,0.75)" : undefined }}
+                style={{ ...applyTransform(clip.transform), filter: buildCssFilter(clip.colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId), pointerEvents: "none", outline: selectedIdSet.has(clip.id) ? "2px solid var(--color-error)" : undefined }}
                 muted
                 preload="auto"
                 playsInline
@@ -539,7 +539,7 @@ export function PreviewPlayer() {
 
             {staticElements.map(clip => {
               if (clip.type === "image") {
-                return <img key={clip.id} src={getObjectUrl(clip.mediaId)} style={{ ...applyTransform(clip.transform), filter: buildCssFilter((clip as ImageClip).colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId), outline: selectedIdSet.has(clip.id) ? "2px solid rgba(192,57,43,0.75)" : undefined }} alt="" />
+                return <img key={clip.id} src={getObjectUrl(clip.mediaId)} style={{ ...applyTransform(clip.transform), filter: buildCssFilter((clip as ImageClip).colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS), zIndex: zIndex(clip.trackId), outline: selectedIdSet.has(clip.id) ? "2px solid var(--color-error)" : undefined }} alt="" />
               }
               if (clip.type === "text") {
                 if (clip.id === editingTextClipId) return null
@@ -571,7 +571,7 @@ export function PreviewPlayer() {
                       pointerEvents: "none",
                       userSelect: "none",
                       lineHeight: 1.25,
-                      outline: selectedIdSet.has(clip.id) ? "2px solid rgba(192,57,43,0.75)" : undefined,
+                      outline: selectedIdSet.has(clip.id) ? "2px solid var(--color-error)" : undefined,
                     }}
                   >
                     {clip.content}
@@ -621,7 +621,7 @@ export function PreviewPlayer() {
 
           {marquee && (
             <div
-              className="absolute z-30 border-2 border-accent-red/70 bg-accent-red/15 pointer-events-none"
+              className="absolute z-30 border-2 border-primary/70 bg-primary/15 pointer-events-none"
               style={{
                 left: Math.min(marquee.x1, marquee.x2) * (previewSize.width / 1280),
                 top: Math.min(marquee.y1, marquee.y2) * (previewSize.height / 720),
@@ -683,7 +683,7 @@ export function PreviewPlayer() {
                   fontStyle: s.italic ? "italic" : "normal",
                   lineHeight: 1.25,
                   resize: "none",
-                  outline: "2px solid var(--color-accent-red)",
+                  outline: "2px solid var(--color-error)",
                   outlineOffset: "-2px",
                   border: "none",
                   padding: `${topPad}px 4px 4px`,
@@ -703,8 +703,8 @@ export function PreviewPlayer() {
           // ====================================================== */}
 
           {activeTransitionDebug && (
-            <div className="absolute left-2 top-2 z-20 min-w-68 rounded-md border border-dark/20 bg-black/62 px-2.5 py-2 text-[11px] text-accent-white/86 backdrop-blur-sm">
-              <div className="mb-1 font-semibold uppercase tracking-[0.06em] text-accent-white/70">Transition Debug</div>
+            <div className="absolute left-2 top-2 z-20 min-w-68 rounded-md border border-outline/30 bg-inverse-surface/62 px-2.5 py-2 text-[11px] text-inverse-on-surface/86 backdrop-blur-sm">
+              <div className="mb-1 font-semibold uppercase tracking-[0.06em] text-inverse-on-surface/70">Transition Debug</div>
               <div>ID: {activeTransitionDebug.transitionId}</div>
               <div>A: {activeTransitionDebug.sourceA}</div>
               <div>B: {activeTransitionDebug.sourceB}</div>
@@ -722,7 +722,7 @@ export function PreviewPlayer() {
 
       {/* Transport bar */}
       <div
-        className="w-full shrink-0 flex items-center h-10 px-2 border-t border-t-white/10 border-b border-b-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_10px_rgba(0,0,0,0.35),0_12px_28px_rgba(0,0,0,0.22)]"
+        className="w-full shrink-0 flex items-center h-10 px-2 border-t border-t-outline/30 border-b border-b-outline/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_10px_rgba(0,0,0,0.35),0_12px_28px_rgba(0,0,0,0.22)]"
         style={{
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px) saturate(150%)",
@@ -742,7 +742,7 @@ export function PreviewPlayer() {
 
         {/* Timecode */}
         <div
-          className="font-mono text-sm text-accent-white/70 px-2.5 shrink-0 whitespace-nowrap min-w-22"
+          className="font-mono text-sm text-on-surface/70 px-2.5 shrink-0 whitespace-nowrap min-w-22"
           aria-live="polite"
           aria-atomic="true"
         >

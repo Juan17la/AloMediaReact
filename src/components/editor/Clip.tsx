@@ -14,7 +14,7 @@ interface ClipProps {
 }
 
 // Audio waveform: static decorative SVG as CSS background
-const AUDIO_WAVEFORM_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Crect x='2' y='6' width='2' height='8' fill='rgba(100,200,100,0.18)' /%3E%3Crect x='6' y='3' width='2' height='14' fill='rgba(100,200,100,0.18)' /%3E%3Crect x='10' y='7' width='2' height='6' fill='rgba(100,200,100,0.18)' /%3E%3Crect x='14' y='4' width='2' height='12' fill='rgba(100,200,100,0.18)' /%3E%3Crect x='18' y='8' width='2' height='4' fill='rgba(100,200,100,0.18)' /%3E%3C/svg%3E")`
+const AUDIO_WAVEFORM_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Crect x='2' y='6' width='2' height='8' fill='rgba(140,180,140,0.28)' /%3E%3Crect x='6' y='3' width='2' height='14' fill='rgba(140,180,140,0.28)' /%3E%3Crect x='10' y='7' width='2' height='6' fill='rgba(140,180,140,0.28)' /%3E%3Crect x='14' y='4' width='2' height='12' fill='rgba(140,180,140,0.28)' /%3E%3Crect x='18' y='8' width='2' height='4' fill='rgba(140,180,140,0.28)' /%3E%3C/svg%3E")`
 
 // Clip base styling - no glass effects
 const clipBase =
@@ -22,11 +22,11 @@ const clipBase =
 
 // Clip selected state - muted primary with subtle presence
 const clipSelected =
-  "bg-linear-to-b from-primary/70 to-primary/60 border border-primary/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_1px_4px_rgba(0,0,0,0.1)] ring-2 ring-primary/30"
+  "bg-linear-to-b from-primary/60 to-primary/50 border border-primary/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_1px_4px_rgba(0,0,0,0.1)] ring-2 ring-primary/25"
 
 // Clip unselected state - softer, less vibrant
 const clipUnselected =
-  "bg-linear-to-b from-primary/60 to-primary/50 border border-primary/50 border-t-primary/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_1px_2px_rgba(0,0,0,0.08)]"
+  "bg-linear-to-b from-primary/50 to-primary/40 border border-primary/40 border-t-primary/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_1px_2px_rgba(0,0,0,0.08)]"
 
 // Clip cursor states
 const clipCursorGrabbing = "cursor-grabbing opacity-70"

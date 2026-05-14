@@ -34,13 +34,13 @@ function formatSize(bytes: number): string {
 function getTypeBadgeClass(type: Media["type"]): string {
   switch (type) {
     case "video":
-      return "bg-primary/15 text-primary"
+      return "bg-primary/20 text-primary border border-primary/25"
     case "image":
-      return "bg-secondary/15 text-secondary"
+      return "bg-secondary/20 text-secondary border border-secondary/25"
     case "audio":
-      return "bg-tertiary/15 text-tertiary"
+      return "bg-tertiary/20 text-tertiary border border-tertiary/25"
     default:
-      return "bg-surface-container-high text-muted-foreground"
+      return "bg-surface-container-high text-muted-foreground border border-outline-variant"
   }
 }
 
@@ -171,15 +171,15 @@ export function MediaCard({
 
           {/* Hover overlay with Plus icon */}
           <div
-            className="absolute inset-0 bg-primary/10 flex items-center justify-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-120"
+            className="absolute inset-0 bg-primary/20 backdrop-blur-[1px] flex items-center justify-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-120"
             onClick={isSubtitles ? onImportSubtitles : onInsertAtPlayhead}
           >
             {isSubtitles ? (
-              <span className="text-[10px] font-semibold tracking-[0.08em] text-on-primary">
+              <span className="text-[10px] font-semibold tracking-[0.08em] text-primary-foreground">
                 {isImportingSubtitles ? "Importing..." : "Import"}
               </span>
             ) : (
-              <Plus size={20} className="text-on-primary" />
+              <Plus size={20} className="text-primary-foreground" />
             )}
           </div>
         </div>

@@ -19,7 +19,7 @@ const tabBase =
   "h-full px-3.5 text-[11px] font-semibold bg-transparent border-0 border-b-2 rounded-none cursor-pointer transition-[color] duration-120"
 
 const tabActive =
-  "text-accent-white border-b-accent-red"
+  "text-on-surface border-b-primary"
 
 const tabInactive =
   "text-muted border-b-transparent"

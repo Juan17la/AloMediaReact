@@ -22,16 +22,16 @@
   --color-on-surface: #111c2d;
   --color-on-surface-variant: #4a4455;
 
-  /* Primary - Deeper, more professional purple */
-  --color-primary: #5a3db5;
+  /* Primary - Professional Purple */
+  --color-primary: #664e94;
   --color-primary-foreground: #ffffff;
-  --color-primary-container: #7c3aed;
-  --color-on-primary-container: #f3e8ff;
-  --color-inverse-primary: #c4a8ff;
-  --color-primary-fixed: #e8ddff;
-  --color-primary-fixed-dim: #c4a8ff;
-  --color-on-primary-fixed: #1e1040;
-  --color-on-primary-fixed-variant: #4a3090;
+  --color-primary-container: #7c65a8;
+  --color-on-primary-container: #f0e6ff;
+  --color-inverse-primary: #c4b5e0;
+  --color-primary-fixed: #e8dfff;
+  --color-primary-fixed-dim: #c4b5e0;
+  --color-on-primary-fixed: #2d1f5e;
+  --color-on-primary-fixed-variant: #4a3890;
 
   /* Secondary - Cool Gray */
   --color-secondary: #5c5f61;
@@ -52,6 +52,18 @@
   --color-tertiary-fixed-dim: #b9c8de;
   --color-on-tertiary-fixed: #0d1c2d;
   --color-on-tertiary-fixed-variant: #39485a;
+
+  /* Success - Emerald */
+  --color-success: #059669;
+  --color-success-foreground: #ffffff;
+  --color-success-container: #d1fae5;
+  --color-on-success-container: #065f46;
+
+  /* Warning - Amber */
+  --color-warning: #d97706;
+  --color-warning-foreground: #ffffff;
+  --color-warning-container: #fef3c7;
+  --color-on-warning-container: #92400e;
 
   /* Error - Red */
   --color-error: #ba1a1a;
@@ -74,21 +86,21 @@
   --color-accent-foreground: #111c2d;
   --color-border: #d8e3fb;
   --color-input: #d8e3fb;
-  --color-ring: #7c3aed;
+  --color-ring: #7c65a8;
 
   /* Inverse Colors */
   --color-inverse-surface: #263143;
   --color-inverse-on-surface: #ecf1ff;
   --color-outline: #7b7487;
   --color-outline-variant: #ccc3d8;
-  --color-surface-tint: #5a3db5;
+  --color-surface-tint: #664e94;
 
   /* Chart Colors */
-  --color-chart-1: #7c3aed;
+  --color-chart-1: #664e94;
   --color-chart-2: #10b981;
   --color-chart-3: #f59e0b;
   --color-chart-4: #ef4444;
-  --color-chart-5: #3b82f6;
+  --color-chart-5: #7c65a8;
 
   /* Legacy compatibility - will be deprecated */
   --color-dark: #f9f9ff;
@@ -100,6 +112,10 @@
   --color-accent-white: #111c2d;
   --color-muted: #7b7487;
   --color-muted-light: #4a4455;
+
+  /* Missing variable aliases */
+  --color-accent-red: var(--color-error);
+  --color-background-base: var(--color-background);
 
   /* Spacing */
   --spacing-unit: 4px;
@@ -140,7 +156,7 @@
   --color-on-surface: #e6e0ea;
   --color-on-surface-variant: #cac4d4;
 
-  /* Primary - Muted lavender, less bright */
+  /* Primary - Soft Purple */
   --color-primary: #b8a8e0;
   --color-primary-foreground: #2d1f5e;
   --color-primary-container: #6b4db5;
@@ -170,6 +186,18 @@
   --color-tertiary-fixed-dim: #dbc839;
   --color-on-tertiary-fixed: #201c00;
   --color-on-tertiary-fixed-variant: #504700;
+
+  /* Success - Emerald */
+  --color-success: #34d399;
+  --color-success-foreground: #064e3b;
+  --color-success-container: #065f46;
+  --color-on-success-container: #a7f3d0;
+
+  /* Warning - Amber */
+  --color-warning: #fbbf24;
+  --color-warning-foreground: #78350f;
+  --color-warning-container: #92400e;
+  --color-on-warning-container: #fde68a;
 
   /* Error - Red */
   --color-error: #ffb4ab;
@@ -259,6 +287,16 @@
   --color-on-tertiary-fixed: var(--color-on-tertiary-fixed);
   --color-on-tertiary-fixed-variant: var(--color-on-tertiary-fixed-variant);
 
+  --color-success: var(--color-success);
+  --color-success-foreground: var(--color-success-foreground);
+  --color-success-container: var(--color-success-container);
+  --color-on-success-container: var(--color-on-success-container);
+
+  --color-warning: var(--color-warning);
+  --color-warning-foreground: var(--color-warning-foreground);
+  --color-warning-container: var(--color-warning-container);
+  --color-on-warning-container: var(--color-on-warning-container);
+
   --color-error: var(--color-error);
   --color-error-foreground: var(--color-error-foreground);
   --color-error-container: var(--color-error-container);
@@ -298,6 +336,8 @@
   --color-dark-border: var(--color-dark-border);
   --color-dark-border-light: var(--color-dark-border-light);
   --color-accent-white: var(--color-accent-white);
+  --color-accent-red: var(--color-accent-red);
+  --color-background-base: var(--color-background-base);
 
   /* Typography */
   --font-sans: "Inter", system-ui, sans-serif;
@@ -577,6 +617,20 @@ button:focus-visible {
   background: var(--color-error-container);
   color: var(--color-on-error-container);
   border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+}
+
+.badge-success {
+  background: var(--color-success-container);
+  color: var(--color-on-success-container);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-md);
+}
+
+.badge-warning {
+  background: var(--color-warning-container);
+  color: var(--color-on-warning-container);
+  border: 1px solid var(--color-warning);
   border-radius: var(--radius-md);
 }
 

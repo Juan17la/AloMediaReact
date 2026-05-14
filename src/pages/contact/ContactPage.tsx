@@ -60,9 +60,9 @@ export default function ContactPage() {
 
       <SectionCard title={t("contact.form")}>
         {submitted && (
-          <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-md border border-emerald-500/20 bg-emerald-500/5 animate-slide-up">
-            <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-            <p className="text-sm text-emerald-500">{t("contact.successMessage")}</p>
+          <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-md border border-success/20 bg-success/5 animate-slide-up">
+            <Check className="w-4 h-4 text-success shrink-0" />
+            <p className="text-sm text-success">{t("contact.successMessage")}</p>
           </div>
         )}
 

@@ -252,7 +252,7 @@ export default function VideoEditor() {
   if (loadError) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background text-accent-white">
-        <p className="text-sm text-red-400">{loadError}</p>
+        <p className="text-sm text-error">{loadError}</p>
         <button
           onClick={() => navigate('/dashboard')}
           className="rounded-lg border border-dark-border bg-dark-card px-4 py-2 text-[13px] text-accent-white/80 backdrop-blur-sm"
@@ -284,7 +284,7 @@ export default function VideoEditor() {
           <button
             type="button"
             onClick={() => navigate('/dashboard')}
-            className="font-bold text-[13px] tracking-[0.15em] text-accent-red"
+            className="font-bold text-[13px] tracking-[0.15em] text-primary"
           >
             <img src={AloMediaLogo} alt="alomedialogo" className="w-full h-full"/>
           </button>
@@ -299,7 +299,7 @@ export default function VideoEditor() {
               onChange={e => setTitleDraft(e.target.value)}
               onBlur={commitTitle}
               onKeyDown={e => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur() }}
-              className="w-48 cursor-text border-0 border-b border-b-accent-red bg-transparent text-[13px] font-medium text-accent-white outline-none"
+              className="w-48 cursor-text border-0 border-b border-b-error bg-transparent text-[13px] font-medium text-on-surface outline-none"
             />
           ) : (
             <button
@@ -371,18 +371,18 @@ export default function VideoEditor() {
             right: 24,
             zIndex: 50,
             padding: "12px 18px",
-            background: "rgba(255, 255, 255, 0.96)",
+            background: "var(--color-card)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
-            border: "1px solid rgba(26, 26, 31, 0.08)",
+            border: "1px solid var(--color-outline-variant)",
             borderLeft: toast.type === 'success'
-              ? "3px solid rgba(60, 200, 100, 0.80)"
-              : "3px solid var(--color-accent-red)",
+              ? "3px solid var(--color-success)"
+              : "3px solid var(--color-error)",
             borderRadius: 10,
-            boxShadow: "0 8px 24px rgba(26,26,31,0.10)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
             fontSize: 13,
             fontWeight: 500,
-            color: "rgba(26, 26, 31, 0.88)",
+            color: "var(--color-card-foreground)",
           }}
         >
           {toast.message}

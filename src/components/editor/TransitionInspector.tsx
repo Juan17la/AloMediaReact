@@ -21,16 +21,16 @@ const gridBtnBase = [
 ].join(" ")
 
 const gridBtnActive =
-    "border-primary/75 bg-primary/80 text-on-primary"
+    "border-primary/65 bg-primary/65 text-on-primary"
 
 const gridBtnIdle =
     "border-outline-variant bg-surface-container text-on-surface/72 hover:border-outline hover:bg-surface-container-high hover:text-on-surface"
 
 const sectionLabel = "mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted"
 const toggleBtn = "rounded-md border px-2.5 py-1.5 text-[11px] font-semibold transition-colors duration-100"
-const toggleActive = "border-primary/75 bg-primary/85 text-primary-foreground"
+const toggleActive = "border-primary/65 bg-primary/65 text-primary-foreground"
 const toggleIdle = "border-outline-variant bg-surface-container text-on-surface/72 hover:border-outline hover:bg-surface-container-high"
-const warningBox = "rounded-md border border-amber-500/30 bg-amber-500/8 p-2 text-[11px] text-amber-300/80"
+const warningBox = "rounded-md border border-warning/30 bg-warning-container p-2 text-[11px] text-on-warning-container"
 
 function TransitionSection({
     label,
@@ -102,7 +102,7 @@ function TransitionSection({
                     <div>
                         <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.06em] text-muted">
                             <span>Duration</span>
-                            <span className="font-mono text-accent-white/78">{transition.duration.toFixed(2)}s</span>
+                            <span className="font-mono text-on-surface/78">{transition.duration.toFixed(2)}s</span>
                         </div>
                         <input
                             type="range"
@@ -179,7 +179,7 @@ export function TransitionInspector() {
                     Transition is no longer valid on this boundary.
                     <button
                         type="button"
-                        className="mt-2 block rounded-md border border-dark-border px-2.5 py-1.5 text-[11px] font-semibold text-accent-white/85 hover:bg-dark-card"
+                        className="mt-2 block rounded-md border border-dark-border px-2.5 py-1.5 text-[11px] font-semibold text-on-surface/85 hover:bg-dark-card"
                         onClick={() => setSelectedTransitionClip(undefined)}
                     >
                         Clear Selection

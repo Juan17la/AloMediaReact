@@ -47,8 +47,8 @@ const overlayStyle: CSSProperties = {
   gap: 12,
   width: "100%",
   height: "100%",
-  background: "var(--color-dark)",
-  color: "var(--color-accent-white)",
+  background: "var(--color-background)",
+  color: "var(--color-foreground)",
 }
 
 const titleStyle: CSSProperties = {
@@ -59,7 +59,7 @@ const titleStyle: CSSProperties = {
 
 const detailStyle: CSSProperties = {
   fontSize: 12,
-  color: "var(--color-muted)",
+  color: "var(--color-muted-foreground)",
   margin: 0,
   maxWidth: 400,
   textAlign: "center",
@@ -69,9 +69,9 @@ const buttonStyle: CSSProperties = {
   marginTop: 4,
   padding: "8px 16px",
   borderRadius: 8,
-  border: "1px solid rgba(255, 255, 255, 0.10)",
-  background: "rgba(255, 255, 255, 0.05)",
-  color: "rgba(255, 255, 255, 0.80)",
+  border: "1px solid var(--color-outline)",
+  background: "var(--color-surface-container)",
+  color: "var(--color-on-surface)",
   fontSize: 12,
   fontWeight: 600,
   cursor: "pointer",

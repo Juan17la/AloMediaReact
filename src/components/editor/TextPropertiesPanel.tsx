@@ -60,13 +60,13 @@ export function TextPropertiesPanel({ clipId }: TextPropertiesPanelProps) {
 
   const alignBtnBase =
     "flex items-center justify-center w-7 h-7 rounded-md border-0 cursor-pointer transition-[background,color] duration-100"
-  const alignBtnActive = "bg-[rgba(192,57,43,0.18)] text-[var(--color-accent-red)]"
-  const alignBtnInactive = "bg-transparent text-muted hover:bg-dark-card hover:text-accent-white"
+  const alignBtnActive = "bg-primary/15 text-primary"
+  const alignBtnInactive = "bg-transparent text-muted hover:bg-dark-card hover:text-on-surface"
 
   const toggleBtnBase =
     "flex items-center justify-center w-7 h-7 rounded-md border-0 cursor-pointer transition-[background,color] duration-100 font-[inherit]"
-  const toggleBtnActive = "bg-[rgba(192,57,43,0.18)] text-[var(--color-accent-red)]"
-  const toggleBtnInactive = "bg-transparent text-muted hover:bg-dark-card hover:text-accent-white"
+  const toggleBtnActive = "bg-primary/15 text-primary"
+  const toggleBtnInactive = "bg-transparent text-muted hover:bg-dark-card hover:text-on-surface"
 
   return (
     <div>
@@ -81,7 +81,7 @@ export function TextPropertiesPanel({ clipId }: TextPropertiesPanelProps) {
           onBlur={handleContentBlur}
           rows={3}
           placeholder="Enter text…"
-          className="w-full rounded-md bg-dark border border-dark-border text-accent-white text-sm p-2 resize-none outline-none focus:border-accent-red/50 focus:ring-1 focus:ring-accent-red/20 transition-all duration-150 font-[inherit] placeholder:text-muted-light"
+          className="w-full rounded-md bg-dark border border-dark-border text-on-surface text-sm p-2 resize-none outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all duration-150 font-[inherit] placeholder:text-muted-light"
         />
       </div>
 
@@ -97,11 +97,11 @@ export function TextPropertiesPanel({ clipId }: TextPropertiesPanelProps) {
           <select
             value={s.fontFamily}
             onChange={e => setStyle({ fontFamily: e.target.value })}
-            className="w-full rounded-md bg-dark border border-dark-border text-accent-white text-xs px-2 h-7 outline-none focus:border-accent-red/50 cursor-pointer appearance-none"
-            style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(26,26,31,0.45)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center" }}
+            className="w-full rounded-md bg-dark border border-dark-border text-on-surface text-xs px-2 h-7 outline-none focus:border-primary/50 cursor-pointer appearance-none"
+            style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(128,128,128,0.6)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center" }}
           >
             {TEXT_FONT_FAMILIES.map(f => (
-              <option key={f.value} value={f.value} style={{ fontFamily: f.value, background: "#1a1a1a" }}>
+              <option key={f.value} value={f.value} style={{ fontFamily: f.value, background: "var(--color-surface-container-lowest)" }}>
                 {f.label}
               </option>
             ))}
@@ -189,7 +189,7 @@ export function TextPropertiesPanel({ clipId }: TextPropertiesPanelProps) {
                 const v = e.target.value.trim()
                 if (/^#[0-9a-fA-F]{6}$/.test(v) || /^#[0-9a-fA-F]{3}$/.test(v)) setStyle({ color: v })
               }}
-              className="flex-1 h-7 rounded-md bg-dark border border-dark-border text-accent-white text-xs px-2 font-mono outline-none focus:border-accent-red/50"
+              className="flex-1 h-7 rounded-md bg-dark border border-dark-border text-on-surface text-xs px-2 font-mono outline-none focus:border-primary/50"
             />
             <button
               type="button"
@@ -219,8 +219,8 @@ export function TextPropertiesPanel({ clipId }: TextPropertiesPanelProps) {
               className={[
                 "flex-1 h-7 rounded-md border text-xs font-medium cursor-pointer transition-[background,border-color,color] duration-100",
                 s.backgroundColor
-                  ? "bg-[rgba(192,57,43,0.12)] border-[rgba(192,57,43,0.35)] text-accent-red"
-                  : "bg-dark border-dark-border text-muted hover:bg-dark-card hover:text-accent-white",
+                  ? "bg-primary/15 border-primary/35 text-primary"
+                  : "bg-dark border-dark-border text-muted hover:bg-dark-card hover:text-on-surface",
               ].join(" ")}
             >
               {s.backgroundColor ? "Enabled" : "None (transparent)"}

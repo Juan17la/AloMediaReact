@@ -4,16 +4,16 @@ interface UnsavedChangesModalProps {
 }
 
 const overlayClass =
-  "fixed inset-0 z-50 flex items-center justify-center bg-on-surface/20 backdrop-blur-sm"
+  "fixed inset-0 z-50 flex items-center justify-center bg-background/50 backdrop-blur-sm"
 
 const titleClass =
-  "text-lg font-bold tracking-[-0.02em] text-on-surface"
+  "text-lg font-bold tracking-tight text-foreground"
 
 const ghostBtn =
-  "rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2 text-sm text-on-surface/80 transition-all duration-100 hover:border-outline hover:bg-surface-container-low"
+  "rounded-md border border-border bg-primary/10 px-4 py-2 text-sm text-primary transition-all duration-100 hover:bg-primary/20 hover:text-primary"
 
 const primaryBtn =
-  "rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-100 hover:brightness-[0.96]"
+  "rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-all duration-100 hover:bg-primary/90"
 
 export function UnsavedChangesModal({ onLeave, onStay }: UnsavedChangesModalProps) {
   return (

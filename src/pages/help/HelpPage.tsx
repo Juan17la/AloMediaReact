@@ -6,6 +6,7 @@ import { HelpCircle, Search, ChevronDown, ChevronUp, BookOpen, MessageSquare } f
 import PageHeader from "../../components/common/PageHeader";
 import SectionCard from "../../components/common/SectionCard";
 import Footer from "../../components/common/Footer";
+import { GeometricBackground } from "../../components/GeometricBackground";
 
 interface FaqItem {
   q: string;
@@ -35,12 +36,7 @@ export default function HelpPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-surface text-on-surface">
-      {/* Light theme gradients */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(124,58,237,0.08)_0%,transparent_55%)] dark:hidden" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(99,14,212,0.06)_0%,transparent_55%)] dark:hidden" />
-      {/* Dark theme gradients */}
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_20%_10%,rgba(167,139,250,0.12)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_80%_90%,rgba(206,189,255,0.08)_0%,transparent_55%)]" />
+      <GeometricBackground />
 
       <main className="relative z-10 px-4 py-10 sm:px-8">
         <div className="max-w-3xl mx-auto space-y-5 animate-fade-in">
@@ -84,7 +80,7 @@ export default function HelpPage() {
                 filtered.map((faq, idx) => {
                   const isOpen = openFaq === idx;
                   return (
-                    <div key={idx} className="overflow-hidden rounded-lg border border-outline-variant">
+                    <div key={idx} className="overflow-hidden rounded-md border border-border">
                       <button
                         type="button"
                         onClick={() => setOpenFaq(isOpen ? null : idx)}
@@ -114,7 +110,7 @@ export default function HelpPage() {
             <p className="mb-3 text-sm text-muted-foreground">{t("help.needMoreHelpText")}</p>
             <Link
               to="/contact"
-              className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-surface-container px-4 py-2 text-sm font-semibold text-on-surface/70 transition-colors duration-150 hover:bg-surface-container-high"
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/20 hover:text-primary transition-colors duration-150"
             >
               <MessageSquare className="w-4 h-4" />
               {t("contact.title")}

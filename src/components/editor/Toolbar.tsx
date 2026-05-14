@@ -63,18 +63,18 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(26,26,31,0.10)]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/50"
       style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
       onPointerDown={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div className="modal-panel w-130">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold tracking-[-0.01em] text-accent-white">
+          <h2 className="text-base font-bold tracking-[-0.01em] text-foreground">
             Keyboard Shortcuts
           </h2>
           <button
             onClick={onClose}
-            className="flex items-center rounded-md border-0 bg-transparent p-1.5 text-muted cursor-pointer transition-[color,background] duration-100 hover:bg-dark-card hover:text-accent-white"
+            className="flex items-center rounded-md border-0 bg-transparent p-1.5 text-muted-foreground cursor-pointer transition-[color,background] duration-100 hover:bg-card hover:text-foreground"
           >
             <X size={14} />
           </button>
@@ -84,8 +84,8 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
             <div key={ci} className="flex flex-col gap-0.5">
               {col.map(({ keys, action }) => (
                 <div key={keys} className="flex items-center justify-between py-0.5">
-                  <span className="text-[13px] text-accent-white/80">{action}</span>
-                  <kbd className="ml-3 shrink-0 rounded-md border border-dark-border bg-dark-card px-2 py-0.5 font-mono text-[10px] text-accent-white/70">
+                  <span className="text-[13px] text-foreground/80">{action}</span>
+                  <kbd className="ml-3 shrink-0 rounded-md border border-border bg-card px-2 py-0.5 font-mono text-[10px] text-foreground/70">
                     {keys}
                   </kbd>
                 </div>
@@ -125,10 +125,10 @@ function ToolbarBtn({
   const btnClass = [
     "flex items-center justify-center w-7 h-7 shrink-0 rounded-md border-0 transition-[background-color,color] duration-100",
     disabled
-      ? "opacity-60 cursor-not-allowed text-muted bg-dark-card/45"
+      ? "opacity-60 cursor-not-allowed text-muted-foreground bg-card/45"
       : snapOn || active
-        ? "bg-[rgba(192,57,43,0.12)] text-accent-red cursor-pointer"
-        : "bg-transparent text-accent-white/75 hover:bg-dark-card hover:text-accent-white cursor-pointer",
+        ? "bg-destructive/10 text-destructive cursor-pointer"
+        : "bg-transparent text-foreground/70 hover:bg-card hover:text-foreground cursor-pointer",
   ].join(" ")
 
   return (
@@ -166,7 +166,7 @@ function TrackBtn({
       type="button"
       title={label}
       onClick={onClick}
-      className="flex h-7 shrink-0 items-center gap-1.25 rounded-md border-0 px-2 font-[inherit] text-[10px] font-semibold tracking-[0.04em] text-muted cursor-pointer transition-[background-color,color] duration-100 hover:bg-dark-card hover:text-accent-red"
+      className="flex h-7 shrink-0 items-center gap-1.25 rounded-md border-0 px-2 font-[inherit] text-[10px] font-semibold tracking-[0.04em] text-muted-foreground cursor-pointer transition-[background-color,color] duration-100 hover:bg-foreground/10 hover:text-foreground"
     >
       <span className="flex items-center w-3.5 h-3.5">
         {icon}
@@ -179,7 +179,7 @@ function TrackBtn({
 // Vertical divider between groups
 function GroupDivider() {
   return (
-    <div className="w-px h-5 mx-1.5 bg-dark-border shrink-0" />
+    <div className="w-px h-5 mx-1.5 bg-border shrink-0" />
   )
 }
 
@@ -290,10 +290,11 @@ export function Toolbar() {
   return (
     <>
       <div
-        className="flex items-center shrink-0 h-9 px-2 sticky top-0 z-10 overflow-hidden border-t border-t-white/9 border-b border-b-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_2px_8px_rgba(0,0,0,0.30)]"
+        className="flex items-center shrink-0 h-9 px-2 sticky top-0 z-10 overflow-hidden border-t border-white/10 border-b border-white/5 shadow-elevated"
         style={{
           backdropFilter: "blur(20px) saturate(140%)",
           WebkitBackdropFilter: "blur(20px) saturate(140%)",
+          backgroundColor: "color-mix(in srgb, var(--color-card) 80%, transparent)",
         }}
       >
         {/* Edit group */}
@@ -374,7 +375,7 @@ export function Toolbar() {
           onPointerCancel={clearZoomOut}
         />
         {/* Zoom percentage display */}
-        <div className="w-11 text-center text-[10px] font-mono text-accent-white/75 shrink-0">
+        <div className="w-11 text-center text-[10px] font-mono text-foreground/70 shrink-0">
           {zoomPercent}%
         </div>
         <ToolbarBtn

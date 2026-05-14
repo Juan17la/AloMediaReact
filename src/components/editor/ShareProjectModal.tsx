@@ -45,13 +45,13 @@ export function ShareProjectModal({ projectId, onClose }: ShareProjectModalProps
         className="modal-panel w-120 flex flex-col gap-5"
         onClick={e => e.stopPropagation()}
       >
-        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--color-on-surface)" }}>Share project</h2>
+        <h2 className="text-lg font-bold tracking-tight text-on-surface">Share project</h2>
         {success ? (
           <p className="text-sm text-primary">Project shared successfully.</p>
         ) : (
           <>
             <div className="flex flex-col gap-1.5">
-              <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted-foreground)" }}>Collaborator email</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Collaborator email</label>
               <input
                 autoFocus
                 type="email"
@@ -63,17 +63,17 @@ export function ShareProjectModal({ projectId, onClose }: ShareProjectModalProps
               />
               {error && <p className="text-xs text-error mt-1">{error}</p>}
             </div>
-            <div className="flex justify-end gap-2.5" style={{ marginTop: 8 }}>
+            <div className="flex justify-end gap-2.5 mt-2">
               <button
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg text-sm border border-outline-variant bg-surface-container-low text-on-surface/80 hover:border-outline hover:bg-surface-container transition-all"
+                className="px-4 py-2 rounded-md text-sm border border-border bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleShare}
                 disabled={isLoading || !email.trim()}
-                className="px-5 py-2 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:brightness-95 transition-all"
+                className="px-5 py-2 rounded-md text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50"
               >
                 {isLoading ? 'Sharing…' : 'Share'}
               </button>

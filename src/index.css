@@ -22,16 +22,16 @@
   --color-on-surface: #111c2d;
   --color-on-surface-variant: #4a4455;
 
-  /* Primary - Purple */
-  --color-primary: #630ed4;
+  /* Primary - Deeper, more professional purple */
+  --color-primary: #5a3db5;
   --color-primary-foreground: #ffffff;
   --color-primary-container: #7c3aed;
-  --color-on-primary-container: #ede0ff;
-  --color-inverse-primary: #d2bbff;
-  --color-primary-fixed: #eaddff;
-  --color-primary-fixed-dim: #d2bbff;
-  --color-on-primary-fixed: #25005a;
-  --color-on-primary-fixed-variant: #5a00c6;
+  --color-on-primary-container: #f3e8ff;
+  --color-inverse-primary: #c4a8ff;
+  --color-primary-fixed: #e8ddff;
+  --color-primary-fixed-dim: #c4a8ff;
+  --color-on-primary-fixed: #1e1040;
+  --color-on-primary-fixed-variant: #4a3090;
 
   /* Secondary - Cool Gray */
   --color-secondary: #5c5f61;
@@ -81,7 +81,7 @@
   --color-inverse-on-surface: #ecf1ff;
   --color-outline: #7b7487;
   --color-outline-variant: #ccc3d8;
-  --color-surface-tint: #732ee4;
+  --color-surface-tint: #5a3db5;
 
   /* Chart Colors */
   --color-chart-1: #7c3aed;
@@ -140,16 +140,16 @@
   --color-on-surface: #e6e0ea;
   --color-on-surface-variant: #cac4d4;
 
-  /* Primary - Lavender */
-  --color-primary: #cebdff;
-  --color-primary-foreground: #381385;
-  --color-primary-container: #a78bfa;
-  --color-on-primary-container: #3c1989;
-  --color-inverse-primary: #674bb5;
-  --color-primary-fixed: #e8ddff;
-  --color-primary-fixed-dim: #cebdff;
-  --color-on-primary-fixed: #21005e;
-  --color-on-primary-fixed-variant: #4f319c;
+  /* Primary - Muted lavender, less bright */
+  --color-primary: #b8a8e0;
+  --color-primary-foreground: #2d1f5e;
+  --color-primary-container: #6b4db5;
+  --color-on-primary-container: #e8dfff;
+  --color-inverse-primary: #8b72c9;
+  --color-primary-fixed: #e0d6f5;
+  --color-primary-fixed-dim: #b8a8e0;
+  --color-on-primary-fixed: #1a1333;
+  --color-on-primary-fixed-variant: #4a3890;
 
   /* Secondary - Blue Gray */
   --color-secondary: #b9c7e0;

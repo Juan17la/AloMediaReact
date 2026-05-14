@@ -34,7 +34,7 @@ export function AiToolsModal({ media, initialTool, onClose }: AiToolsModalProps)
         {/* Header - compact */}
         <div className="flex items-center justify-between gap-2 p-2.5 border-b border-dark-border/50 shrink-0">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-accent-white">AI Audio Tools</h2>
+            <h2 className="text-sm font-semibold text-on-surface">AI Audio Tools</h2>
             <p className="text-[10px] text-muted truncate">
               {media.name}
             </p>
@@ -43,7 +43,7 @@ export function AiToolsModal({ media, initialTool, onClose }: AiToolsModalProps)
             type="button"
             onClick={onClose}
             aria-label="Close AI tools"
-            className="h-6 w-6 rounded-md border border-dark-border bg-dark-card text-accent-white/70 flex items-center justify-center transition-all duration-100 hover:bg-dark-elevated hover:text-accent-white shrink-0"
+            className="h-6 w-6 rounded-md border border-dark-border bg-dark-card text-on-surface/70 flex items-center justify-center transition-all duration-100 hover:bg-dark-elevated hover:text-on-surface shrink-0"
           >
             <X size={14} />
           </button>

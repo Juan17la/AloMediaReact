@@ -47,7 +47,7 @@ export default function DashboardSidebar({
                 type="button"
                 title={t(labelKey)}
                 onClick={actionMap[onKey]}
-                className="flex h-10 w-10 items-center justify-center rounded-sm border border-dark-border bg-dark-card text-accent-white/65 transition-colors duration-200 hover:border-blood-red/30 hover:bg-dark-elevated hover:text-accent-white"
+                className="flex h-10 w-10 items-center justify-center rounded-sm border border-dark-border bg-dark-card text-accent-white/65 transition-colors duration-200 hover:border-primary/40 hover:bg-dark-elevated hover:text-accent-white"
               >
                 <Icon className="h-4 w-4" />
               </button>
@@ -78,7 +78,7 @@ export default function DashboardSidebar({
           <button
             type="button"
             onClick={onNewProject}
-            className="flex h-9 items-center gap-2 rounded-sm border border-blood-red/30 bg-blood-red/15 px-3 text-xs font-semibold text-accent-white"
+            className="flex h-9 items-center gap-2 rounded-sm border border-primary/30 bg-primary/15 px-3 text-xs font-semibold text-accent-white"
           >
             <Plus className="h-3.5 w-3.5" />
             {t("common:labels.new")}

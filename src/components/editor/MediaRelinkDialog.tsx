@@ -19,7 +19,7 @@ const sectionLabel =
   "text-[11px] font-semibold uppercase tracking-[0.06em] text-muted"
 
 const primaryBtn =
-  "flex-1 rounded-lg bg-[var(--color-accent-red)] px-0 py-2 text-xs font-semibold text-accent-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-100 hover:brightness-[0.96] disabled:cursor-not-allowed disabled:opacity-35"
+  "flex-1 rounded-lg bg-primary px-0 py-2 text-xs font-semibold text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-100 hover:brightness-[0.96] disabled:cursor-not-allowed disabled:opacity-35"
 
 const ghostBtn =
   "rounded-lg border border-dark-border bg-dark-card px-4 py-2 text-xs text-accent-white/80 transition-all duration-100 hover:border-dark-border-light hover:bg-dark-elevated"
@@ -31,13 +31,13 @@ function formatSize(bytes: number): string {
 
 function TypeLabel({ type }: { type: Media["type"] }) {
   const typeClass: Record<Media["type"], string> = {
-    video: "bg-sky-900/70",
-    audio: "bg-emerald-900/70",
-    image: "bg-amber-900/70",
-    subtitles: "bg-purple-900/70",
+    video: "bg-primary/15 text-primary border border-primary/20",
+    audio: "bg-success/15 text-success border border-success/20",
+    image: "bg-warning/15 text-warning border border-warning/20",
+    subtitles: "bg-secondary/15 text-secondary border border-secondary/20",
   }
   return (
-    <span className={`shrink-0 rounded px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-accent-white/85 ${typeClass[type]}`}>
+    <span className={`shrink-0 rounded px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] ${typeClass[type]}`}>
       {type}
     </span>
   )
@@ -146,7 +146,7 @@ export function MediaRelinkDialog({ onClose }: Props) {
                 className={`flex items-center gap-2.5 border-b border-b-dark-border px-5 py-1.75 ${isMatched ? "opacity-60" : "opacity-100"}`}
               >
                 {/* Status dot */}
-                <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${isMatched ? "bg-emerald-400" : "bg-rose-400"}`} />
+                <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${isMatched ? "bg-success" : "bg-error"}`} />
 
                 {/* File info */}
                 <div className="min-w-0 flex-1">
@@ -161,7 +161,7 @@ export function MediaRelinkDialog({ onClose }: Props) {
                 <TypeLabel type={m.type} />
 
                 {isMatched && (
-                  <span className="shrink-0 text-[10px] text-emerald-400">Matched</span>
+                  <span className="shrink-0 text-[10px] text-success">Matched</span>
                 )}
               </div>
             )
@@ -170,7 +170,7 @@ export function MediaRelinkDialog({ onClose }: Props) {
 
         {/* Unrecognized file warning */}
         {unrecognized.length > 0 && (
-          <div className="mx-5 mt-2 rounded-lg border border-[rgba(220,60,60,0.30)] bg-[rgba(127,29,29,0.30)] px-3 py-2 text-[11px] text-rose-400">
+          <div className="mx-5 mt-2 rounded-lg border border-error/30 bg-error-container px-3 py-2 text-[11px] text-on-error-container">
             Not part of this project: {unrecognized.slice(0, 3).join(", ")}
             {unrecognized.length > 3 && ` +${unrecognized.length - 3} more`}
           </div>

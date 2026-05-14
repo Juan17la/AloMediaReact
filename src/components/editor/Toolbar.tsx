@@ -290,7 +290,7 @@ export function Toolbar() {
   return (
     <>
       <div
-        className="flex items-center shrink-0 h-9 px-2 sticky top-0 z-10 overflow-hidden border-t border-white/10 border-b border-white/5 shadow-elevated"
+        className="flex items-center shrink-0 h-9 px-2 sticky top-0 z-10 overflow-hidden border-t border-outline/30 border-b border-outline/15 shadow-elevated"
         style={{
           backdropFilter: "blur(20px) saturate(140%)",
           WebkitBackdropFilter: "blur(20px) saturate(140%)",

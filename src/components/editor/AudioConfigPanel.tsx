@@ -17,10 +17,10 @@ const muteButtonBase =
   "bg-transparent border-none rounded-md p-1.5 transition-[color,background] duration-120 cursor-pointer flex items-center"
 
 const muteButtonActive =
-  "text-[var(--color-accent-red)]"
+  "text-error"
 
 const muteButtonInactive =
-  "text-muted hover:text-accent-white"
+  "text-muted hover:text-on-surface"
 
 function formatBalance(v: number): string {
   if (Math.abs(v) <= 0.001) return "C"

@@ -420,9 +420,9 @@ export function MediaLibrary() {
                 key={item.id}
                 className={[
                   "min-w-0 h-auto self-start overflow-hidden relative rounded-lg transition-shadow duration-120",
-                  isSelected
-                    ? "ring-1 ring-primary shadow-[0_0_0_1px_rgba(99,14,212,0.35)]"
-                    : "",
+                    isSelected
+                      ? "ring-1 ring-primary ring-offset-1"
+                      : "",
                 ].join(" ")}
                 onClick={() =>
                   setSelectedMediaId(isSelected ? null : item.id)
@@ -444,7 +444,7 @@ export function MediaLibrary() {
                 {idbResolvedMediaIds.has(item.id) && (
                   <div
                     title="Loaded from local cache"
-                    className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-green-400 pointer-events-none"
+                    className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-success pointer-events-none"
                   />
                 )}
               </div>

@@ -189,8 +189,8 @@ export default function ProfilePage() {
 
               {success && (
                 <div className="flex items-center gap-1.5 pl-1 animate-slide-up">
-                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <p className="text-xs text-emerald-500">{t("profile.updateSuccess")}</p>
+                <Check className="w-3.5 h-3.5 text-success shrink-0" />
+                <p className="text-xs text-success">{t("profile.updateSuccess")}</p>
                 </div>
               )}
 
@@ -218,8 +218,8 @@ export default function ProfilePage() {
             <p className="mb-4 text-sm text-muted-foreground">{t("profile.securityDescription")}</p>
             {passwordRequested ? (
               <div className="flex items-center gap-1.5 animate-slide-up">
-                <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <p className="text-xs text-emerald-500">Recovery email sent. Check your inbox.</p>
+                <Check className="w-3.5 h-3.5 text-success shrink-0" />
+                <p className="text-xs text-success">Recovery email sent. Check your inbox.</p>
               </div>
             ) : (
               <button

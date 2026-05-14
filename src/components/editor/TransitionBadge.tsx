@@ -17,10 +17,10 @@ const badgeBase = [
 ].join(" ")
 
 const badgeSelected =
-    "bg-primary/85 border-primary text-on-primary shadow-[0_0_0_2px_rgba(99,14,212,0.35)]"
+    "bg-primary/65 border-primary text-on-primary ring-2 ring-primary/35"
 
 const badgeUnselected =
-    "bg-surface-container-high/85 border-outline-variant text-on-surface hover:bg-primary/85 hover:border-primary hover:text-on-primary"
+    "bg-surface-container-high/85 border-outline-variant text-on-surface hover:bg-primary/65 hover:border-primary hover:text-on-primary"
 
 export function TransitionBadge({ clipId, transition, left, position, isSelected, onSelect }: TransitionBadgeProps) {
     const posLabel = position === "in" ? "in" : "out"

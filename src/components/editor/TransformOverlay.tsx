@@ -132,7 +132,7 @@ export function TransformOverlay({ clip, previewWidth, previewHeight, onUpdate, 
       <div
         onMouseDown={handleMoveMouseDown}
         onClick={e => e.stopPropagation()}
-        className="pointer-events-auto absolute box-border border border-accent-red cursor-move"
+        className="pointer-events-auto absolute box-border border border-primary cursor-move"
         style={{
           left: sx,
           top: sy,
@@ -152,7 +152,7 @@ export function TransformOverlay({ clip, previewWidth, previewHeight, onUpdate, 
           y1={sy}
           x2={rotHandleX}
           y2={rotHandleY}
-          stroke="var(--color-accent-red)"
+          stroke="var(--color-primary)"
           strokeWidth={1}
         />
       </svg>
@@ -161,7 +161,7 @@ export function TransformOverlay({ clip, previewWidth, previewHeight, onUpdate, 
       <div
         onMouseDown={handleRotateMouseDown}
         onClick={e => e.stopPropagation()}
-        className="pointer-events-auto absolute box-border h-1.5 w-1.5 cursor-grab border border-accent-red bg-accent-white"
+        className="pointer-events-auto absolute box-border h-1.5 w-1.5 cursor-grab border border-primary bg-on-surface"
         style={{
           left: rotHandleX - 3,
           top: rotHandleY - 3,
@@ -175,7 +175,7 @@ export function TransformOverlay({ clip, previewWidth, previewHeight, onUpdate, 
           key={corner}
           onMouseDown={handleCornerMouseDown(corner)}
           onClick={e => e.stopPropagation()}
-          className="pointer-events-auto absolute box-border h-2 w-2 border border-accent-red bg-accent-white"
+          className="pointer-events-auto absolute box-border h-2 w-2 border border-primary bg-on-surface"
           style={{ left: x, top: y, cursor }}
         />
       ))}

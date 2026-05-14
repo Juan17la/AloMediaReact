@@ -15,9 +15,9 @@ interface PrimaryButtonProps {
 // Used at render time as sizeStyles[size] to select the correct class string
 // without any conditional branch or loop — O(1) key access.
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: "py-2 px-4 text-sm",
-  md: "py-2.5 px-5 text-sm",
-  lg: "py-3 px-7 text-sm",
+  sm: "h-8 px-3.5 text-xs",
+  md: "h-9 px-4.5 text-sm",
+  lg: "h-10 px-6 text-sm",
 };
 
 export default function PrimaryButton({
@@ -31,7 +31,7 @@ export default function PrimaryButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-2 bg-linear-to-r from-primary to-primary-container hover:brightness-[0.95] active:scale-[0.97] active:brightness-[0.9] text-primary-foreground font-semibold rounded-xl transition-all duration-150 ease-out shadow-md shadow-primary/20 cursor-pointer ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 active:scale-[0.97] text-primary-foreground font-semibold rounded-lg transition-all duration-150 ease-out cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${sizeStyles[size]} ${className}`}
     >
       {Icon && <Icon className="w-4 h-4" />}
       {children}

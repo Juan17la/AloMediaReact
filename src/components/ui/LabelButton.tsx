@@ -11,9 +11,9 @@ interface LabelButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>
 }
 
 const BTN_SIZE = {
-  sm: "h-7 px-3 text-xs gap-1.5",
-  md: "h-8 px-4 text-sm gap-2",
-  lg: "h-9 px-5 text-sm gap-2",
+  sm: "h-8 px-3.5 text-xs gap-1.5",
+  md: "h-9 px-4 text-sm gap-2",
+  lg: "h-10 px-5 text-sm gap-2",
 } as const
 
 const ICON_SIZE = {
@@ -45,7 +45,7 @@ export function LabelButton({
       type="button"
       disabled={loading || disabled}
       className={[
-        "editor-transition inline-flex items-center font-semibold rounded-lg cursor-pointer",
+        "editor-transition inline-flex items-center font-semibold rounded-md cursor-pointer",
         "active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100",
         BTN_SIZE[size],
         VARIANT[variant],

@@ -12,8 +12,8 @@ interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
 
 const BTN_SIZE = {
   sm: "w-8 h-8",
-  md: "w-9 h-9",
-  lg: "w-10 h-10",
+  md: "h-9 w-9",
+  lg: "h-10 w-10",
 } as const
 
 const ICON_SIZE = {
@@ -46,7 +46,7 @@ export function IconButton({
       aria-label={label}
       title={label}
       className={[
-        "editor-transition inline-flex items-center justify-center shrink-0 rounded-md cursor-pointer",
+        "editor-transition inline-flex items-center justify-center shrink-0 rounded-lg cursor-pointer",
         "active:scale-[0.93] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100",
         BTN_SIZE[size],
         ICON_SIZE[size],

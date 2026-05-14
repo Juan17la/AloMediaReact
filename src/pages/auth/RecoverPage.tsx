@@ -89,7 +89,7 @@ export default function RecoverPage() {
         <p className="text-muted-foreground text-sm max-w-xs">{validationError}</p>
         <Link
           to="/auth/recover/request"
-          className="text-primary hover:text-primary-foreground font-bold text-sm transition-colors duration-150 mt-2"
+          className="text-primary hover:text-primary/80 font-bold text-sm transition-colors duration-150 mt-2"
         >
           {t("reset.requestNewLink")}
         </Link>
@@ -107,7 +107,7 @@ export default function RecoverPage() {
         </p>
         <Link
           to="/auth/login"
-          className="text-primary hover:text-primary-foreground font-bold text-sm transition-colors duration-150 mt-2"
+          className="text-primary hover:text-primary/80 font-bold text-sm transition-colors duration-150 mt-2"
         >
           {t("reset.signIn")}
         </Link>
@@ -195,7 +195,7 @@ export default function RecoverPage() {
         <button
           type="submit"
           disabled={isPending}
-          className="w-full bg-linear-to-r from-primary to-primary-container text-primary-foreground font-semibold py-3.5 rounded-lg text-sm tracking-wide cursor-pointer hover:brightness-95 active:scale-[0.98] transition-all disabled:opacity-50"
+          className="w-full bg-primary text-primary-foreground font-semibold py-3.5 rounded-md text-sm tracking-wide cursor-pointer hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
         >
           {isPending ? t("reset.submitting") : t("reset.submit")}
         </button>

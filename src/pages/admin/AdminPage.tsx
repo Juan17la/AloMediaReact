@@ -7,6 +7,7 @@ import PageHeader from "../../components/common/PageHeader";
 import SectionCard from "../../components/common/SectionCard";
 import StatsCard from "../../components/admin/StatsCard";
 import Footer from "../../components/common/Footer";
+import { GeometricBackground } from "../../components/GeometricBackground";
 
 interface AdminStats {
   totalUsers: number;
@@ -84,12 +85,7 @@ export default function AdminPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-hidden bg-surface text-on-surface">
-      {/* Light theme gradients */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(124,58,237,0.08)_0%,transparent_55%)] dark:hidden" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_80%_90%,rgba(99,14,212,0.06)_0%,transparent_55%)] dark:hidden" />
-      {/* Dark theme gradients */}
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_20%_10%,rgba(167,139,250,0.12)_0%,transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_80%_90%,rgba(206,189,255,0.08)_0%,transparent_55%)]" />
+      <GeometricBackground />
 
       <main className="relative z-10 flex-1 px-4 py-10 sm:px-8">
         <div className="mx-auto max-w-4xl space-y-5">
@@ -130,7 +126,7 @@ export default function AdminPage() {
                   <button
                     type="button"
                     onClick={handleDownloadCSV}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container px-3 py-1.5 text-xs font-semibold text-on-surface/70 hover:bg-surface-container-high transition-colors duration-150"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 hover:text-primary transition-colors duration-150"
                   >
                     <FileDown className="w-3.5 h-3.5" />
                     {t("admin.downloadCSV")}

@@ -11,10 +11,10 @@ const overlayClass =
   "fixed inset-0 z-50 flex items-center justify-center modal-glass-card"
 
 const ghostBtn =
-  "rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2 text-sm text-on-surface/80 transition-all duration-100 hover:border-outline hover:bg-surface-container transition-all"
+  "rounded-md border border-border bg-primary/10 px-4 py-2 text-sm text-primary transition-all duration-100 hover:bg-primary/20 hover:text-primary"
 
 const primaryBtn =
-  "rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-100 hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-35"
+  "rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-all duration-100 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
 
 export function SaveProjectModal({ initialName, onConfirm, onCancel, isSaving }: SaveProjectModalProps) {
   const [name, setName] = useState(initialName)
@@ -33,9 +33,9 @@ export function SaveProjectModal({ initialName, onConfirm, onCancel, isSaving }:
         className="modal-panel w-120 flex flex-col gap-5"
         onClick={e => e.stopPropagation()}
       >
-        <h2 style={{ fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em", color: "var(--color-on-surface)" }}>Save project</h2>
+        <h2 className="text-lg font-bold tracking-tight text-on-surface">Save project</h2>
         <div className="flex flex-col gap-1.5">
-          <label style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-muted-foreground)" }}>Project name</label>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Project name</label>
           <input
             autoFocus
             value={name}

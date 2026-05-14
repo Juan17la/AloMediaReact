@@ -49,15 +49,11 @@ export function Dropdown({ trigger, items, align = "left" }: DropdownProps) {
             alignCls,
             "flex flex-col overflow-hidden",
             "z-30 min-w-40 dropdown-enter",
+            "bg-popover border border-border rounded-lg shadow-md p-1.5",
           ].join(" ")}
           style={{
-            background: "rgba(12, 13, 16, 0.95)",
             backdropFilter: "blur(24px) saturate(150%)",
             WebkitBackdropFilter: "blur(24px) saturate(150%)",
-            border: "1px solid rgba(255, 255, 255, 0.10)",
-            borderRadius: 10,
-            padding: 6,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.45), 0 16px 32px rgba(0,0,0,0.35)",
           }}
         >
           {items.map((item, i) => (
@@ -69,14 +65,7 @@ export function Dropdown({ trigger, items, align = "left" }: DropdownProps) {
                 item.onClick()
                 setOpen(false)
               }}
-              className="editor-transition flex items-center gap-2 px-3 py-2 text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed w-full [&>svg]:w-4 [&>svg]:h-4 [&>svg]:shrink-0"
-              style={{
-                borderRadius: 6,
-                fontSize: 13,
-                color: "rgba(255, 255, 255, 0.80)",
-              }}
-              onMouseEnter={e => { (e.currentTarget).style.background = "rgba(255, 255, 255, 0.08)"; (e.currentTarget).style.color = "rgba(255, 255, 255, 1.0)" }}
-              onMouseLeave={e => { (e.currentTarget).style.background = "transparent"; (e.currentTarget).style.color = "rgba(255, 255, 255, 0.80)" }}
+              className="editor-transition flex items-center gap-2 px-3 py-2 text-left text-sm text-popover-foreground rounded-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed w-full hover:bg-accent hover:text-accent-foreground [&>svg]:w-4 [&>svg]:h-4 [&>svg]:shrink-0"
             >
               {item.icon}
               {item.label}

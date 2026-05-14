@@ -193,18 +193,18 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
 
         {/* Status Messages - inline compact */}
         {status === "success" && resultName && (
-          <div className="flex items-start gap-2 px-2 py-2 bg-green-500/10 border border-green-500/30 rounded-md">
-            <CheckCircle2 size={14} className="text-green-400 shrink-0 mt-0" />
+          <div className="flex items-start gap-2 px-2 py-2 bg-success/10 border border-success/30 rounded-md">
+            <CheckCircle2 size={14} className="text-success shrink-0 mt-0" />
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] text-green-300 font-medium">Success</p>
-              <p className="text-[10px] text-green-400/70 break-all">{resultName}</p>
+              <p className="text-[11px] text-success font-medium">Success</p>
+              <p className="text-[10px] text-success/70 break-all">{resultName}</p>
             </div>
           </div>
         )}
         {status === "error" && errorMsg && (
-          <div className="flex items-start gap-2 px-2 py-2 bg-red-500/10 border border-red-500/30 rounded-md">
-            <AlertCircle size={14} className="text-red-400 shrink-0 mt-0" />
-            <p className="text-[11px] text-red-300 leading-snug flex-1">{errorMsg}</p>
+          <div className="flex items-start gap-2 px-2 py-2 bg-error/10 border border-error/30 rounded-md">
+            <AlertCircle size={14} className="text-error shrink-0 mt-0" />
+            <p className="text-[11px] text-error leading-snug flex-1">{errorMsg}</p>
           </div>
         )}
       </div>
@@ -214,7 +214,7 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
         <button
           onClick={handleRun}
           disabled={isProcessing}
-          className="w-full flex items-center justify-center gap-1.5 h-8 rounded-md text-[12px] font-semibold bg-accent-red text-accent-white disabled:opacity-60 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98] transition-all duration-100 cursor-pointer"
+          className="w-full flex items-center justify-center gap-1.5 h-8 rounded-md text-[12px] font-semibold bg-primary text-primary-foreground disabled:opacity-60 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98] transition-all duration-100 cursor-pointer"
         >
           {isProcessing ? (
             <>
@@ -254,8 +254,8 @@ function ToolTab({ active, disabled, onClick, icon, label }: ToolTabProps) {
       className={[
         "flex items-center justify-center gap-1.5 flex-1 h-7 px-2 rounded-md text-[11px] font-medium transition-all duration-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
         active
-          ? "bg-accent-red text-accent-white shadow-sm"
-          : "text-muted hover:text-accent-white hover:bg-dark-card",
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "text-muted hover:text-on-surface hover:bg-dark-card",
       ].join(" ")}
     >
       {icon}

@@ -51,6 +51,7 @@ export function useMediaSync({
   const proxyMapRef = useRef(proxyMap)
   const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map())
   const prevActiveAudioIdsRef = useRef<Set<string>>(new Set())
+  const audioPlayStartPhRef = useRef<Map<string, number>>(new Map())
   const isMutedRef = useRef(isMuted)
   const volumeRef = useRef(volume)
 
@@ -212,6 +213,7 @@ export function useMediaSync({
         resolvedTransitions,
         isMutedRef.current,
         volumeRef.current,
+        audioPlayStartPhRef.current,
       )
     }
 

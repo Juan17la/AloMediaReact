@@ -629,6 +629,72 @@ export function PreviewPlayer() {
               }
             }
             if (!selectedClip) return null
+
+            // For text-only groups in group-edit mode, sync transform changes to all members.
+            const textOnlyGroupMembers = (() => {
+              if (!groupEditGroupId) return null
+              const group = project.clipGroups?.find(g => g.id === groupEditGroupId)
+              if (!group) return null
+              const members: string[] = []
+              for (const id of group.memberClipIds) {
+                for (const track of project.tracks) {
+                  const c = track.clips.find(c => c.id === id)
+                  if (c) {
+                    if (c.type !== "text") return null
+                    members.push(id)
+                    break
+                  }
+                }
+              }
+              return members.length > 1 && members.includes(selectedClipId) ? members : null
+            })()
+
+            if (textOnlyGroupMembers) {
+              return (
+                <TransformOverlay
+                  clip={selectedClip}
+                  previewWidth={previewSize.width}
+                  previewHeight={previewSize.height}
+                  onUpdate={t => {
+                    const store = useEditorStore.getState()
+                    const latestProject = store.project
+                    let currentT: Transform | undefined
+                    for (const track of latestProject.tracks) {
+                      const c = track.clips.find(c => c.id === selectedClipId)
+                      if (c && "transform" in c) { currentT = c.transform; break }
+                    }
+                    if (!currentT) return
+                    const dx = (t.x ?? currentT.x) - currentT.x
+                    const dy = (t.y ?? currentT.y) - currentT.y
+                    const dw = (t.width ?? currentT.width) - currentT.width
+                    const dh = (t.height ?? currentT.height) - currentT.height
+                    const dr = (t.rotation ?? currentT.rotation) - currentT.rotation
+                    const updates = textOnlyGroupMembers.map(id => {
+                      for (const track of latestProject.tracks) {
+                        const c = track.clips.find(c => c.id === id)
+                        if (c && "transform" in c) {
+                          const ct = c.transform
+                          return {
+                            clipId: id,
+                            transform: {
+                              x: ct.x + dx,
+                              y: ct.y + dy,
+                              width: Math.max(20, ct.width + dw),
+                              height: Math.max(20, ct.height + dh),
+                              rotation: ct.rotation + dr,
+                            },
+                          }
+                        }
+                      }
+                      return null
+                    }).filter(Boolean) as Array<{ clipId: string; transform: Partial<Transform> }>
+                    store.updateClipTransformsBatch(updates)
+                  }}
+                  onCommit={commitTransformsBatch}
+                />
+              )
+            }
+
             return (
               <TransformOverlay
                 clip={selectedClip}

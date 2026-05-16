@@ -369,6 +369,27 @@ export function PreviewPlayer() {
     }) as TextClip | undefined
 
     if (hit && selectedGroupId && groupEditGroupId !== selectedGroupId) {
+      const group = project.clipGroups?.find(g => g.id === selectedGroupId)
+      const isTextOnlyGroup = group && group.memberClipIds.every(id => {
+        for (const track of project.tracks) {
+          const c = track.clips.find(c => c.id === id)
+          if (c) return c.type === "text"
+        }
+        return false
+      })
+
+      if (isTextOnlyGroup) {
+        // For text-only groups, double-click goes directly to individual editing
+        enterGroupEditMode(selectedGroupId)
+        setSelectedClip(hit.id)
+        editingDoneRef.current = false
+        setEditingTextClipId(hit.id)
+        setEditingContent(hit.content)
+        setEditingOriginalContent(hit.content)
+        pause()
+        return
+      }
+
       enterGroupEditMode(selectedGroupId)
       return
     }

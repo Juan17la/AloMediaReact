@@ -23,7 +23,10 @@ interface TextPropertiesPanelProps {
 
 export function TextPropertiesPanel({ clipId }: TextPropertiesPanelProps) {
   const updateTextClip = useEditorStore(s => s.updateTextClip)
+  const updateTextClipsBatch = useEditorStore(s => s.updateTextClipsBatch)
   const pushHistory = useEditorStore(s => s.pushHistory)
+  const project = useEditorStore(s => s.project)
+  const groupEditGroupId = useEditorStore(s => s.groupEditGroupId)
 
   const clip = useEditorStore(s => {
     for (const track of s.project.tracks) {
@@ -40,8 +43,31 @@ export function TextPropertiesPanel({ clipId }: TextPropertiesPanelProps) {
 
   const s = clip.style ?? DEFAULT_TEXT_STYLE
 
+  function getTextOnlyGroupMemberIds(): string[] | null {
+    const group = (project.clipGroups ?? []).find(g => g.memberClipIds.includes(clipId))
+    if (!group) return null
+    if (groupEditGroupId === group.id) return null
+    const members: string[] = []
+    for (const id of group.memberClipIds) {
+      for (const track of project.tracks) {
+        const c = track.clips.find(c => c.id === id)
+        if (c) {
+          if (c.type !== "text") return null
+          members.push(id)
+          break
+        }
+      }
+    }
+    return members.length > 1 ? members : null
+  }
+
   function setStyle(updates: Partial<TextStyle>) {
-    updateTextClip(clipId, { style: updates })
+    const groupMemberIds = getTextOnlyGroupMemberIds()
+    if (groupMemberIds) {
+      updateTextClipsBatch(groupMemberIds.map(id => ({ clipId: id, style: updates })))
+    } else {
+      updateTextClip(clipId, { style: updates })
+    }
     const wasPlaying = pushHistory("Update text style")
     void wasPlaying
   }

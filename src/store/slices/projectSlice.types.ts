@@ -36,6 +36,7 @@ export interface ProjectSlice {
   setClipTransitionOut: (clipId: string, transition: ClipTransition | undefined) => void
   setClipSpeed: (clipId: string, speed: number) => void
   updateTextClip: (clipId: string, updates: { content?: string; style?: Partial<TextStyle> }) => void
+  updateTextClipsBatch: (updates: Array<{ clipId: string; style: Partial<TextStyle> }>) => void
   extractAudioFromClip: (clipId: string) => void
   removeMedia: (mediaId: string) => void
   setMissingMediaIds: (ids: Set<string>) => void
@@ -76,4 +77,5 @@ export type ProjectClipPropertyActions = Pick<ProjectSlice,
   | "setClipTransitionOut"
   | "setClipSpeed"
   | "updateTextClip"
+  | "updateTextClipsBatch"
 >

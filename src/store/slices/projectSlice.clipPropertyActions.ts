@@ -83,6 +83,28 @@ export const createProjectClipPropertyActions: StateCreator<EditorStore, [], [],
     renderSingleFrame()
   },
 
+  updateTextClipsBatch(updates) {
+    if (updates.length === 0) return
+    const updateMap = new Map(updates.map(item => [item.clipId, item.style]))
+    set(state => ({
+      project: {
+        ...state.project,
+        tracks: state.project.tracks.map(track => ({
+          ...track,
+          clips: track.clips.map(clip => {
+            const stylePatch = updateMap.get(clip.id)
+            if (!stylePatch || clip.type !== "text") return clip
+            return {
+              ...clip,
+              style: { ...(clip.style ?? {}), ...stylePatch },
+            }
+          }),
+        })),
+      },
+    }))
+    renderSingleFrame()
+  },
+
   updateClipColorAdjustments(clipId, adjustments) {
     const wasPlaying = get().pushHistory("Color adjustment")
     set(state => ({

@@ -250,7 +250,7 @@ function buildVideoSegmentFiltersForXfadeChain(
 export function buildFilterGraph(
   job: RenderJob,
   fileNames: Map<string, string>,
-  options: { skipVideoAudio?: boolean; disableTransitions?: boolean } = {},
+  options: { skipVideoAudio?: boolean; disableTransitions?: boolean; forceVideoOutput?: boolean } = {},
 ): FilterGraphResult {
   const { width: W, height: H } = job.resolution
   const fps = job.fps
@@ -271,14 +271,34 @@ export function buildFilterGraph(
   const audioOnlySegments = job.segments.filter(s => s.type === 'audio')
 
   const hasVideo = visualSegments.length > 0
+  const effectiveHasVideo = hasVideo || options.forceVideoOutput
   // Audio exists if there are audio-only clips OR video clips (which carry audio)
   const hasAudio = audioOnlySegments.length > 0 || visualSegments.some(s => s.type === 'video')
 
-  if (!hasVideo && !hasAudio) {
+  if (!effectiveHasVideo && !hasAudio) {
     return { baseArgs: [], inputs: [], filterComplex: '', videoOutputLabel: null, audioOutputLabel: null }
   }
 
-  const baseArgs: string[] = hasVideo
+  // FAST PATH: Single full-screen visual segment with no overlays.
+  // This avoids base canvas + overlay for the common case of one video/image at full screen.
+  const isSingleFullscreenVisual =
+    visualSegments.length === 1 &&
+    !options.disableTransitions &&
+    (() => {
+      const seg = visualSegments[0]
+      const t = seg.transform
+      if (!t) return false
+      const fillsCanvas =
+        t.x === 0 && t.y === 0 &&
+        t.width >= compositionWidth && t.height >= compositionHeight
+      const spansFullDuration =
+        seg.timelineStart <= 0.001 && seg.timelineEnd >= duration - 0.001
+      return fillsCanvas && spansFullDuration
+    })()
+
+  const useFastPath = isSingleFullscreenVisual && !options.forceVideoOutput
+
+  const baseArgs: string[] = effectiveHasVideo && !useFastPath
     ? ['-f', 'lavfi', '-i', `color=c=black:s=${compositionWidth}x${compositionHeight}:d=${duration}:r=${fps}`]
     : []
 
@@ -295,7 +315,7 @@ export function buildFilterGraph(
   const filterParts: string[] = []
   // Tracks audio labels actually generated; used to set audioOutputLabel correctly.
   const audioLabels: string[] = []
-  const xfadeChains = options.disableTransitions || !hasVideo ? [] : buildXfadeChains(visualSegments)
+  const xfadeChains = options.disableTransitions || !effectiveHasVideo ? [] : buildXfadeChains(visualSegments)
   // Canonical transition windows are absolute timeline values; for incoming
   // crossfade clips we shift audio start to overlapStartS so audio and video
   // transition windows remain aligned.
@@ -312,45 +332,113 @@ export function buildFilterGraph(
   }
 
   // Video filter chains
-  if (hasVideo) {
-    // Input 0 = base canvas (from baseArgs)
-    // Inputs 1..P = visual segments, in compositing order (bg first)
-    for (let i = 0; i < visualSegments.length; i++) {
-      const seg = visualSegments[i]
+  if (effectiveHasVideo) {
+    // FAST PATH: Single full-screen visual segment — skip base canvas + overlay entirely.
+    if (useFastPath) {
+      const seg = visualSegments[0]
       inputs.push(buildInputArg(seg))
-    }
-
-    type OverlaySource = {
-      label: string
-      timelineStart: number
-      timelineEnd: number
-      trackOrder: number
-      x: number
-      y: number
-    }
-
-    const chainedIndexes = new Set<number>()
-    const overlaySources: OverlaySource[] = []
-    for (let chainIdx = 0; chainIdx < xfadeChains.length; chainIdx++) {
-      const chain = xfadeChains[chainIdx]
-      const outgoingHandleByIndex = new Map<number, number>()
-      for (const boundary of chain.boundaries) {
-        const prev = outgoingHandleByIndex.get(boundary.fromSegmentIndex) ?? 0
-        outgoingHandleByIndex.set(boundary.fromSegmentIndex, Math.max(prev, boundary.duration))
+      const inputFilePath = fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}`
+      const segFilters = buildVideoSegmentFilters(seg, W, H, fps, inputFilePath)
+      // Replace the final scale/pad with direct output scaling (seg already fills canvas)
+      const finalFilters = segFilters.filter(f => !f.startsWith('scale=') && !f.startsWith('pad='))
+      finalFilters.push(`scale=${W}:${H}:force_original_aspect_ratio=decrease:flags=bicubic`)
+      finalFilters.push(`pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black`)
+      finalFilters.push('format=yuv420p')
+      filterParts.push(`[0:v]${finalFilters.join(',')}[vout_final]`)
+    } else {
+      // Input 0 = base canvas (from baseArgs)
+      // Inputs 1..P = visual segments, in compositing order (bg first)
+      for (let i = 0; i < visualSegments.length; i++) {
+        const seg = visualSegments[i]
+        inputs.push(buildInputArg(seg))
       }
 
-      // The last segment in a chain is only used as the second input to the final xfade.
-      // It still needs tail padding equal to that final overlap, otherwise the composed
-      // stream ends early and the base canvas shows black after the last transition.
-      if (chain.boundaries.length > 0) {
-        const lastBoundary = chain.boundaries[chain.boundaries.length - 1]
-        const prev = outgoingHandleByIndex.get(lastBoundary.toSegmentIndex) ?? 0
-        outgoingHandleByIndex.set(lastBoundary.toSegmentIndex, Math.max(prev, lastBoundary.duration))
+      type OverlaySource = {
+        label: string
+        timelineStart: number
+        timelineEnd: number
+        trackOrder: number
+        x: number
+        y: number
       }
 
-      for (const idx of chain.segmentIndexes) {
-        const seg = visualSegments[idx]
-        const inputIdx = idx + 1
+      const chainedIndexes = new Set<number>()
+      const overlaySources: OverlaySource[] = []
+      for (let chainIdx = 0; chainIdx < xfadeChains.length; chainIdx++) {
+        const chain = xfadeChains[chainIdx]
+        const outgoingHandleByIndex = new Map<number, number>()
+        for (const boundary of chain.boundaries) {
+          const prev = outgoingHandleByIndex.get(boundary.fromSegmentIndex) ?? 0
+          outgoingHandleByIndex.set(boundary.fromSegmentIndex, Math.max(prev, boundary.duration))
+        }
+
+        // The last segment in a chain is only used as the second input to the final xfade.
+        // It still needs tail padding equal to that final overlap, otherwise the composed
+        // stream ends early and the base canvas shows black after the last transition.
+        if (chain.boundaries.length > 0) {
+          const lastBoundary = chain.boundaries[chain.boundaries.length - 1]
+          const prev = outgoingHandleByIndex.get(lastBoundary.toSegmentIndex) ?? 0
+          outgoingHandleByIndex.set(lastBoundary.toSegmentIndex, Math.max(prev, lastBoundary.duration))
+        }
+
+        for (const idx of chain.segmentIndexes) {
+          const seg = visualSegments[idx]
+          const inputIdx = idx + 1
+          const t = seg.transform
+          const canvasW = Math.max(1, Math.round(t?.width ?? CANVAS_WIDTH))
+          const canvasH = Math.max(1, Math.round(t?.height ?? CANVAS_HEIGHT))
+          const canvasX = Math.round(t?.x ?? 0)
+          const canvasY = Math.round(t?.y ?? 0)
+          const inputFilePath = fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}`
+
+          const prepLabel = `xprep_${idx}`
+          const prepFilters = buildVideoSegmentFiltersForXfadeChain(
+            seg,
+            canvasW,
+            canvasH,
+            canvasX,
+            canvasY,
+            fps,
+            inputFilePath,
+            compositionWidth,
+            compositionHeight,
+            outgoingHandleByIndex.get(idx) ?? 0,
+          )
+          filterParts.push(`[${inputIdx}:v]${prepFilters.join(',')}[${prepLabel}]`)
+          chainedIndexes.add(idx)
+        }
+
+        let currentLabel = `xprep_${chain.segmentIndexes[0]}`
+        for (let b = 0; b < chain.boundaries.length; b++) {
+          const boundary = chain.boundaries[b]
+          const nextLabel = `xprep_${boundary.toSegmentIndex}`
+          const outLabel = b === chain.boundaries.length - 1 ? `xchain_${chainIdx}` : `xchain_${chainIdx}_${b}`
+          const transition = resolveCanonicalTransitionType(boundary.transition.type).entry.exportMapping.ffmpegXfade
+
+          filterParts.push(
+            `[${currentLabel}][${nextLabel}]xfade=transition=${transition}:duration=${boundary.duration}:offset=${boundary.offset},format=rgba[${outLabel}]`,
+          )
+          currentLabel = outLabel
+        }
+
+        overlaySources.push({
+          label: `[${currentLabel}]`,
+          timelineStart: chain.timelineStart,
+          timelineEnd: chain.timelineEnd,
+          trackOrder: chain.trackOrder,
+          x: 0,
+          y: 0,
+        })
+      }
+
+      let lastVideoLabel = '0:v'
+
+      for (let i = 0; i < visualSegments.length; i++) {
+        if (chainedIndexes.has(i)) continue
+
+        const seg = visualSegments[i]
+        const inputIdx = i + 1 // +1 because input 0 is base canvas
+
         const t = seg.transform
         const canvasW = Math.max(1, Math.round(t?.width ?? CANVAS_WIDTH))
         const canvasH = Math.max(1, Math.round(t?.height ?? CANVAS_HEIGHT))
@@ -358,108 +446,61 @@ export function buildFilterGraph(
         const canvasY = Math.round(t?.y ?? 0)
         const inputFilePath = fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}`
 
-        const prepLabel = `xprep_${idx}`
-        const prepFilters = buildVideoSegmentFiltersForXfadeChain(
-          seg,
-          canvasW,
-          canvasH,
-          canvasX,
-          canvasY,
-          fps,
-          inputFilePath,
-          compositionWidth,
-          compositionHeight,
-          outgoingHandleByIndex.get(idx) ?? 0,
-        )
-        filterParts.push(`[${inputIdx}:v]${prepFilters.join(',')}[${prepLabel}]`)
-        chainedIndexes.add(idx)
+        const segFilters = buildVideoSegmentFilters(seg, canvasW, canvasH, fps, inputFilePath)
+        const vLabel = `v${i}`
+        filterParts.push(`[${inputIdx}:v]${segFilters.join(',')}[${vLabel}]`)
+
+        overlaySources.push({
+          label: `[${vLabel}]`,
+          timelineStart: seg.timelineStart,
+          timelineEnd: seg.timelineEnd,
+          trackOrder: seg.trackOrder,
+          x: canvasX,
+          y: canvasY,
+        })
       }
 
-      let currentLabel = `xprep_${chain.segmentIndexes[0]}`
-      for (let b = 0; b < chain.boundaries.length; b++) {
-        const boundary = chain.boundaries[b]
-        const nextLabel = `xprep_${boundary.toSegmentIndex}`
-        const outLabel = b === chain.boundaries.length - 1 ? `xchain_${chainIdx}` : `xchain_${chainIdx}_${b}`
-        const transition = resolveCanonicalTransitionType(boundary.transition.type).entry.exportMapping.ffmpegXfade
+      overlaySources.sort((a, b) => {
+        const orderDiff = b.trackOrder - a.trackOrder
+        return orderDiff !== 0 ? orderDiff : a.timelineStart - b.timelineStart
+      })
 
+      for (let i = 0; i < overlaySources.length; i++) {
+        const source = overlaySources[i]
+
+        const outLabel = i === overlaySources.length - 1 ? 'vout' : `comp${i}`
         filterParts.push(
-          `[${currentLabel}][${nextLabel}]xfade=transition=${transition}:duration=${boundary.duration}:offset=${boundary.offset},format=rgba[${outLabel}]`,
+          `[${lastVideoLabel}]${source.label}overlay=x=${source.x}:y=${source.y}:eof_action=pass:enable='between(t,${source.timelineStart},${source.timelineEnd})'[${outLabel}]`,
         )
-        currentLabel = outLabel
+        lastVideoLabel = outLabel
       }
 
-      overlaySources.push({
-        label: `[${currentLabel}]`,
-        timelineStart: chain.timelineStart,
-        timelineEnd: chain.timelineEnd,
-        trackOrder: chain.trackOrder,
-        x: 0,
-        y: 0,
-      })
-    }
-
-    let lastVideoLabel = '0:v'
-
-    for (let i = 0; i < visualSegments.length; i++) {
-      if (chainedIndexes.has(i)) continue
-
-      const seg = visualSegments[i]
-      const inputIdx = i + 1 // +1 because input 0 is base canvas
-
-      const t = seg.transform
-      const canvasW = Math.max(1, Math.round(t?.width ?? CANVAS_WIDTH))
-      const canvasH = Math.max(1, Math.round(t?.height ?? CANVAS_HEIGHT))
-      const canvasX = Math.round(t?.x ?? 0)
-      const canvasY = Math.round(t?.y ?? 0)
-      const inputFilePath = fileNames.get(seg.mediaId) ?? `media_${seg.mediaId}`
-
-      const segFilters = buildVideoSegmentFilters(seg, canvasW, canvasH, fps, inputFilePath)
-      const vLabel = `v${i}`
-      filterParts.push(`[${inputIdx}:v]${segFilters.join(',')}[${vLabel}]`)
-
-      overlaySources.push({
-        label: `[${vLabel}]`,
-        timelineStart: seg.timelineStart,
-        timelineEnd: seg.timelineEnd,
-        trackOrder: seg.trackOrder,
-        x: canvasX,
-        y: canvasY,
-      })
-    }
-
-    overlaySources.sort((a, b) => {
-      const orderDiff = b.trackOrder - a.trackOrder
-      return orderDiff !== 0 ? orderDiff : a.timelineStart - b.timelineStart
-    })
-
-    for (let i = 0; i < overlaySources.length; i++) {
-      const source = overlaySources[i]
-
-      const outLabel = i === overlaySources.length - 1 ? 'vout' : `comp${i}`
-      filterParts.push(
-        `[${lastVideoLabel}]${source.label}overlay=x=${source.x}:y=${source.y}:eof_action=pass:enable='between(t,${source.timelineStart},${source.timelineEnd})'[${outLabel}]`,
-      )
-      lastVideoLabel = outLabel
+      // Ensure final composed video stream has a pixel format compatible with
+      // common encoders (e.g. libx264 expects yuv420p). Intermediate image
+      // overlays keep alpha (rgba) so PNG transparency is preserved during
+      // composition; convert to the requested output resolution after all overlays
+      // are applied so preview-space transforms are preserved without stretching.
+      if (overlaySources.length === 0) {
+        // No overlays (forceVideoOutput with no visual segments) — scale base canvas directly
+        filterParts.push(
+          `[0:v]scale=${W}:${H}:force_original_aspect_ratio=decrease:flags=bicubic,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[vout_final]`,
+        )
+      } else {
+        filterParts.push(
+          `[vout]scale=${W}:${H}:force_original_aspect_ratio=decrease:flags=bicubic,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[vout_final]`,
+        )
+      }
     }
   }
 
-  // Ensure final composed video stream has a pixel format compatible with
-  // common encoders (e.g. libx264 expects yuv420p). Intermediate image
-  // overlays keep alpha (rgba) so PNG transparency is preserved during
-  // composition; convert to the requested output resolution after all overlays
-  // are applied so preview-space transforms are preserved without stretching.
-  let videoOutputLabel: string | null = hasVideo ? '[vout]' : null
-  if (hasVideo) {
-    filterParts.push(
-      `[vout]scale=${W}:${H}:force_original_aspect_ratio=decrease:flags=bicubic,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black,format=yuv420p[vout_final]`,
-    )
-    videoOutputLabel = '[vout_final]'
-  }
+  let videoOutputLabel: string | null = effectiveHasVideo ? '[vout_final]' : null
 
   // Audio filter chains
   if (hasAudio) {
     // Audio-only segment inputs start after visual segment inputs
-    const audioOnlyOffset = hasVideo ? visualSegments.length + 1 : 0
+    const audioOnlyOffset = effectiveHasVideo
+      ? (useFastPath ? 1 : visualSegments.length + 1)
+      : 0
 
     // Audio from video clips (share the same input index as the visual segment).
     // Skipped when skipVideoAudio=true (fallback for video files with no audio stream).
@@ -468,7 +509,7 @@ export function buildFilterGraph(
         const seg = visualSegments[i]
         if (seg.type !== 'video') continue // images have no audio stream
 
-        const inputIdx = hasVideo ? i + 1 : i
+        const inputIdx = useFastPath ? 0 : (effectiveHasVideo ? i + 1 : i)
         const aLabel = `av${i}`
         const effectiveStart = effectiveAudioStartMap.get(i) ?? seg.timelineStart
         const aFilters = buildAudioSegmentFilters(seg, effectiveStart)
@@ -489,7 +530,10 @@ export function buildFilterGraph(
       audioLabels.push(`[${aLabel}]`)
     }
 
-    if (audioLabels.length > 0) {
+    if (audioLabels.length === 1) {
+      // Single audio source — no need for amix, just rename the label
+      filterParts.push(`${audioLabels[0]}anull[aout]`)
+    } else if (audioLabels.length > 1) {
       filterParts.push(
         `${audioLabels.join('')}amix=inputs=${audioLabels.length}:normalize=0[aout]`,
       )

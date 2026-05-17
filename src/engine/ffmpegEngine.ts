@@ -9,11 +9,13 @@ export function getFFmpeg(): FFmpeg {
 
 export async function loadFFmpeg(): Promise<void> {
   if (ffmpeg.loaded) return
-  const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/esm"
+  console.log("[ffmpegEngine] Loading single-threaded core...")
+  const baseURL = new URL("/ffmpeg-core-st/", location.href).href
   await ffmpeg.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
+    coreURL: await toBlobURL(`${baseURL}ffmpeg-core.js`, "text/javascript"),
+    wasmURL: await toBlobURL(`${baseURL}ffmpeg-core.wasm`, "application/wasm"),
   })
+  console.log("[ffmpegEngine] Single-threaded core loaded.")
 }
 
 export async function execFFmpeg(args: string[]): Promise<void> {

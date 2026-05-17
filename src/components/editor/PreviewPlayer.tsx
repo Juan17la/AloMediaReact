@@ -175,6 +175,8 @@ export function PreviewPlayer() {
     if (el) { el.focus(); el.select() }
   }, [editingTextClipId])
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null)
+  const marqueeRef = useRef(marquee)
+  marqueeRef.current = marquee
   const marqueeJustCompletedRef = useRef(false)
 
   const secondaryVideoElemsRef = useRef<Map<string, HTMLVideoElement>>(new Map())
@@ -447,35 +449,43 @@ export function PreviewPlayer() {
 
     const onMove = (ev: MouseEvent) => {
       const next = toCanvasCoordinates(ev.clientX, ev.clientY)
-      setMarquee(curr => (curr ? { ...curr, x2: next.x, y2: next.y } : null))
+      setMarquee(curr => {
+        const updated = curr ? { ...curr, x2: next.x, y2: next.y } : null
+        marqueeRef.current = updated
+        return updated
+      })
     }
 
     const onUp = () => {
       document.removeEventListener("mousemove", onMove)
       document.removeEventListener("mouseup", onUp)
       marqueeJustCompletedRef.current = true
-      setMarquee(curr => {
-        if (!curr) return null
-        const x1 = Math.min(curr.x1, curr.x2)
-        const x2 = Math.max(curr.x1, curr.x2)
-        const y1 = Math.min(curr.y1, curr.y2)
-        const y2 = Math.max(curr.y1, curr.y2)
-        const selected = activeClips
-          .filter((clip): clip is VideoClip | ImageClip | TextClip => clip.type !== "audio")
-          .filter(clip => {
-            const t = clip.transform
-            const cx1 = t.x
-            const cx2 = t.x + t.width
-            const cy1 = t.y
-            const cy2 = t.y + t.height
-            return cx1 < x2 && cx2 > x1 && cy1 < y2 && cy2 > y1
-          })
-          .map(clip => clip.id)
+      const curr = marqueeRef.current
+      setMarquee(null)
+      marqueeRef.current = null
 
-        if (selected.length === 0) clearClipSelection()
-        else setSelectedClips(selected)
-        return null
-      })
+      if (!curr) {
+        clearClipSelection()
+        return
+      }
+      const x1 = Math.min(curr.x1, curr.x2)
+      const x2 = Math.max(curr.x1, curr.x2)
+      const y1 = Math.min(curr.y1, curr.y2)
+      const y2 = Math.max(curr.y1, curr.y2)
+      const selected = activeClips
+        .filter((clip): clip is VideoClip | ImageClip | TextClip => clip.type !== "audio")
+        .filter(clip => {
+          const t = clip.transform
+          const cx1 = t.x
+          const cx2 = t.x + t.width
+          const cy1 = t.y
+          const cy2 = t.y + t.height
+          return cx1 < x2 && cx2 > x1 && cy1 < y2 && cy2 > y1
+        })
+        .map(clip => clip.id)
+
+      if (selected.length === 0) clearClipSelection()
+      else setSelectedClips(selected)
     }
 
     document.addEventListener("mousemove", onMove)

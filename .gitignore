@@ -26,3 +26,7 @@ dist-ssr
 .claude/settings.local.json
 .agents
 skills-lock.json
+
+# ffmpeg.wasm core files copied by postinstall
+public/ffmpeg-core/
+public/ffmpeg-core-st/

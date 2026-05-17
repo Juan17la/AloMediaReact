@@ -7,6 +7,7 @@ import { estimateTimeRemaining } from "./exportProgress"
 import { isFfmpegTerminateError, safeMediaFileName } from "./ffmpegUtils"
 import { EXPORT_FORMAT_PROFILES } from "../constants/exportFormats"
 import { buildTextClipFileName, renderTextClipToPngBytes } from "./textClipRenderer"
+import { runChunkedExport } from "./chunkedExport"
 
 type TextClipRenderSource = Parameters<typeof renderTextClipToPngBytes>[0] & { clipId: string }
 
@@ -86,6 +87,12 @@ export async function runExport(
 
     const pct = Math.round(((i + 1) / uniqueMediaIds.length) * 15)
     onProgress({ stage: 'writing-files', percent: pct, secondsRemaining: null })
+  }
+
+  // For long timelines, use chunked export to avoid massive filter-graph init times.
+  const CHUNK_THRESHOLD_SECONDS = 60
+  if (job.projectDuration > CHUNK_THRESHOLD_SECONDS) {
+    return runChunkedExport(ffmpeg, job, fileNames, written, onProgress, signal)
   }
 
   // Stage: building-graph (15–20%)
@@ -255,7 +262,7 @@ export async function runExport(
   return result
 }
 
-function buildExecArgs(
+export function buildExecArgs(
   graph: ReturnType<typeof buildFilterGraph>,
   job: RenderJob,
   outputFile: string,

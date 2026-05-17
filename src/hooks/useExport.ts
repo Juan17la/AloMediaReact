@@ -1,12 +1,6 @@
 import { useState, useRef } from "react"
-import { useEditorStore, fileMap } from "../store/editorStore"
-import { buildRenderJob } from "../engine/renderPipeline"
-import type { ExportOptions } from "../engine/renderPipeline"
-import { loadFFmpeg, getFFmpeg } from "../engine/ffmpegEngine"
-import { runExport } from "../engine/exportOrchestrator"
 import type { ExportProgress } from "../engine/exportProgress"
-import { isFfmpegTerminateError } from "../engine/ffmpegUtils"
-import { EXPORT_FORMAT_PROFILES } from "../constants/exportFormats"
+import type { ExportOptions } from "../engine/renderPipeline"
 
 export interface UseExportReturn {
   startExport: (options: ExportOptions) => void
@@ -35,50 +29,10 @@ export function useExport(): UseExportReturn {
     return true
   }
 
-  async function startExport(options: ExportOptions) {
-    if (isExporting) return
-
-    // Clear stale terminal state from a previous export session.
-    setProgress(null)
-
-    const controller = new AbortController()
-    abortControllerRef.current = controller
-
-    setIsExporting(true)
-    setProgress({ stage: 'writing-files', percent: 0, secondsRemaining: null })
-
-    try {
-      const project = useEditorStore.getState().project
-      const job = buildRenderJob(project, fileMap, options)
-
-      await loadFFmpeg()
-      const ffmpeg = getFFmpeg()
-
-      const output = await runExport(ffmpeg, job, fileMap, setProgress, controller.signal)
-
-      const mimeType = EXPORT_FORMAT_PROFILES[options.outputFormat].mimeType
-      const safeData = new Uint8Array(output)
-      const blob = new Blob([safeData], { type: mimeType })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = options.outputFileName
-      a.click()
-
-      // Keep blob URL alive long enough for slow browsers/large downloads.
-      setTimeout(() => URL.revokeObjectURL(url), 300_000)
-    } catch (err) {
-      if ((err instanceof DOMException && err.name === 'AbortError') || isFfmpegTerminateError(err)) {
-        // setProgress({ stage: 'error', percent: 0, secondsRemaining: null, errorMessage: 'Export cancelled' })
-        setProgress(null)
-      } else {
-        const msg = err instanceof Error ? err.message : String(err)
-        setProgress({ stage: 'error', percent: 0, secondsRemaining: null, errorMessage: msg })
-      }
-    } finally {
-      setIsExporting(false)
-      abortControllerRef.current = null
-    }
+  async function startExport(_options: ExportOptions) {
+    // Export feature has been removed.
+    // This function intentionally does nothing so the UI button has no effect.
+    return
   }
 
   return { startExport, cancelExport, resetExportState, progress, isExporting }

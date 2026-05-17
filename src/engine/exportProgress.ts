@@ -5,17 +5,6 @@ export interface ExportProgress {
   errorMessage?: string
 }
 
-export function estimateTimeRemaining(
-  startedAt: number,
-  encodingPercent: number,
-): number | null {
-  if (encodingPercent < 5) return null
-  const elapsed = (Date.now() - startedAt) / 1000
-  const rate = encodingPercent / 100
-  const total = elapsed / rate
-  return Math.round(total - elapsed)
-}
-
 export function formatTimeRemaining(seconds: number): string {
   if (seconds < 60) return `~${seconds}s`
   const m = Math.floor(seconds / 60)

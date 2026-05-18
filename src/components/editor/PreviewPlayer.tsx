@@ -601,7 +601,7 @@ export function PreviewPlayer() {
                       overflow: "hidden",
                       pointerEvents: "none",
                       userSelect: "none",
-                      lineHeight: 1.25,
+                      lineHeight: s.lineHeight ?? 1.25,
                       outline: selectedIdSet.has(clip.id) ? "2px solid var(--color-error)" : undefined,
                     }}
                   >
@@ -778,7 +778,7 @@ export function PreviewPlayer() {
                   opacity: s.opacity,
                   fontWeight: s.bold ? "bold" : "normal",
                   fontStyle: s.italic ? "italic" : "normal",
-                  lineHeight: 1.25,
+                  lineHeight: s.lineHeight ?? 1.25,
                   resize: "none",
                   outline: "2px solid var(--color-error)",
                   outlineOffset: "-2px",

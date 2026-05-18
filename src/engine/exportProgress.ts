@@ -1,8 +1,12 @@
+import type { JobStatus } from "./exportPipeline/types"
+
 export interface ExportProgress {
-  stage: 'writing-files' | 'building-graph' | 'encoding' | 'reading-output' | 'cleanup' | 'done' | 'error'
+  stage: JobStatus
   percent: number
   secondsRemaining: number | null
   errorMessage?: string
+  framesProcessed?: number
+  framesTotal?: number
 }
 
 export function formatTimeRemaining(seconds: number): string {

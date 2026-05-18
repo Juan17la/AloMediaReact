@@ -69,6 +69,7 @@ function isIdentityColor(adj: RenderSegment["colorAdjustments"]): boolean {
 export function buildFilterGraph(
   plan: RenderPlan,
   probeResults: Map<string, MediaProbeResult>,
+  textImageNames?: Map<string, string>,
 ): FilterGraphResult {
   const { segments, transitions, outputTarget } = plan
   const { width: targetW, height: targetH } = outputTarget.resolution
@@ -96,11 +97,22 @@ export function buildFilterGraph(
     (s) => s.type === "audio" || (s.type === "video" && hasAudioStream(s)),
   )
 
-  // Deduplicate media IDs (skip text — no file input needed)
+  // Deduplicate media IDs.
+  // For text segments: if textImageNames is provided and contains this seg's image,
+  // treat it as an image input; otherwise skip (drawtext fallback, not available in WASM).
   const uniqueMediaIds: string[] = []
   const seenMediaIds = new Set<string>()
   for (const seg of segments) {
-    if (seg.type === "text") continue
+    if (seg.type === "text") {
+      if (textImageNames && textImageNames.has(seg.id)) {
+        const textMediaId = seg.mediaId
+        if (!seenMediaIds.has(textMediaId)) {
+          seenMediaIds.add(textMediaId)
+          uniqueMediaIds.push(textMediaId)
+        }
+      }
+      continue
+    }
     if (seenMediaIds.has(seg.mediaId)) continue
     seenMediaIds.add(seg.mediaId)
     uniqueMediaIds.push(seg.mediaId)
@@ -112,18 +124,17 @@ export function buildFilterGraph(
   for (const mediaId of uniqueMediaIds) {
     const matchingSegments = segments.filter((s) => s.mediaId === mediaId)
     const seg = matchingSegments[0]
+    const isTextImage = seg.type === "text" && textImageNames?.has(seg.id)
+    const isImage = isTextImage || matchingSegments.some((s) => s.type === "image")
     const probe = probeResults.get(mediaId)
-    const isImage = matchingSegments.some((s) => s.type === "image")
     const isAudioOnly = matchingSegments.every((s) => s.type === "audio")
-    const fileName = mediaFileNames.get(mediaId) ?? `media_${mediaId}.mp4`
+    const fileName = mediaFileNames.get(mediaId) ?? (isTextImage && textImageNames ? textImageNames.get(seg.id)! : `media_${mediaId}.mp4`)
     const hasVideo = !isAudioOnly
     const hasAudio = isImage ? false : (isAudioOnly ? true : (probe?.audioCodec !== null && probe?.audioCodec !== undefined))
 
     inputIndexByMediaId.set(mediaId, inputIndex)
 
     if (isImage) {
-      // Use the maximum duration across all segments referencing this image,
-      // so that split copies don't run out of frames.
       const maxDuration = Math.max(...matchingSegments.map((s) => segmentDuration(s)))
       inputArgs.push("-loop", "1", "-t", maxDuration.toFixed(3), "-i", fileName)
     } else {
@@ -149,7 +160,7 @@ export function buildFilterGraph(
   const audioRefCount = new Map<string, number>()
 
   for (const seg of videoSegments) {
-    if (seg.type === "text") continue
+    if (seg.type === "text" && !(textImageNames?.has(seg.id))) continue
     videoRefCount.set(seg.mediaId, (videoRefCount.get(seg.mediaId) ?? 0) + 1)
   }
   for (const seg of audioSegments) {
@@ -224,25 +235,43 @@ export function buildFilterGraph(
 
   for (const seg of videoSegments) {
     const outLabel = nextLabel("segv")
-    const sourceLabel = getVideoSourceLabel(seg.mediaId)
 
     if (seg.type === "text") {
       const dur = segmentDuration(seg)
-      const drawtextFilter = buildDrawtextFilter(seg, scaleX, scaleY)
-      if (drawtextFilter) {
-        filterParts.push(
-          `color=black@0:s=${targetW}x${targetH}:d=${dur.toFixed(3)}:rate=${targetFps},format=rgba,${drawtextFilter},setpts=PTS-STARTPTS,fps=${targetFps},setsar=1:1[${outLabel}]`,
+
+      if (textImageNames?.has(seg.id)) {
+        const sourceLabel = getVideoSourceLabel(seg.mediaId)
+        const filters: string[] = []
+        filters.push("format=rgba", "setpts=PTS-STARTPTS")
+        filters.push(
+          `scale=${targetW}:${targetH}:force_original_aspect_ratio=decrease,pad=${targetW}:${targetH}:(ow-iw)/2:(oh-ih)/2:color=black@0`,
+          `fps=${targetFps},setpts=PTS-STARTPTS,setsar=1:1`,
         )
+
+        if (filters.length > 0) {
+          filterParts.push(`[${sourceLabel}]${filters.join(",")}[${outLabel}]`)
+        } else {
+          segVideoLabels.set(seg.id, sourceLabel)
+          continue
+        }
       } else {
-        filterParts.push(
-          `color=black@0:s=${targetW}x${targetH}:d=${dur.toFixed(3)}:rate=${targetFps},format=rgba,setpts=PTS-STARTPTS,fps=${targetFps},setsar=1:1[${outLabel}]`,
-        )
+        const drawtextFilter = buildDrawtextFilter(seg, scaleX, scaleY)
+        if (drawtextFilter) {
+          filterParts.push(
+            `color=black@0:s=${targetW}x${targetH}:d=${dur.toFixed(3)}:rate=${targetFps},format=rgba,${drawtextFilter},setpts=PTS-STARTPTS,fps=${targetFps},setsar=1:1[${outLabel}]`,
+          )
+        } else {
+          filterParts.push(
+            `color=black@0:s=${targetW}x${targetH}:d=${dur.toFixed(3)}:rate=${targetFps},format=rgba,setpts=PTS-STARTPTS,fps=${targetFps},setsar=1:1[${outLabel}]`,
+          )
+        }
       }
       segVideoLabels.set(seg.id, outLabel)
       continue
     }
 
     const probe = probeResults.get(seg.mediaId)
+    const sourceLabel = getVideoSourceLabel(seg.mediaId)
     const filters: string[] = []
 
     // Convert to RGBA for alpha-channel compositing between layers.
@@ -597,16 +626,22 @@ for (const seg of videoSegments) {
   }
 }
 
+function escapeDrawtextContent(text: string): string {
+  let s = text
+  s = s.replace(/\\/g, "\\\\")
+  s = s.replace(/'/g, "\\'")
+  return s
+}
+
 function buildDrawtextFilter(seg: RenderSegment, scaleX: number, scaleY: number): string | null {
   if (!seg.content || seg.type !== "text") return null
 
   const s = seg.style
   if (!s) return null
 
-  const text = seg.content.replace(/'/g, "'\\''")
+  const text = escapeDrawtextContent(seg.content)
   const fontSize = Math.round(s.fontSize * Math.min(scaleX, scaleY))
   const fontColor = s.color ?? "#ffffff"
-  // Convert hex color to FFmpeg 0xRRGGBB format
   const ffmpegColor = fontColor.startsWith("#")
     ? fontColor.replace("#", "0x")
     : fontColor
@@ -617,7 +652,6 @@ function buildDrawtextFilter(seg: RenderSegment, scaleX: number, scaleY: number)
   const sw = Math.round(t.width * scaleX)
   const sh = Math.round(t.height * scaleY)
 
-  // Horizontal alignment: drawtext text_align uses left/center/right
   const align = s.textAlign ?? "center"
   let xExpr: string
   if (align === "left") {
@@ -627,12 +661,10 @@ function buildDrawtextFilter(seg: RenderSegment, scaleX: number, scaleY: number)
   } else {
     xExpr = `${px} + (${sw} - text_w)/2`
   }
-  // Vertical center within the bounding box
   const yExpr = `${py} + (${sh} - text_h)/2`
 
   const alpha = s.opacity ?? 1
 
-  // Build drawtext filter
   const parts: string[] = [
     `drawtext=text='${text}'`,
     `fontsize=${fontSize}`,
@@ -640,18 +672,15 @@ function buildDrawtextFilter(seg: RenderSegment, scaleX: number, scaleY: number)
     `x=${xExpr}`,
     `y=${yExpr}`,
     `alpha=${alpha}`,
+    `expansion=none`,
   ]
 
-  // Background box
   if (s.backgroundColor) {
     const bgColor = s.backgroundColor.startsWith("#")
       ? s.backgroundColor.replace("#", "0x")
       : s.backgroundColor
     parts.push(`box=1`, `boxcolor=${bgColor}`)
   }
-
-  // Bold/italic via expansion (limited FFmpeg support)
-  if (s.bold) parts.push(`expansion=normal`)
 
   return parts.join(":")
 }

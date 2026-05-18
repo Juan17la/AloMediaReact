@@ -5,6 +5,7 @@ import { buildFilterGraph } from "./filterGraphBuilder"
 import { buildWasmCommand } from "./commandBuilder"
 import { stageProgress } from "./progressTracker"
 import { analyzeStreamCopyOpportunities } from "./streamCopyAnalyzer"
+import { renderTextSegmentsToPngs } from "./textRenderer"
 
 // The copy-ffmpeg-core.cjs script copies the multi-threaded core files to
 // public/ffmpeg-core/  (NOT /ffmpeg-core-mt/).
@@ -103,6 +104,29 @@ export async function executeWasmExport(
 
     onProgress(stageProgress("planning", 12, 0, plan.estimatedTotalFrames))
 
+    const textSegments = plan.segments.filter((s) => s.type === "text")
+    const textImageNames = new Map<string, string>()
+
+    if (textSegments.length > 0) {
+      const { width, height } = plan.outputTarget.resolution
+      const textPngs = await renderTextSegmentsToPngs(textSegments, width, height)
+
+      for (const [segId, blob] of textPngs) {
+        const seg = textSegments.find((s) => s.id === segId)!
+        const fileName = `text_${segId}.png`
+        const data = new Uint8Array(await blob.arrayBuffer())
+        await ffmpeg.writeFile(fileName, data)
+        writtenFiles.add(fileName)
+
+        const mediaId = seg.mediaId
+        if (!plan.mediaFileNames.has(mediaId)) {
+          plan.mediaFileNames.set(mediaId, fileName)
+        }
+
+        textImageNames.set(segId, fileName)
+      }
+    }
+
     const outputFileName = `output_${Date.now()}.${plan.outputTarget.format}`
 
     let command: string[]
@@ -118,7 +142,7 @@ export async function executeWasmExport(
       command.push(outputFileName)
       console.log("[exportEngine] Stream-copy fast path: single clip, no modifications")
     } else {
-      const graph = buildFilterGraph(plan, probeResults)
+      const graph = buildFilterGraph(plan, probeResults, textImageNames)
       command = buildWasmCommand(graph, plan, outputFileName)
       console.log("[exportEngine] Full encode path. Filter graph length:", graph.filterComplex.length)
     }

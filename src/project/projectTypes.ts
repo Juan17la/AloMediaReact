@@ -148,6 +148,7 @@ export interface TextStyle {
   opacity: number                           // 0.0 to 1.0, default 1
   bold: boolean                             // default false
   italic: boolean                           // default false
+  lineHeight?: number                       // line height ratio, default 1.25
 }
 
 export interface TextClip extends BaseClip {

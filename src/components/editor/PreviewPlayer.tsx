@@ -175,6 +175,8 @@ export function PreviewPlayer() {
     if (el) { el.focus(); el.select() }
   }, [editingTextClipId])
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null)
+  const marqueeRef = useRef(marquee)
+  marqueeRef.current = marquee
   const marqueeJustCompletedRef = useRef(false)
 
   const secondaryVideoElemsRef = useRef<Map<string, HTMLVideoElement>>(new Map())
@@ -369,6 +371,27 @@ export function PreviewPlayer() {
     }) as TextClip | undefined
 
     if (hit && selectedGroupId && groupEditGroupId !== selectedGroupId) {
+      const group = project.clipGroups?.find(g => g.id === selectedGroupId)
+      const isTextOnlyGroup = group && group.memberClipIds.every(id => {
+        for (const track of project.tracks) {
+          const c = track.clips.find(c => c.id === id)
+          if (c) return c.type === "text"
+        }
+        return false
+      })
+
+      if (isTextOnlyGroup) {
+        // For text-only groups, double-click goes directly to individual editing
+        enterGroupEditMode(selectedGroupId)
+        setSelectedClip(hit.id)
+        editingDoneRef.current = false
+        setEditingTextClipId(hit.id)
+        setEditingContent(hit.content)
+        setEditingOriginalContent(hit.content)
+        pause()
+        return
+      }
+
       enterGroupEditMode(selectedGroupId)
       return
     }
@@ -426,35 +449,43 @@ export function PreviewPlayer() {
 
     const onMove = (ev: MouseEvent) => {
       const next = toCanvasCoordinates(ev.clientX, ev.clientY)
-      setMarquee(curr => (curr ? { ...curr, x2: next.x, y2: next.y } : null))
+      setMarquee(curr => {
+        const updated = curr ? { ...curr, x2: next.x, y2: next.y } : null
+        marqueeRef.current = updated
+        return updated
+      })
     }
 
     const onUp = () => {
       document.removeEventListener("mousemove", onMove)
       document.removeEventListener("mouseup", onUp)
       marqueeJustCompletedRef.current = true
-      setMarquee(curr => {
-        if (!curr) return null
-        const x1 = Math.min(curr.x1, curr.x2)
-        const x2 = Math.max(curr.x1, curr.x2)
-        const y1 = Math.min(curr.y1, curr.y2)
-        const y2 = Math.max(curr.y1, curr.y2)
-        const selected = activeClips
-          .filter((clip): clip is VideoClip | ImageClip | TextClip => clip.type !== "audio")
-          .filter(clip => {
-            const t = clip.transform
-            const cx1 = t.x
-            const cx2 = t.x + t.width
-            const cy1 = t.y
-            const cy2 = t.y + t.height
-            return cx1 < x2 && cx2 > x1 && cy1 < y2 && cy2 > y1
-          })
-          .map(clip => clip.id)
+      const curr = marqueeRef.current
+      setMarquee(null)
+      marqueeRef.current = null
 
-        if (selected.length === 0) clearClipSelection()
-        else setSelectedClips(selected)
-        return null
-      })
+      if (!curr) {
+        clearClipSelection()
+        return
+      }
+      const x1 = Math.min(curr.x1, curr.x2)
+      const x2 = Math.max(curr.x1, curr.x2)
+      const y1 = Math.min(curr.y1, curr.y2)
+      const y2 = Math.max(curr.y1, curr.y2)
+      const selected = activeClips
+        .filter((clip): clip is VideoClip | ImageClip | TextClip => clip.type !== "audio")
+        .filter(clip => {
+          const t = clip.transform
+          const cx1 = t.x
+          const cx2 = t.x + t.width
+          const cy1 = t.y
+          const cy2 = t.y + t.height
+          return cx1 < x2 && cx2 > x1 && cy1 < y2 && cy2 > y1
+        })
+        .map(clip => clip.id)
+
+      if (selected.length === 0) clearClipSelection()
+      else setSelectedClips(selected)
     }
 
     document.addEventListener("mousemove", onMove)
@@ -570,7 +601,7 @@ export function PreviewPlayer() {
                       overflow: "hidden",
                       pointerEvents: "none",
                       userSelect: "none",
-                      lineHeight: 1.25,
+                      lineHeight: s.lineHeight ?? 1.25,
                       outline: selectedIdSet.has(clip.id) ? "2px solid var(--color-error)" : undefined,
                     }}
                   >
@@ -608,6 +639,72 @@ export function PreviewPlayer() {
               }
             }
             if (!selectedClip) return null
+
+            // For text-only groups in group-edit mode, sync transform changes to all members.
+            const textOnlyGroupMembers = (() => {
+              if (!groupEditGroupId) return null
+              const group = project.clipGroups?.find(g => g.id === groupEditGroupId)
+              if (!group) return null
+              const members: string[] = []
+              for (const id of group.memberClipIds) {
+                for (const track of project.tracks) {
+                  const c = track.clips.find(c => c.id === id)
+                  if (c) {
+                    if (c.type !== "text") return null
+                    members.push(id)
+                    break
+                  }
+                }
+              }
+              return members.length > 1 && members.includes(selectedClipId) ? members : null
+            })()
+
+            if (textOnlyGroupMembers) {
+              return (
+                <TransformOverlay
+                  clip={selectedClip}
+                  previewWidth={previewSize.width}
+                  previewHeight={previewSize.height}
+                  onUpdate={t => {
+                    const store = useEditorStore.getState()
+                    const latestProject = store.project
+                    let currentT: Transform | undefined
+                    for (const track of latestProject.tracks) {
+                      const c = track.clips.find(c => c.id === selectedClipId)
+                      if (c && "transform" in c) { currentT = c.transform; break }
+                    }
+                    if (!currentT) return
+                    const dx = (t.x ?? currentT.x) - currentT.x
+                    const dy = (t.y ?? currentT.y) - currentT.y
+                    const dw = (t.width ?? currentT.width) - currentT.width
+                    const dh = (t.height ?? currentT.height) - currentT.height
+                    const dr = (t.rotation ?? currentT.rotation) - currentT.rotation
+                    const updates = textOnlyGroupMembers.map(id => {
+                      for (const track of latestProject.tracks) {
+                        const c = track.clips.find(c => c.id === id)
+                        if (c && "transform" in c) {
+                          const ct = c.transform
+                          return {
+                            clipId: id,
+                            transform: {
+                              x: ct.x + dx,
+                              y: ct.y + dy,
+                              width: Math.max(20, ct.width + dw),
+                              height: Math.max(20, ct.height + dh),
+                              rotation: ct.rotation + dr,
+                            },
+                          }
+                        }
+                      }
+                      return null
+                    }).filter(Boolean) as Array<{ clipId: string; transform: Partial<Transform> }>
+                    store.updateClipTransformsBatch(updates)
+                  }}
+                  onCommit={commitTransformsBatch}
+                />
+              )
+            }
+
             return (
               <TransformOverlay
                 clip={selectedClip}
@@ -681,7 +778,7 @@ export function PreviewPlayer() {
                   opacity: s.opacity,
                   fontWeight: s.bold ? "bold" : "normal",
                   fontStyle: s.italic ? "italic" : "normal",
-                  lineHeight: 1.25,
+                  lineHeight: s.lineHeight ?? 1.25,
                   resize: "none",
                   outline: "2px solid var(--color-error)",
                   outlineOffset: "-2px",

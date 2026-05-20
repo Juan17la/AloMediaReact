@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react"
+import { useTranslation } from "react-i18next"
 import { useParams, useNavigate, useBlocker } from "react-router"
 import { MediaLibrary } from "../../components/editor/MediaLibrary"
 import { Timeline } from "../../components/editor/Timeline"
@@ -11,7 +12,7 @@ import { SaveProjectModal } from "../../components/editor/SaveProjectModal"
 import { ShareProjectModal } from "../../components/editor/ShareProjectModal"
 import { UnsavedChangesModal } from "../../components/editor/UnsavedChangesModal"
 import { useEditorStore, fileMap } from "../../store/editorStore"
-import { loadProject } from "../../project/projectSerializer"
+import { loadProject, exportProjectJSON } from "../../project/projectSerializer"
 import { useExport } from "../../hooks/useExport"
 import { useEditorKeyboardShortcuts } from "../../hooks/useEditorKeyboardShortcuts"
 import { getProjectById, createProject, updateProject } from "../../services/projectService"
@@ -27,6 +28,7 @@ import { normalizeProjectTimelineFromApi, serializeProjectTimelineForApi } from 
 import { hydrateProjectMediaCache } from "../../services/projectMediaSyncService"
 
 export default function VideoEditor() {
+  const { t } = useTranslation("pages")
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
 
@@ -131,7 +133,7 @@ export default function VideoEditor() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [isDirty])
 
-  const { startExport, cancelExport, resetExportState, progress, isExporting } = useExport()
+  const { startExport, cancelExport, resetExportState, progress, isExporting, engineInfo } = useExport()
   useEditorKeyboardShortcuts()
 
   const selectedClip = useEditorStore(s => {
@@ -176,6 +178,11 @@ export default function VideoEditor() {
     }))
     setIsEditingTitle(false)
   }
+
+  const handleDownload = useCallback(() => {
+    exportProjectJSON(project)
+    setToast({ message: t("editor.downloadSuccess"), type: 'success' })
+  }, [project, t])
 
   const handleSave = useCallback(async () => {
     if (!apiProject) {
@@ -321,6 +328,7 @@ export default function VideoEditor() {
           onLoad={() => loadInputRef.current?.click()}
           onSave={handleSave}
           onShare={() => setShowShareModal(true)}
+          onDownload={handleDownload}
           onExport={() => setShowExportModal(true)}
         />
       </header>
@@ -331,7 +339,7 @@ export default function VideoEditor() {
           <aside
             className="flex w-96 shrink-0 flex-col overflow-hidden border-r border-dark-border bg-dark/90"
           >
-            <MediaLibrary />
+            <MediaLibrary onShowToast={(msg, type) => setToast({ message: msg, type })} />
           </aside>
 
           <div
@@ -408,6 +416,7 @@ export default function VideoEditor() {
             }
           }}
           defaultFileName={`${project.name}_export`}
+          engineInfo={engineInfo}
         />
       )}
 

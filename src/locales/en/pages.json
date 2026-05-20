@@ -132,6 +132,10 @@
       "cookiesText": "We use cookies to maintain your session and preferences. You can manage cookie settings in your browser."
     }
   },
+  "editor": {
+    "unsupportedFile": "This file format is not supported. Only video, audio, images, and .srt subtitles are allowed.",
+    "downloadSuccess": "Project downloaded. Re-link media files when loading."
+  },
   "errors": {
     "notFound": {
       "title": "Page Not Found",

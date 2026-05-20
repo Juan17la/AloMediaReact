@@ -1,4 +1,5 @@
 import type { ExportOutputFormat } from "../project/projectTypes"
+import type { EncodingPreset } from "../engine/exportPipeline"
 
 export interface ExportFormatProfile {
   videoCodec: string
@@ -32,4 +33,12 @@ export const EXPORT_FORMAT_PROFILES: Record<ExportOutputFormat, ExportFormatProf
     audioCodec: "aac",
     mimeType: "video/x-msvideo",
   },
+}
+
+export function getFormatMimeType(format: ExportOutputFormat): string {
+  return EXPORT_FORMAT_PROFILES[format].mimeType
+}
+
+export function getPresetForFormat(format: ExportOutputFormat, _preset: EncodingPreset): string[] {
+  return EXPORT_FORMAT_PROFILES[format].videoArgs
 }

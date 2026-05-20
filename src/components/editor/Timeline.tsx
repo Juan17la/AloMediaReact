@@ -31,6 +31,8 @@ export function Timeline() {
     currentX: number
     currentY: number
   } | null>(null)
+  const marqueeRef = useRef(marquee)
+  marqueeRef.current = marquee
 
   function handleWheel(e: React.WheelEvent<HTMLDivElement>) {
     if (!e.ctrlKey) return
@@ -221,42 +223,50 @@ export function Timeline() {
     const onMove = (ev: MouseEvent) => {
       const nextX = ev.clientX - rect.left
       const nextY = ev.clientY - rect.top
-      setMarquee(curr => (curr ? { ...curr, currentX: nextX, currentY: nextY } : null))
+      setMarquee(curr => {
+        const next = curr ? { ...curr, currentX: nextX, currentY: nextY } : null
+        marqueeRef.current = next
+        return next
+      })
     }
 
     const onUp = () => {
       document.removeEventListener("mousemove", onMove)
       document.removeEventListener("mouseup", onUp)
-      setMarquee(curr => {
-        if (!curr) return null
-        const x1 = Math.min(curr.startX, curr.currentX)
-        const x2 = Math.max(curr.startX, curr.currentX)
-        const y1 = Math.min(curr.startY, curr.currentY)
-        const y2 = Math.max(curr.startY, curr.currentY)
+      const curr = marqueeRef.current
+      setMarquee(null)
+      marqueeRef.current = null
 
-        const selected: string[] = []
-        let yOffset = 0
-        for (const track of sortedTracks) {
-          const rowHeight = track.type === "video" ? 55 : 50
-          for (const clip of track.clips) {
-            const cx1 = TRACK_HEADER_WIDTH + timeToPx(clip.timelineStart, timelineScale)
-            const cx2 = cx1 + Math.max(timeToPx(clip.timelineEnd - clip.timelineStart, timelineScale), 4)
-            const cy1 = yOffset
-            const cy2 = yOffset + rowHeight
-            const intersects = cx1 < x2 && cx2 > x1 && cy1 < y2 && cy2 > y1
-            if (intersects) selected.push(clip.id)
-          }
-          yOffset += rowHeight
+      if (!curr) {
+        clearClipSelection()
+        return
+      }
+
+      const x1 = Math.min(curr.startX, curr.currentX)
+      const x2 = Math.max(curr.startX, curr.currentX)
+      const y1 = Math.min(curr.startY, curr.currentY)
+      const y2 = Math.max(curr.startY, curr.currentY)
+
+      const selected: string[] = []
+      let yOffset = 0
+      for (const track of sortedTracks) {
+        const rowHeight = track.type === "video" ? 55 : 50
+        for (const clip of track.clips) {
+          const cx1 = TRACK_HEADER_WIDTH + timeToPx(clip.timelineStart, timelineScale)
+          const cx2 = cx1 + Math.max(timeToPx(clip.timelineEnd - clip.timelineStart, timelineScale), 4)
+          const cy1 = yOffset
+          const cy2 = yOffset + rowHeight
+          const intersects = cx1 < x2 && cx2 > x1 && cy1 < y2 && cy2 > y1
+          if (intersects) selected.push(clip.id)
         }
+        yOffset += rowHeight
+      }
 
-        if (selected.length === 0) {
-          clearClipSelection()
-        } else {
-          setSelectedClips(selected)
-        }
-
-        return null
-      })
+      if (selected.length === 0) {
+        clearClipSelection()
+      } else {
+        setSelectedClips(selected)
+      }
     }
 
     document.addEventListener("mousemove", onMove)

@@ -1,4 +1,5 @@
 import { toMs, toSeconds } from "../../utils/time"
+import { validateMediaFile } from "../../utils/mediaValidation"
 import type {
   Clip,
   MediaType,
@@ -30,31 +31,9 @@ export function getMediaDuration(file: File, type: MediaType): Promise<number | 
   })
 }
 
-const AUDIO_EXTENSIONS = new Set(["wav", "mp3", "mpeg", "mpga", "ogg", "flac", "m4a", "aac", "opus"])
-const VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm", "avi", "mkv", "m4v"])
-const SUBTITLE_EXTENSIONS = new Set(["srt"])
-const SUBTITLE_MIME_TYPES = new Set([
-  "application/x-subrip",
-  "application/srt",
-  "text/srt",
-  "text/x-srt",
-  "text/plain",
-])
-
-function isSubtitleFile(file: File): boolean {
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? ""
-  const mime = file.type.toLowerCase()
-  return SUBTITLE_EXTENSIONS.has(ext) || SUBTITLE_MIME_TYPES.has(mime)
-}
-
-export function detectMediaType(file: File): MediaType {
-  if (isSubtitleFile(file)) return "subtitles"
-  if (file.type.startsWith("video/")) return "video"
-  if (file.type.startsWith("audio/")) return "audio"
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? ""
-  if (AUDIO_EXTENSIONS.has(ext)) return "audio"
-  if (VIDEO_EXTENSIONS.has(ext)) return "video"
-  return "image"
+export function detectMediaType(file: File): MediaType | null {
+  const result = validateMediaFile(file)
+  return result.type
 }
 
 export function findClipById(tracks: Track[], clipId: string): Clip | undefined {

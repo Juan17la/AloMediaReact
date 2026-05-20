@@ -83,6 +83,7 @@ export function syncAudioElements(
   transitions: SyncAudioTransitions,
   isMuted = false,
   volume = 1,
+  audioPlayStartPh: Map<string, number> = new Map(),
 ): Set<string> {
   const activeAudioClips = lookupActiveClips(clipIndex, ph).filter(
     (c): c is AudioBearingClip => c.type === "audio" || c.type === "video",
@@ -127,6 +128,7 @@ export function syncAudioElements(
         pannerNode.disconnect()
         pannerNodes.delete(clipId)
       }
+      audioPlayStartPh.delete(clipId)
     }
   }
 
@@ -141,13 +143,15 @@ export function syncAudioElements(
     if (url && el.src !== url) el.src = url
     const clipSpeed = clip.speed ?? DEFAULT_SPEED
     el.playbackRate = clipSpeed
-    const mediaTime = clip.mediaStart + (ph - clip.timelineStart) * clipSpeed
+    const startPh = audioPlayStartPh.get(clip.id) ?? clip.timelineStart
+    const mediaTime = clip.mediaStart + (ph - startPh) * clipSpeed
     const clipConfig = clip.audioConfig ?? DEFAULT_AUDIO_CONFIG
 
     const crossfadeGain = getCrossfadeGain(ph, clip, transitions)
 
     if (newlyActive.has(clip.id)) {
       el.currentTime = Math.max(0, mediaTime)
+      audioPlayStartPh.set(clip.id, ph)
       if (playing) {
         // Apply audio config + global settings
         applyAudioConfig(el, clipConfig, isMuted, volume * crossfadeGain, clip.id)
@@ -159,6 +163,7 @@ export function syncAudioElements(
       const current = currentTimes.get(clip.id) ?? 0
       if (Math.abs(current - mediaTime) > DRIFT_CORRECTION_THRESHOLD_S) {
         el.currentTime = mediaTime
+        audioPlayStartPh.set(clip.id, ph)
       }
       // Reapply audio config during playback (handles changes via store updates)
       applyAudioConfig(el, clipConfig, isMuted, volume * crossfadeGain, clip.id)

@@ -17,13 +17,21 @@ export function saveProject(project: Project): SavedProject {
   }
 }
 
+function sanitizeFileName(name: string): string {
+  return name
+    .trim()
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")
+    .replace(/\s+/g, " ")
+    .slice(0, 200) || "project"
+}
+
 export function exportProjectJSON(project: Project): void {
   const saved = saveProject(project)
   const blob = new Blob([JSON.stringify(saved, null, 2)], { type: "application/json" })
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
-  a.download = `${project.name}.json`
+  a.download = `${sanitizeFileName(project.name)}.json`
   a.click()
   URL.revokeObjectURL(url)
 }

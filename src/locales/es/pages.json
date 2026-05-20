@@ -132,6 +132,10 @@
       "cookiesText": "Usamos cookies para mantener tu sesi\u00f3n y preferencias. Puedes gestionar la configuraci\u00f3n de cookies en tu navegador."
     }
   },
+  "editor": {
+    "unsupportedFile": "Este formato de archivo no es compatible. Solo se permiten video, audio, imágenes y subtítulos .srt.",
+    "downloadSuccess": "Proyecto descargado. Vuelve a vincular los archivos de medios al cargarlo."
+  },
   "errors": {
     "notFound": {
       "title": "P\u00e1gina No Encontrada",

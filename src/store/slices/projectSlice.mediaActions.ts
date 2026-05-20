@@ -18,7 +18,8 @@ import type {
 import type { SubtitleEntry } from "../../utils/srtParser.ts"
 import type { EditorStore } from "../editorStore"
 import type { ProjectMediaActions } from "./projectSlice.types"
-import { detectMediaType, getMediaDuration } from "./projectSlice.helpers"
+import { getMediaDuration } from "./projectSlice.helpers"
+import { validateMediaFile } from "../../utils/mediaValidation"
 import { fileMap, makeInitialProject } from "./projectSlice.state"
 
 export const createProjectMediaActions: StateCreator<EditorStore, [], [], ProjectMediaActions> = (set, get) => ({
@@ -86,7 +87,11 @@ export const createProjectMediaActions: StateCreator<EditorStore, [], [], Projec
   },
 
   async addMedia(file) {
-    const type = detectMediaType(file)
+    const validation = validateMediaFile(file)
+    if (!validation.valid) {
+      throw new Error(validation.reason)
+    }
+    const type = validation.type!
     const hash = type === "subtitles"
       ? `${file.name}:${file.size}:${file.lastModified}`
       : await hashFile(file)

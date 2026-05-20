@@ -1,10 +1,12 @@
 import { useRef, useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { FilePlus2, Plus, Search } from "lucide-react";
 import { useEditorStore, fileMap } from "../../store/editorStore";
 import { MediaCard, LoadingCard } from "./MediaCard";
 import { AiToolsModal } from "./AiToolsModal";
 import { generateId } from "../../utils/id";
 import { generateProxy } from "../../engine/proxyEngine";
+import { validateMediaFile, getMediaInputAccept } from "../../utils/mediaValidation";
 import type { Clip, Media, Track } from "../../project/projectTypes";
 import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig";
 import { triggerFileInputRef } from "../../utils/fileInputTrigger";
@@ -20,9 +22,9 @@ interface PendingMedia {
 
 type AiTool = "clean" | "transcribe";
 
-const ACCEPTED_AUDIO_EXTENSIONS = new Set(["wav", "mp3", "mpeg", "mpga", "ogg", "flac", "m4a", "aac", "opus"]);
-const ACCEPTED_VIDEO_EXTENSIONS = new Set(["mp4", "mov", "webm", "avi", "mkv", "m4v"]);
-const ACCEPTED_IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "tiff", "svg"]);
+interface MediaLibraryProps {
+  onShowToast: (message: string, type: "success" | "error") => void;
+}
 
 // Shared trigger ref is imported from utils to avoid exporting non-component
 // values from a component file (required by react-refresh plugin).
@@ -30,7 +32,8 @@ const ACCEPTED_IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", 
 const ghostBtn =
   "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-on-surface/80 bg-surface-container-low border border-outline-variant hover:bg-surface-container hover:border-outline active:scale-95 transition-all duration-100 cursor-pointer";
 
-export function MediaLibrary() {
+export function MediaLibrary({ onShowToast }: MediaLibraryProps) {
+  const { t } = useTranslation("pages");
   const addMedia = useEditorStore((s) => s.addMedia);
   const importSubtitlesAsGroup = useEditorStore((s) => s.importSubtitlesAsGroup);
   const setProxyState = useEditorStore((s) => s.setProxyState);
@@ -90,56 +93,65 @@ export function MediaLibrary() {
     }
   }, [aiModalState, media]);
 
-  function isSubtitleFile(file: File): boolean {
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-    const mime = file.type.toLowerCase();
-    return ext === "srt" || mime === "application/x-subrip" || mime === "application/srt" || mime === "text/srt" || mime === "text/x-srt";
-  }
-
   function isSubtitleMedia(mediaItem: Media): boolean {
     return mediaItem.type === "subtitles";
-  }
-
-  function isAcceptedMediaFile(file: File): boolean {
-    if (
-      file.type.startsWith("video/") ||
-      file.type.startsWith("audio/") ||
-      file.type.startsWith("image/") ||
-      isSubtitleFile(file)
-    ) {
-      return true;
-    }
-
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-    return (
-      ACCEPTED_AUDIO_EXTENSIONS.has(ext) ||
-      ACCEPTED_VIDEO_EXTENSIONS.has(ext) ||
-      ACCEPTED_IMAGE_EXTENSIONS.has(ext)
-    );
   }
 
   async function handleFiles(files: FileList | null) {
     if (!files) return;
     const fileArray = Array.from(files);
-    const newPending: PendingMedia[] = fileArray.map((file) => ({
+
+    // Validate before creating pending entries
+    const accepted: File[] = [];
+    const rejectedReasons: string[] = [];
+
+    fileArray.forEach((file) => {
+      const result = validateMediaFile(file);
+      if (result.valid) {
+        accepted.push(file);
+      } else {
+        rejectedReasons.push(result.reason ?? t("editor.unsupportedFile"));
+      }
+    });
+
+    if (rejectedReasons.length > 0) {
+      // Show first error via toast; if multiple, summarise
+      const msg = rejectedReasons.length === 1
+        ? rejectedReasons[0]
+        : `${rejectedReasons.length} files could not be imported. ${rejectedReasons[0]}`;
+      onShowToast(msg, "error");
+    }
+
+    if (accepted.length === 0) return;
+
+    const newPending: PendingMedia[] = accepted.map((file) => ({
       tempId: generateId(),
       fileName: file.name,
     }));
     setPending((prev) => [...prev, ...newPending]);
+
     await Promise.all(
-      fileArray.map(async (file, i) => {
-        const m = await addMedia(file);
-        setPending((prev) =>
-          prev.filter((p) => p.tempId !== newPending[i].tempId),
-        );
-        if (m.type === "video") {
-          setProxyState(m.id, { status: "pending", objectUrl: null });
-          generateProxy(
-            m.id,
-            file,
-            (url) => setProxyState(m.id, { status: "ready", objectUrl: url }),
-            () => setProxyState(m.id, { status: "error", objectUrl: null }),
+      accepted.map(async (file, i) => {
+        try {
+          const m = await addMedia(file);
+          setPending((prev) =>
+            prev.filter((p) => p.tempId !== newPending[i].tempId),
           );
+          if (m.type === "video") {
+            setProxyState(m.id, { status: "pending", objectUrl: null });
+            generateProxy(
+              m.id,
+              file,
+              (url) => setProxyState(m.id, { status: "ready", objectUrl: url }),
+              () => setProxyState(m.id, { status: "error", objectUrl: null }),
+            );
+          }
+        } catch (err) {
+          setPending((prev) =>
+            prev.filter((p) => p.tempId !== newPending[i].tempId),
+          );
+          const message = err instanceof Error ? err.message : String(err);
+          onShowToast(message, "error");
         }
       }),
     );
@@ -180,21 +192,26 @@ export function MediaLibrary() {
       setIsDragOver(false);
 
       const accepted: File[] = [];
-      const rejected: string[] = [];
+      const rejectedReasons: string[] = [];
 
       Array.from(e.dataTransfer.files).forEach((file) => {
-        if (isAcceptedMediaFile(file)) {
+        const result = validateMediaFile(file);
+        if (result.valid) {
           accepted.push(file);
         } else {
-          rejected.push(file.name);
+          rejectedReasons.push(result.reason ?? t("editor.unsupportedFile"));
         }
       });
 
-      if (rejected.length > 0) {
-        setDropError(
-          `Unsupported: ${rejected.slice(0, 2).join(", ")}${rejected.length > 2 ? ` +${rejected.length - 2} more` : ""}`,
-        );
-        setTimeout(() => setDropError(null), 3500);
+      if (rejectedReasons.length > 0) {
+        const displayReasons = rejectedReasons.slice(0, 2);
+        const moreCount = rejectedReasons.length - displayReasons.length;
+        const msg = moreCount > 0
+          ? `${displayReasons.join("; ")} (+${moreCount} more)`
+          : displayReasons.join("; ");
+        setDropError(msg);
+        setTimeout(() => setDropError(null), 5000);
+        onShowToast(msg, "error");
       }
 
       if (accepted.length > 0) {
@@ -204,7 +221,7 @@ export function MediaLibrary() {
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    [addMedia, setProxyState],
+    [addMedia, setProxyState, onShowToast, t],
   );
 
   function insertMediaAtPlayhead(item: Media) {
@@ -385,7 +402,7 @@ export function MediaLibrary() {
       <input
         ref={inputRef}
         type="file"
-        accept="video/*,audio/*,image/*,.srt,text/plain,text/srt,text/x-srt,application/x-subrip"
+        accept={getMediaInputAccept()}
         multiple
         className="hidden"
         onChange={(e) => {

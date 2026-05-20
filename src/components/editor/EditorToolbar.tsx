@@ -9,6 +9,7 @@ interface EditorToolbarProps {
   onLoad: () => void
   onSave: () => void
   onShare: () => void
+  onDownload: () => void
   onExport: () => void
 }
 
@@ -25,6 +26,7 @@ export function EditorToolbar({
   onLoad,
   onSave,
   onShare,
+  onDownload,
   onExport,
 }: EditorToolbarProps) {
   const shareDisabled = !apiProject
@@ -59,11 +61,10 @@ export function EditorToolbar({
 
       <div className="w-px h-6 bg-outline-variant/50 mx-1" />
 
-      {/* Non-functional download button */}
       <button
         className={ghostBtn}
-        title="Download (coming soon)"
-        onClick={() => { }}
+        title="Download project as JSON (media files not included)"
+        onClick={onDownload}
       >
         <Download size={12} />
         Download

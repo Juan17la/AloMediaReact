@@ -622,7 +622,6 @@ for (const seg of videoSegments) {
     mappingArgs,
     estimatedFrames: plan.estimatedTotalFrames,
     inputIndexByMediaId,
-    hasAudioOutput: finalAudioLabel !== null,
   }
 }
 

@@ -1,8 +1,8 @@
 import type { RenderPlan, ExportPipelineCallbacks, EngineCapabilities } from "./types"
 import { stageProgress } from "./progressTracker"
 
-// In development, Vite proxies /api/* to localhost:3001.
-// In production, set VITE_EXPORT_SERVER_URL to the full server origin.
+// VITE_EXPORT_SERVER_URL points to the export server (Railway in production).
+// e.g. https://alomediaserverexport-production.up.railway.app
 const serverUrl = import.meta.env.VITE_EXPORT_SERVER_URL as string | undefined ?? ""
 const BASE_URL = serverUrl || ""
 const HEALTH_ENDPOINT = `${BASE_URL}/api/health`

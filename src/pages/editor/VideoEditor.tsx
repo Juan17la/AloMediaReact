@@ -133,7 +133,7 @@ export default function VideoEditor() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [isDirty])
 
-  const { startExport, cancelExport, resetExportState, progress, isExporting } = useExport()
+  const { startExport, cancelExport, resetExportState, progress, isExporting, engineInfo } = useExport()
   useEditorKeyboardShortcuts()
 
   const selectedClip = useEditorStore(s => {
@@ -416,6 +416,7 @@ export default function VideoEditor() {
             }
           }}
           defaultFileName={`${project.name}_export`}
+          engineInfo={engineInfo}
         />
       )}
 

@@ -1,85 +1,212 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
+import type { ExportPipelineProgress, EncodingPreset, SelectedEngine } from "../engine/exportPipeline"
+import {
+  exportProject,
+  checkServerAvailability,
+  getEngineInfo,
+} from "../engine/exportPipeline"
+import type { ExportOutputFormat, ExportVideoCodec } from "../project/projectTypes"
 import { useEditorStore, fileMap } from "../store/editorStore"
-import { buildRenderJob } from "../engine/renderPipeline"
-import type { ExportOptions } from "../engine/renderPipeline"
-import { loadFFmpeg, getFFmpeg } from "../engine/ffmpegEngine"
-import { runExport } from "../engine/exportOrchestrator"
-import type { ExportProgress } from "../engine/exportProgress"
-import { isFfmpegTerminateError } from "../engine/ffmpegUtils"
-import { EXPORT_FORMAT_PROFILES } from "../constants/exportFormats"
+
+export interface UseExportOptions {
+  format: ExportOutputFormat
+  codec: ExportVideoCodec
+  resolution: { width: number; height: number }
+  fps: number
+  preset: EncodingPreset
+  outputFileName: string
+}
+
+export interface EngineInfo {
+  engine: SelectedEngine
+  label: string
+  description: string
+  gpuAccelerated: boolean
+}
 
 export interface UseExportReturn {
-  startExport: (options: ExportOptions) => void
+  startExport: (options: UseExportOptions) => void
   cancelExport: () => void
   resetExportState: () => boolean
-  progress: ExportProgress | null
+  progress: ExportPipelineProgress | null
   isExporting: boolean
+  engineInfo: EngineInfo | null
 }
 
 export function useExport(): UseExportReturn {
-  const [progress, setProgress] = useState<ExportProgress | null>(null)
+  const [progress, setProgress] = useState<ExportPipelineProgress | null>(null)
   const [isExporting, setIsExporting] = useState(false)
+  const [engineInfo, setEngineInfo] = useState<EngineInfo | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  function cancelExport() {
-    abortControllerRef.current?.abort()
-    abortControllerRef.current = null
+  const cancelExport = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
     setIsExporting(false)
-  }
+  }, [])
 
-  function resetExportState(): boolean {
-    // Keep reset non-destructive: callers should cancel active exports explicitly.
+  const resetExportState = useCallback((): boolean => {
     if (abortControllerRef.current) return false
     setProgress(null)
     setIsExporting(false)
+    setEngineInfo(null)
     return true
-  }
+  }, [])
 
-  async function startExport(options: ExportOptions) {
-    if (isExporting) return
+  const startExport = useCallback(async (options: UseExportOptions) => {
+    if (abortControllerRef.current) return
 
-    // Clear stale terminal state from a previous export session.
-    setProgress(null)
-
-    const controller = new AbortController()
-    abortControllerRef.current = controller
-
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
     setIsExporting(true)
-    setProgress({ stage: 'writing-files', percent: 0, secondsRemaining: null })
 
     try {
       const project = useEditorStore.getState().project
-      const job = buildRenderJob(project, fileMap, options)
-
-      await loadFFmpeg()
-      const ffmpeg = getFFmpeg()
-
-      const output = await runExport(ffmpeg, job, fileMap, setProgress, controller.signal)
-
-      const mimeType = EXPORT_FORMAT_PROFILES[options.outputFormat].mimeType
-      const safeData = new Uint8Array(output)
-      const blob = new Blob([safeData], { type: mimeType })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = options.outputFileName
-      a.click()
-
-      // Keep blob URL alive long enough for slow browsers/large downloads.
-      setTimeout(() => URL.revokeObjectURL(url), 300_000)
-    } catch (err) {
-      if ((err instanceof DOMException && err.name === 'AbortError') || isFfmpegTerminateError(err)) {
-        // setProgress({ stage: 'error', percent: 0, secondsRemaining: null, errorMessage: 'Export cancelled' })
-        setProgress(null)
-      } else {
-        const msg = err instanceof Error ? err.message : String(err)
-        setProgress({ stage: 'error', percent: 0, secondsRemaining: null, errorMessage: msg })
+      if (!project) {
+        setProgress({
+          stage: "failed",
+          percent: 0,
+          framesProcessed: 0,
+          framesTotal: 0,
+          secondsRemaining: null,
+          errorMessage: "No project loaded",
+        })
+        setIsExporting(false)
+        abortControllerRef.current = null
+        return
       }
-    } finally {
+
+      const mediaFiles = new Map<string, File>()
+      for (const media of project.media) {
+        const file = fileMap.get(media.id)
+        if (file) {
+          mediaFiles.set(media.id, file)
+          console.log(`[useExport] Found file for media ${media.id}: ${file.name}`)
+        } else {
+          console.warn(`[useExport] Missing file for media ${media.id} (${media.name})`)
+        }
+      }
+
+      console.log(`[useExport] Collected ${mediaFiles.size} files out of ${project.media.length} media items`)
+      if (mediaFiles.size === 0) {
+        const errorMsg = "No media files found. Make sure to import videos/images before exporting."
+        console.error("[useExport]", errorMsg)
+        setProgress({
+          stage: "failed",
+          percent: 0,
+          framesProcessed: 0,
+          framesTotal: 0,
+          secondsRemaining: null,
+          errorMessage: errorMsg,
+        })
+        setIsExporting(false)
+        abortControllerRef.current = null
+        return
+      }
+
+      // Validate that all clips reference valid media
+      const mediaIds = new Set(project.media.map(m => m.id))
+      let clipsWithMissingMedia = 0
+      for (const track of project.tracks) {
+        for (const clip of track.clips) {
+          if ("mediaId" in clip && clip.mediaId && !mediaIds.has(clip.mediaId)) {
+            console.error(`[useExport] Clip ${clip.id} references missing media ${clip.mediaId}`)
+            clipsWithMissingMedia++
+          }
+        }
+      }
+
+      if (clipsWithMissingMedia > 0) {
+        const errorMsg = `${clipsWithMissingMedia} clip(s) reference media that no longer exists. Try reimporting media.`
+        console.error("[useExport]", errorMsg)
+        setProgress({
+          stage: "failed",
+          percent: 0,
+          framesProcessed: 0,
+          framesTotal: 0,
+          secondsRemaining: null,
+          errorMessage: errorMsg,
+        })
+        setIsExporting(false)
+        abortControllerRef.current = null
+        return
+      }
+
+      const capabilities = await checkServerAvailability()
+      const selectedEngine: SelectedEngine = capabilities.available ? "server" : "wasm"
+      const info = getEngineInfo(selectedEngine, capabilities)
+      setEngineInfo({
+        engine: selectedEngine,
+        ...info,
+      })
+
+      await exportProject(
+        project,
+        {
+          format: options.format,
+          codec: options.codec,
+          resolution: options.resolution,
+          fps: options.fps,
+          preset: options.preset,
+          outputFileName: options.outputFileName,
+        },
+        mediaFiles,
+        {
+          onProgress: setProgress,
+          onComplete: (blob) => {
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = options.outputFileName
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+
+            setProgress((prev) => ({
+              stage: "done" as const,
+              percent: 100,
+              framesProcessed: prev?.framesTotal ?? 0,
+              framesTotal: prev?.framesTotal ?? 0,
+              secondsRemaining: null,
+              errorMessage: null,
+            }))
+            setIsExporting(false)
+            abortControllerRef.current = null
+          },
+          onError: (error) => {
+            setProgress((prev) => ({
+              stage: "failed" as const,
+              percent: prev?.percent ?? 0,
+              framesProcessed: prev?.framesProcessed ?? 0,
+              framesTotal: prev?.framesTotal ?? 0,
+              secondsRemaining: null,
+              errorMessage: error,
+            }))
+            setIsExporting(false)
+            abortControllerRef.current = null
+          },
+        },
+        selectedEngine,
+        abortController.signal,
+      )
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Export failed"
+      console.error("[useExport] Uncaught error:", message)
+      setProgress({
+        stage: "failed",
+        percent: 0,
+        framesProcessed: 0,
+        framesTotal: 0,
+        secondsRemaining: null,
+        errorMessage: message,
+      })
       setIsExporting(false)
       abortControllerRef.current = null
     }
-  }
+  }, [])
 
-  return { startExport, cancelExport, resetExportState, progress, isExporting }
+  return { startExport, cancelExport, resetExportState, progress, isExporting, engineInfo }
 }

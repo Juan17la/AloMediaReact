@@ -1,19 +1,12 @@
+import type { JobStatus } from "./exportPipeline/types"
+
 export interface ExportProgress {
-  stage: 'writing-files' | 'building-graph' | 'encoding' | 'reading-output' | 'cleanup' | 'done' | 'error'
+  stage: JobStatus
   percent: number
   secondsRemaining: number | null
   errorMessage?: string
-}
-
-export function estimateTimeRemaining(
-  startedAt: number,
-  encodingPercent: number,
-): number | null {
-  if (encodingPercent < 5) return null
-  const elapsed = (Date.now() - startedAt) / 1000
-  const rate = encodingPercent / 100
-  const total = elapsed / rate
-  return Math.round(total - elapsed)
+  framesProcessed?: number
+  framesTotal?: number
 }
 
 export function formatTimeRemaining(seconds: number): string {

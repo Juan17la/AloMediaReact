@@ -1,16 +1,18 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg"
-import { toBlobURL, fetchFile } from "@ffmpeg/util"
+import { fetchFile, toBlobURL } from "@ffmpeg/util"
 import { safeMediaFileName } from "./ffmpegUtils"
 
 const ffmpegProxy = new FFmpeg()
 
 async function loadProxyFFmpeg(): Promise<void> {
   if (ffmpegProxy.loaded) return
-  const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/esm"
+  console.log("[proxyEngine] Loading single-threaded core...")
+  const baseURL = new URL("/ffmpeg-core-st/", location.href).href
   await ffmpegProxy.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
+    coreURL: await toBlobURL(`${baseURL}ffmpeg-core.js`, "text/javascript"),
+    wasmURL: await toBlobURL(`${baseURL}ffmpeg-core.wasm`, "application/wasm"),
   })
+  console.log("[proxyEngine] Single-threaded core loaded.")
 }
 
 // Serialize proxy jobs so concurrent uploads don't collide on the FFmpeg instance

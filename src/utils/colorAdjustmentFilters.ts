@@ -59,7 +59,10 @@ export function buildEqFilter(adj: ColorAdjustments): string | null {
   const exposure = adj.exposure ?? d.exposure
   const rawBrightness = adj.brightness ?? d.brightness
   const mappedBrightness = applyBrightnessCurve(rawBrightness)
-  const combinedBrightness = Math.max(-1, Math.min(1, mappedBrightness + exposure / 3))
+  // Align with CSS preview: CSS brightness is multiplicative (1=neutral).
+  // Convert to FFmpeg eq=brightness additive scale (-1..1, 0=neutral).
+  const cssBrightness = (mappedBrightness + 1) * Math.pow(2, exposure)
+  const combinedBrightness = Math.max(-1, Math.min(1, cssBrightness - 1))
 
   const parts: string[] = []
 
@@ -70,7 +73,9 @@ export function buildEqFilter(adj: ColorAdjustments): string | null {
   const rawContrast = adj.contrast ?? d.contrast
   if (rawContrast !== d.contrast) {
     const mappedContrast = applyContrastCurve(rawContrast)
-    const ffmpegContrast = Math.pow(10, mappedContrast * 3)
+    // Align with CSS preview: CSS contrast is multiplicative (1=neutral).
+    // FFmpeg eq=contrast is also multiplicative (1=neutral).
+    const ffmpegContrast = mappedContrast + 1
     parts.push(`contrast=${ffmpegContrast.toFixed(4)}`)
   }
 

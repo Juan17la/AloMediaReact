@@ -4,6 +4,7 @@ import {
   exportProject,
   checkServerAvailability,
   getEngineInfo,
+  wakeUpServer,
 } from "../engine/exportPipeline"
 import type { ExportOutputFormat, ExportVideoCodec } from "../project/projectTypes"
 import { useEditorStore, fileMap } from "../store/editorStore"
@@ -134,7 +135,13 @@ export function useExport(): UseExportReturn {
         return
       }
 
-      const capabilities = await checkServerAvailability()
+      let capabilities = await checkServerAvailability()
+      if (!capabilities.available) {
+        const wokeUp = await wakeUpServer()
+        if (wokeUp) {
+          capabilities = await checkServerAvailability()
+        }
+      }
       const selectedEngine: SelectedEngine = capabilities.available ? "server" : "wasm"
       const info = getEngineInfo(selectedEngine, capabilities)
       setEngineInfo({

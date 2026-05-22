@@ -5,6 +5,10 @@ import { stageProgress } from "./progressTracker"
 // e.g. https://alomediaserverexport-production.up.railway.app
 const serverUrl = import.meta.env.VITE_EXPORT_SERVER_URL as string | undefined ?? ""
 const BASE_URL = serverUrl || ""
+
+if (!BASE_URL) {
+  console.error("[serverEncoder] VITE_EXPORT_SERVER_URL is not set. Export requests will fall back to WASM.")
+}
 const HEALTH_ENDPOINT = `${BASE_URL}/api/health`
 const EXPORT_ENDPOINT = `${BASE_URL}/api/export`
 const STATUS_ENDPOINT = (id: string) => `${BASE_URL}/api/export/${id}/status`
@@ -14,12 +18,12 @@ const CANCEL_ENDPOINT = (id: string) => `${BASE_URL}/api/export/${id}`
 const POLL_INTERVAL_MS = 500
 const REQUEST_TIMEOUT_MS = 30000
 
-let cachedCapabilities: EngineCapabilities | null = null
+let cachedCapabilities: { capabilities: EngineCapabilities; timestamp: number } | null = null
+const CACHE_TTL_MS = 30_000
 
-export async function checkServerAvailability(): Promise<EngineCapabilities> {
-  // Only return cached result if server was previously confirmed available
-  if (cachedCapabilities?.available) {
-    return cachedCapabilities
+export async function checkServerAvailability(force = false): Promise<EngineCapabilities> {
+  if (!force && cachedCapabilities && (Date.now() - cachedCapabilities.timestamp) < CACHE_TTL_MS) {
+    return cachedCapabilities.capabilities
   }
 
   try {
@@ -39,14 +43,15 @@ export async function checkServerAvailability(): Promise<EngineCapabilities> {
     }
 
     const data = await response.json()
-    cachedCapabilities = {
+    const capabilities: EngineCapabilities = {
       available: true,
       gpuAccel: data.gpuAccel ?? false,
       gpuCodec: data.gpuCodec ?? null,
       maxConcurrentJobs: data.maxConcurrentJobs ?? 1,
     }
-    console.log("[serverEncoder] Server available. GPU:", cachedCapabilities.gpuAccel, "Codec:", cachedCapabilities.gpuCodec)
-    return cachedCapabilities
+    cachedCapabilities = { capabilities, timestamp: Date.now() }
+    console.log("[serverEncoder] Server available. GPU:", capabilities.gpuAccel, "Codec:", capabilities.gpuCodec)
+    return capabilities
   } catch (err) {
     // Don't cache connection failures — server might start later
     const msg = err instanceof Error ? err.message : String(err)
@@ -59,6 +64,22 @@ export function invalidateServerCache(): void {
   cachedCapabilities = null
 }
 
+export async function wakeUpServer(retries = 3, delayMs = 2000): Promise<boolean> {
+  for (let i = 0; i < retries; i++) {
+    invalidateServerCache()
+    try {
+      const caps = await checkServerAvailability(true)
+      if (caps.available) {
+        return true
+      }
+    } catch { /* ignore */ }
+    if (i < retries - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs))
+    }
+  }
+  return false
+}
+
 export async function executeServerExport(
   plan: RenderPlan,
   mediaFiles: Map<string, File>,
@@ -69,6 +90,16 @@ export async function executeServerExport(
 
   try {
     onProgress(stageProgress("probing", 2, 0, plan.estimatedTotalFrames))
+
+    // Wake-up health check before heavy upload (Railway cold-start)
+    const isAwake = await wakeUpServer()
+    if (!isAwake) {
+      callbacks.onError("Export server is unavailable. Please try again.")
+      return
+    }
+
+    // Allow Railway proxy to stabilize routing after wake-up
+    await new Promise((resolve) => setTimeout(resolve, 800))
 
     const formData = new FormData()
     // Serialize Map to plain object for JSON
@@ -98,23 +129,44 @@ export async function executeServerExport(
 
     onProgress(stageProgress("planning", 8, 0, plan.estimatedTotalFrames))
 
-    const submitResponse = await fetch(EXPORT_ENDPOINT, {
-      method: "POST",
-      body: formData,
-      signal: abortSignal,
-    })
-
-    if (!submitResponse.ok) {
-      const errorText = await submitResponse.text()
-      console.error("[serverEncoder] Submit failed:", submitResponse.status)
-      console.error("[serverEncoder] Response body:", errorText)
+    let submitResponse: Response | undefined
+    let lastErrorText = ""
+    for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const errorJson = JSON.parse(errorText)
+        submitResponse = await fetch(EXPORT_ENDPOINT, {
+          method: "POST",
+          body: formData,
+          signal: abortSignal,
+        })
+        if (submitResponse.ok) break
+
+        lastErrorText = await submitResponse.text()
+        console.error("[serverEncoder] Submit failed:", submitResponse.status, "attempt:", attempt + 1)
+        if (attempt === 0 && (submitResponse.status >= 500 || submitResponse.status === 0)) {
+          await new Promise((r) => setTimeout(r, 1500))
+          continue
+        }
+        break
+      } catch (err) {
+        lastErrorText = err instanceof Error ? err.message : String(err)
+        console.error("[serverEncoder] Submit error attempt:", attempt + 1, lastErrorText)
+        if (attempt === 0) {
+          await new Promise((r) => setTimeout(r, 1500))
+          continue
+        }
+        break
+      }
+    }
+
+    if (!submitResponse || !submitResponse.ok) {
+      console.error("[serverEncoder] Response body:", lastErrorText)
+      try {
+        const errorJson = JSON.parse(lastErrorText)
         console.error("[serverEncoder] Parsed error:", JSON.stringify(errorJson, null, 2))
       } catch {
         // Not JSON, already logged as text
       }
-      callbacks.onError(`Server export failed (${submitResponse.status}): ${errorText}`)
+      callbacks.onError(`Server export failed: ${lastErrorText || "Unknown error"}`)
       return
     }
 

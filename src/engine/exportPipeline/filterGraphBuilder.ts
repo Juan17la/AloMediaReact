@@ -428,7 +428,7 @@ for (const seg of videoSegments) {
 
   function normalizeTb(label: string): string {
     const normLabel = nextLabel("ntb")
-    filterParts.push(`[${label}]setpts=PTS-STARTPTS,fps=${targetFps}[${normLabel}]`)
+    filterParts.push(`[${label}]setpts=PTS-STARTPTS,fps=${targetFps},setsar=1:1[${normLabel}]`)
     return normLabel
   }
 
@@ -491,6 +491,17 @@ for (const seg of videoSegments) {
         currentDuration += gapDur
       }
 
+      // Handle fade-in from black on the first clip (synthetic transition)
+      const fadeInT = trackTransitions.find((t) =>
+        "synthetic" in t.clipARef && t.clipARef.synthetic === "black_silence" &&
+        "clipId" in t.clipBRef && t.clipBRef.clipId === sorted[0].clipId
+      )
+      if (fadeInT) {
+        const fadeLabel = nextLabel("tx")
+        filterParts.push(`[${currentLabel}]fade=t=in:st=0:d=${fadeInT.durationS.toFixed(3)}[${fadeLabel}]`)
+        currentLabel = normalizeTb(fadeLabel)
+      }
+
       for (let i = 1; i < sorted.length; i++) {
         const segALabel = currentLabel
         const segBLabel = segVideoLabels.get(sorted[i].id) ?? nextLabel("segv")
@@ -508,6 +519,18 @@ for (const seg of videoSegments) {
           currentDuration += gapBetween + segmentDuration(sorted[i])
         } else if (transition) {
           const fadeDuration = transition.durationS
+          let workingLabel = segALabel
+
+          // If there is a gap between clips, insert it BEFORE the transition
+          if (gapBetween > 0.01) {
+            const gapLabel = nextLabel("gap")
+            filterParts.push(`color=black@0:s=${targetW}x${targetH}:d=${gapBetween.toFixed(3)}:rate=${targetFps},format=rgba,setpts=PTS-STARTPTS,fps=${targetFps},setsar=1:1[${gapLabel}]`)
+            const gapConcat = nextLabel("trk")
+            filterParts.push(`[${segALabel}][${gapLabel}]concat=n=2:v=1:a=0[${gapConcat}]`)
+            workingLabel = normalizeTb(gapConcat)
+            currentDuration += gapBetween
+          }
+
           const offset = Math.max(0, currentDuration - fadeDuration)
           const outLabel = nextLabel("tx")
 
@@ -519,12 +542,27 @@ for (const seg of videoSegments) {
             currentLabel = normalizeTb(fadeOutLabel)
             currentDuration += segmentDuration(sorted[i])
           } else if (transition.clipBRef && "synthetic" in transition.clipBRef && transition.clipBRef.synthetic === "black_silence") {
-            const fadeStart = Math.max(0, segmentDuration(sorted[i]) - fadeDuration)
-            filterParts.push(`[${segALabel}]fade=t=out:st=${fadeStart.toFixed(3)}:d=${fadeDuration.toFixed(3)}[${outLabel}]`)
+            const fadeStart = Math.max(0, currentDuration - fadeDuration)
+            filterParts.push(`[${workingLabel}]fade=t=out:st=${fadeStart.toFixed(3)}:d=${fadeDuration.toFixed(3)}[${outLabel}]`)
             currentLabel = normalizeTb(outLabel)
           } else {
-            filterParts.push(`[${segALabel}][${segBLabel}]xfade=transition=${xfadeName}:duration=${fadeDuration.toFixed(3)}:offset=${offset.toFixed(3)}[${outLabel}]`)
-            currentLabel = normalizeTb(outLabel)
+            // Split segB so we can feed one copy into xfade and another into trim
+            const segBForXfade = nextLabel("sb")
+            const segBForTrim = nextLabel("sb")
+            filterParts.push(`[${segBLabel}]split=2[${segBForXfade}][${segBForTrim}]`)
+
+            filterParts.push(`[${workingLabel}][${segBForXfade}]xfade=transition=${xfadeName}:duration=${fadeDuration.toFixed(3)}:offset=${offset.toFixed(3)}[${outLabel}]`)
+            // Append the remainder of segB after the crossfade
+            const remainderDuration = segmentDuration(sorted[i]) - fadeDuration
+            if (remainderDuration > 0.01) {
+              const remainderLabel = nextLabel("txr")
+              const concatOut = nextLabel("trk")
+              filterParts.push(`[${segBForTrim}]trim=start=${fadeDuration.toFixed(3)}:end=${segmentDuration(sorted[i]).toFixed(3)},setpts=PTS-STARTPTS[${remainderLabel}]`)
+              filterParts.push(`[${outLabel}][${remainderLabel}]concat=n=2:v=1:a=0[${concatOut}]`)
+              currentLabel = normalizeTb(concatOut)
+            } else {
+              currentLabel = normalizeTb(outLabel)
+            }
             currentDuration = currentDuration + segmentDuration(sorted[i]) - fadeDuration
           }
         } else {
@@ -533,6 +571,19 @@ for (const seg of videoSegments) {
           currentLabel = normalizeTb(concatOut)
           currentDuration += segmentDuration(sorted[i])
         }
+      }
+
+      // Handle fade-out to black on the last clip (synthetic transition)
+      const lastSeg = sorted[sorted.length - 1]
+      const fadeOutT = trackTransitions.find((t) =>
+        "clipId" in t.clipARef && t.clipARef.clipId === lastSeg.clipId &&
+        "synthetic" in t.clipBRef && t.clipBRef.synthetic === "black_silence"
+      )
+      if (fadeOutT) {
+        const fadeStart = Math.max(0, currentDuration - fadeOutT.durationS)
+        const fadeLabel = nextLabel("tx")
+        filterParts.push(`[${currentLabel}]fade=t=out:st=${fadeStart.toFixed(3)}:d=${fadeOutT.durationS.toFixed(3)}[${fadeLabel}]`)
+        currentLabel = normalizeTb(fadeLabel)
       }
 
       trackVideoLabels.set(trackOrder, currentLabel)
@@ -692,8 +743,7 @@ function findTransitionBetween(
   return transitions.find((t) => {
     const aId = "clipId" in t.clipARef ? t.clipARef.clipId : undefined
     const bId = "clipId" in t.clipBRef ? t.clipBRef.clipId : undefined
-    return (aId === segA.clipId && bId === segB.clipId) ||
-      (aId === segB.clipId && bId === segA.clipId)
+    return aId === segA.clipId && bId === segB.clipId
   })
 }
 

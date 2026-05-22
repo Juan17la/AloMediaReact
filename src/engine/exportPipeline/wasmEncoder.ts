@@ -27,11 +27,17 @@ async function loadExportFFmpeg(): Promise<FFmpeg> {
   })
 
   try {
-    await ffmpeg.load({
+    const loadPromise = ffmpeg.load({
       coreURL: await toBlobURL(`${CORE_MT_BASE_URL}ffmpeg-core.js`, "text/javascript"),
       wasmURL: await toBlobURL(`${CORE_MT_BASE_URL}ffmpeg-core.wasm`, "application/wasm"),
       workerURL: await toBlobURL(`${CORE_MT_BASE_URL}ffmpeg-core.worker.js`, "text/javascript"),
     })
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("FFmpeg WASM core load timeout (30s). Ensure core files exist at /ffmpeg-core/")), 30_000)
+    })
+
+    await Promise.race([loadPromise, timeoutPromise])
   } catch (err) {
     isLoaded = false
     exportInstance = null

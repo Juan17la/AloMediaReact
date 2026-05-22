@@ -14,7 +14,7 @@ export default defineConfig({
     proxy: {
       // Proxy export API requests to the AloMediaServer during development
       '/api': {
-        target: 'http://https://alomediaserverexport-production.up.railway.app', // VITE_EXPORT_SERVER_URL is the .env variable
+        target: 'https://alomediaserverexport-production.up.railway.app', // VITE_EXPORT_SERVER_URL is the .env variable
         changeOrigin: true,
         secure: false,
       },

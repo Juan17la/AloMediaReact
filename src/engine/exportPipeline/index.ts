@@ -104,7 +104,7 @@ export async function exportProject(
   }
 }
 
-export { checkServerAvailability, invalidateServerCache } from "./serverEncoder"
+export { checkServerAvailability, invalidateServerCache, wakeUpServer } from "./serverEncoder"
 export { getEngineInfo } from "./engineRouter"
 export { ENCODING_PRESETS, GPU_ENCODING_PRESETS } from "./encodingPresets"
 export { buildOutputTarget, getFileExtension, getOutputMimeType } from "./encodingPresets"

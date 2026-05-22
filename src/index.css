@@ -591,21 +591,21 @@ button:focus-visible {
    ================================================ */
 .input-base {
   background: var(--color-surface-container-lowest);
-  border: 1px solid var(--color-outline);
+  border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-md);
   color: var(--color-on-surface);
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 .input-base::placeholder {
-  color: var(--color-on-surface-variant);
+  color: var(--color-muted-foreground);
 }
 .input-base:hover {
-  border-color: var(--color-outline-variant);
+  border-color: var(--color-outline);
 }
 .input-base:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-fixed-dim);
+  box-shadow: 0 0 0 1px var(--color-primary-fixed-dim);
 }
 
 /* ================================================

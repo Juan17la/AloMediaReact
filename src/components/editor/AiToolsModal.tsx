@@ -50,7 +50,7 @@ export function AiToolsModal({ media, initialTool, onClose }: AiToolsModalProps)
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
           <AiToolsPanel selectedMedia={media} initialTool={initialTool} />
         </div>
       </div>

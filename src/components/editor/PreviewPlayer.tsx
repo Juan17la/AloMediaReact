@@ -819,7 +819,7 @@ export function PreviewPlayer() {
 
       {/* Transport bar */}
       <div
-        className="w-full shrink-0 flex items-center h-10 px-2 border-t border-t-outline/30 border-b border-b-outline/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_10px_rgba(0,0,0,0.35),0_12px_28px_rgba(0,0,0,0.22)]"
+        className="w-full gap-1 shrink-0 flex items-center h-10 px-2 border-t border-t-outline/30 border-b border-b-outline/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_10px_rgba(0,0,0,0.35),0_12px_28px_rgba(0,0,0,0.22)]"
         style={{
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px) saturate(150%)",

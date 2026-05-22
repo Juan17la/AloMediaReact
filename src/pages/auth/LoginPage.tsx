@@ -164,12 +164,12 @@ export default function LoginPage() {
             >
               {t("login.forgotPassword")}
             </Link>
-            <a
-              href="#"
+            <Link
+              to="/legal/terms"
               className="text-muted-foreground hover:text-on-surface font-bold transition-colors duration-150 underline underline-offset-2"
             >
               {t("login.termsAndConditions")}
-            </a>
+            </Link>
           </div>
         </form>
 

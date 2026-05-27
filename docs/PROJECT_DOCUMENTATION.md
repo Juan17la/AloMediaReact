@@ -1,36 +1,98 @@
-# AloMedia React Documentation Hub
+# AloMedia Documentation Hub
 
-Este archivo funciona como indice maestro de la documentacion profunda del proyecto.
+This file serves as the master index for the comprehensive AloMedia video editor documentation.
 
-## Documentos principales
+## Project Overview
 
-1. [README.md](README.md): mapa rapido para onboarding y lectura por rol.
-2. [GETTING_STARTED.md](GETTING_STARTED.md): setup, flujo de trabajo y primeros pasos.
-3. [ARCHITECTURE.md](ARCHITECTURE.md): arquitectura por capas, limites y flujo de datos.
-4. [API_SERVICES.md](API_SERVICES.md): capa HTTP, servicios y errores.
-5. [AUTHENTICATION.md](AUTHENTICATION.md): sesion, rutas privadas/publicas y recuperacion.
-6. [VIDEO_EDITOR_WORKFLOW.md](VIDEO_EDITOR_WORKFLOW.md): flujo operativo del editor extremo a extremo.
-7. [FFMPEG_EXPORT.md](FFMPEG_EXPORT.md): pipeline de export, filter graph, progreso y cancelacion.
-8. [UI_UX.md](UI_UX.md): decisiones de interfaz, interaccion y experiencia.
-9. [DATA_STRUCTURES.md](DATA_STRUCTURES.md): catalogo explicito de estructuras de datos implementadas.
-10. [CONFIGURATION_RUNTIME.md](CONFIGURATION_RUNTIME.md): configuracion de build/runtime y requisitos de entorno.
-11. [QUALITY_RISKS.md](QUALITY_RISKS.md): riesgos tecnicos, limites actuales y recomendaciones.
+AloMedia is a browser-based non-linear video editor with multi-track timeline, real-time preview, local export via FFmpeg WebAssembly, and server-side export fallback. It supports video, audio, image, and text clips with transitions, color adjustments, transforms, and AI-powered audio tools.
 
-## Orden recomendado de lectura
+## Main Documentation Files
 
-1. GETTING_STARTED.
-2. ARCHITECTURE.
-3. VIDEO_EDITOR_WORKFLOW.
-4. FFMPEG_EXPORT.
-5. DATA_STRUCTURES.
+1. **[README.md](../README.md)** — Quick onboarding map and role-based reading guide.
+2. **[GETTING_STARTED.md](GETTING_STARTED.md)** — Setup, development workflow, first steps, and golden rules.
+3. **[ARCHITECTURE.md](ARCHITECTURE.md)** — Layered architecture, boundaries, data flow, and key design decisions.
+4. **[API_SERVICES.md](API_SERVICES.md)** — HTTP client layer, REST API endpoints, services, errors, and AI media endpoints.
+5. **[AUTHENTICATION.md](AUTHENTICATION.md)** — Session lifecycle, route protection, JWT cookies, password recovery.
+6. **[VIDEO_EDITOR_WORKFLOW.md](VIDEO_EDITOR_WORKFLOW.md)** — End-to-end editor workflow: import, timeline, preview, export, save, share.
+7. **[FFMPEG_EXPORT.md](FFMPEG_EXPORT.md)** — Export pipeline: dual-engine (WASM/server), filter graph, progress tracking, cancellation.
+8. **[UI_UX.md](UI_UX.md)** — Visual structure, interaction patterns, accessibility, keyboard shortcuts, timeline usability.
+9. **[DATA_STRUCTURES.md](DATA_STRUCTURES.md)** — Catalog of all data structures: arrays, stacks, maps, sets, sorted arrays, trees, records.
+10. **[CONFIGURATION_RUNTIME.md](CONFIGURATION_RUNTIME.md)** — Build config, Vite, Tailwind v4, FFmpeg.wasm requirements, environment variables, IndexedDB cache.
+11. **[QUALITY_RISKS.md](QUALITY_RISKS.md)** — Performance risks, temporal consistency, export reliability, product risks, technical debt, and mitigation strategies.
 
-## Audiencia
+## Recommended Reading Order
 
-- Producto y negocio: UI_UX + VIDEO_EDITOR_WORKFLOW.
-- Frontend: ARCHITECTURE + VIDEO_EDITOR_WORKFLOW + DATA_STRUCTURES.
-- Integracion backend: API_SERVICES + AUTHENTICATION.
-- Rendimiento/export: FFMPEG_EXPORT + QUALITY_RISKS + CONFIGURATION_RUNTIME.
+### For New Contributors
+1. GETTING_STARTED
+2. ARCHITECTURE
+3. VIDEO_EDITOR_WORKFLOW
+4. DATA_STRUCTURES
 
-## Alcance
+### For Frontend Developers
+1. ARCHITECTURE
+2. VIDEO_EDITOR_WORKFLOW
+3. DATA_STRUCTURES
+4. UI_UX
+5. FFMPEG_EXPORT
 
-La suite de documentos evita copiar codigo y explica comportamiento, responsabilidades, dependencias y decisiones de diseño sobre implementacion real del repositorio.
+### For Backend Integrators
+1. API_SERVICES
+2. AUTHENTICATION
+3. FFMPEG_EXPORT
+
+### For DevOps / Deployment
+1. CONFIGURATION_RUNTIME
+2. QUALITY_RISKS
+3. FFMPEG_EXPORT
+
+### For Product / UX
+1. UI_UX
+2. VIDEO_EDITOR_WORKFLOW
+3. QUALITY_RISKS
+
+## Tech Stack at a Glance
+
+| Layer | Technology |
+|-------|------------|
+| Framework | React 19 + TypeScript 5.9 |
+| Build Tool | Vite 7 |
+| Styling | Tailwind CSS v4 |
+| State Management | Zustand 5 (editor) + TanStack Query 5 (server) |
+| Routing | React Router 7 |
+| i18n | i18next + react-i18next |
+| Icons | Lucide React |
+| Video/Audio | HTML5 Media Elements + custom RAF loop |
+| Export | FFmpeg.wasm (client) + REST server (fallback) |
+| Local Cache | IndexedDB (file hash-based) |
+| Cookies | js-cookie |
+| Validation | Zod (implicit via TypeScript) |
+
+## Application Pages
+
+| Route | Access | Description |
+|-------|--------|-------------|
+| `/` | Public | Landing page |
+| `/about` | Public | About AloMedia |
+| `/contact` | Public | Contact page |
+| `/help` | Public | Help center |
+| `/legal/terms` | Public | Terms of service |
+| `/legal/privacy` | Public | Privacy policy |
+| `/auth/login` | Public (redirects if auth) | Login |
+| `/auth/register` | Public (redirects if auth) | Register |
+| `/auth/recover` | Public | Password reset |
+| `/auth/recover/request` | Public | Request password recovery |
+| `/dashboard` | Private | Project dashboard |
+| `/editor/:projectId` | Private | Video editor |
+| `/editor` | Public* | Video editor (standalone) |
+| `/profile` | Private | User profile |
+| `/admin` | Admin only | Admin dashboard |
+| `*` | Public | 404 Not Found |
+
+> *Note: `/editor` without projectId is currently public for testing. Set to private for production.
+
+## Documentation Principles
+
+- Every document explains **behavior, responsibilities, dependencies, and design decisions** rather than copying code.
+- File paths are relative to the repository root and link to actual source files.
+- Documentation is kept in sync with the codebase — if you change architecture, update these files.
+- When adding new major features, add a new section to the relevant document or create a new one and link it here.

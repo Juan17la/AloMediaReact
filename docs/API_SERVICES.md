@@ -1,509 +1,272 @@
-# Diagrama de clases lógico — Sistema de gestión de estudio de grabación
+# API Services
 
-## 1. Clases de dominio
+## Overview
 
-### 1.1 Usuario
-**Descripción:** Representa a cualquier persona registrada en el sistema.
+AloMedia communicates with a REST backend for authentication, project management, and AI media processing. The HTTP layer is a thin wrapper around `fetch` with unified error handling, cookie-based JWT authentication, and TypeScript generics for type-safe responses.
 
-**Atributos:**
-- id: UUID
-- email: String
-- nombres: String
-- apellidos: String
-- fechaNacimiento: Date
-- contraseñaHash: String
-- fotoPerfil: String
-- estadoCuenta: EstadoCuenta
-- fechaRegistro: DateTime
-- ultimoAcceso: DateTime
+## HTTP Client
 
-**Métodos:**
-- registrar(email: String, nombres: String, apellidos: String, fechaNacimiento: Date, contraseña: String): Usuario
-- autenticar(email: String, contraseña: String): TokenSesion
-- actualizarPerfil(nombres: String, apellidos: String, fotoPerfil: String): void
-- cambiarContraseña(contraseñaActual: String, nuevaContraseña: String): void
-- activarCuenta(): void
-- desactivarCuenta(): void
+**File:** `src/api/http.ts`
 
----
+The `http<T>()` function is the single entry point for all API calls:
 
-### 1.2 Cliente
-**Descripción:** Usuario que reserva salas, paga y califica sesiones.
+```typescript
+http<T>(path: string, options?: RequestInit & { parse?: boolean }): Promise<T>
+```
 
-**Herencia:** Cliente hereda de Usuario.
+### Features
+- Automatically prepends `VITE_BASE_URL` to paths
+- Sends `credentials: "include"` for cookie-based auth
+- Sets `Content-Type: application/json` by default
+- Parses JSON responses and throws `ApiError` on non-2xx status codes
+- Supports `parse: false` for void responses (e.g., logout, delete)
 
-**Atributos:**
-- historialPreferencias: String
+### Error Handling
 
-**Métodos:**
-- crearReserva(sala: Sala, fecha: Date, horaInicio: Time, horaFin: Time): Reserva
-- cancelarReserva(reserva: Reserva, motivo: String): void
-- calificarSesion(sesion: SesionGrabacion, estrellas: int, comentario: String): Calificacion
-- verHistorialReservas(filtroEstado: EstadoReserva, desde: Date, hasta: Date): List<Reserva>
+**File:** `src/api/errors.ts`
 
----
+```typescript
+class ApiError extends Error {
+  message: string
+  statusCode: number
+  errors: FieldError[]  // per-field validation errors
+}
 
-### 1.3 Productor
-**Descripción:** Usuario que administra sesiones, responde reseñas y define su tarifa.
+interface FieldError {
+  field: string
+  message: string
+}
+```
 
-**Herencia:** Productor hereda de Usuario.
-
-**Atributos:**
-- especialidad: String
-- tarifaPorHora: Decimal
-- calificacionPromedio: Decimal
-- descripcionPerfil: String
-
-**Métodos:**
-- asignarSesion(reserva: Reserva): SesionGrabacion
-- responderCalificacion(calificacion: Calificacion, texto: String): RespuestaCalificacion
-- actualizarTarifa(nuevaTarifa: Decimal): void
-- actualizarEspecialidad(especialidad: String): void
-- obtenerDisponibilidad(fecha: Date): List<FranjaHoraria>
+Components can check `error.statusCode` to show specific UI messages (e.g., 401 -> redirect to login, 422 -> show field errors).
 
 ---
 
-### 1.4 Administrador
-**Descripción:** Usuario con permisos de gestión y administración.
+## Authentication API
 
-**Herencia:** Administrador hereda de Usuario.
+**File:** `src/services/authService.ts`
 
-**Atributos:**
-- nivelAcceso: NivelAcceso
+All auth endpoints use the base HTTP client. JWT tokens are stored in cookies via `js-cookie`.
 
-**Métodos:**
-- crearSala(sala: Sala): void
-- editarSala(sala: Sala): void
-- gestionarUsuario(usuario: Usuario, accion: AccionUsuario): void
-- generarReporte(tipo: TipoReporte, desde: Date, hasta: Date): Reporte
-- consultarMetricas(desde: Date, hasta: Date): ListaMetricas
+### Endpoints
 
----
+| Function | Method | Endpoint | Description |
+|----------|--------|----------|-------------|
+| `signIn(payload)` | POST | `/auth/login` | Authenticates user, stores JWT cookie |
+| `signUp(payload)` | POST | `/auth/register` | Creates account, stores JWT cookie |
+| `me()` | GET | `/auth/me` | Returns current user profile |
+| `signout()` | POST | `/auth/logout` | Ends session, removes JWT cookie |
+| `recoverRequest(payload)` | POST | `/auth/recover/request` | Sends password recovery email |
+| `validateRecoverToken(token)` | GET | `/auth/recover/validate?token=` | Checks if recovery token is valid |
+| `recoverReset(payload)` | POST | `/auth/recover/reset` | Resets password with token |
 
-### 1.5 Sala
-**Descripción:** Espacio físico que puede ser reservado para grabación o postproducción.
+### Type Definitions
 
-**Atributos:**
-- id: UUID
-- nombre: String
-- tipo: TipoSala
-- capacidad: int
-- descripcion: String
-- estado: EstadoSala
-- tarifaBaseHora: Decimal
+**File:** `src/types/authTypes.ts`
 
-**Métodos:**
-- actualizarDatos(nombre: String, tipo: TipoSala, capacidad: int, descripcion: String): void
-- cambiarEstado(estado: EstadoSala): void
-- verificarDisponibilidad(fecha: Date, horaInicio: Time, horaFin: Time): boolean
-- obtenerReservas(fecha: Date): List<Reserva>
+```typescript
+interface LoginPayload { email: string; password: string }
+interface RegisterPayload { firstName: string; lastName: string; email: string; password: string }
+interface AuthResponse { token: string; id: number; firstName: string; lastName: string; email: string; role: 'USER' | 'ADMIN' }
+interface MeResponse { authenticated: boolean; user: User | null }
+interface RecoverRequestPayload { email: string }
+interface RecoverResetPayload { token: string; newPassword: string; confirmPassword: string }
+```
 
----
+### Auth Header Pattern
 
-### 1.6 HorarioDisponibilidadSala
-**Descripción:** Define las franjas horarias en las que una sala puede reservarse.
-
-**Atributos:**
-- id: UUID
-- diaSemana: DiaSemana
-- horaInicio: Time
-- horaFin: Time
-- activa: boolean
-
-**Métodos:**
-- activar(): void
-- desactivar(): void
-- validarFranja(horaInicio: Time, horaFin: Time): boolean
+The auth service reads the `token` cookie and injects it as an `Authorization: Bearer <token>` header. This pattern is duplicated in `projectService.ts` because both services need auth headers independently.
 
 ---
 
-### 1.7 Reserva
-**Descripción:** Compromiso de uso de una sala por un cliente en un rango horario.
+## Project API
 
-**Atributos:**
-- id: UUID
-- fecha: Date
-- horaInicio: Time
-- horaFin: Time
-- estado: EstadoReserva
-- montoTotal: Decimal
-- fechaCreacion: DateTime
-- fechaCancelacion: DateTime
-- motivoCancelacion: String
+**File:** `src/services/projectService.ts`
 
-**Métodos:**
-- confirmar(): void
-- cancelar(motivo: String): void
-- calcularMonto(tarifaHora: Decimal, horas: Decimal): Decimal
-- validarSolapamiento(): boolean
-- cambiarEstado(estado: EstadoReserva): void
+### Endpoints
 
----
+| Function | Method | Endpoint | Description |
+|----------|--------|----------|-------------|
+| `getOwnProjects(page, size, sort?)` | GET | `/projects?page=&size=&sort=` | Paginated list of user's projects |
+| `getSharedProjects(page, size, sort?)` | GET | `/projects/shared?page=&size=&sort=` | Paginated list of projects shared with user |
+| `getProjectById(id)` | GET | `/projects/{id}` | Load a single project with timeline data |
+| `createProject(data)` | POST | `/projects` | Create new project |
+| `updateProject(id, data)` | PATCH | `/projects/{id}` | Update project name/timeline/status |
+| `deleteProject(id)` | DELETE | `/projects/{id}` | Delete project |
+| `shareProject(id, email)` | POST | `/projects/{id}/share` | Share project with user by email |
 
-### 1.8 SesionGrabacion
-**Descripción:** Evento formal de grabación derivado de una reserva confirmada.
+### Type Definitions
 
-**Atributos:**
-- id: UUID
-- nombreSesion: String
-- fechaInicio: DateTime
-- fechaFin: DateTime
-- estado: EstadoSesion
-- notasTecnicas: String
-- montoEstimado: Decimal
-- timestampEstado: DateTime
+**File:** `src/types/projectApiTypes.ts`
 
-**Métodos:**
-- iniciar(): void
-- finalizar(): void
-- cancelar(): void
-- actualizarNotasTecnicas(notas: String): void
-- actualizarMontoEstimado(monto: Decimal): void
-- reasignarSala(sala: Sala): void
+```typescript
+interface ApiProject {
+  id: number
+  name: string
+  status: 'DRAFT' | 'SHARED' | 'ARCHIVED'
+  timelineData: string          // JSON-serialized Project
+  ownerId: number
+  createdAt: string
+  updatedAt: string
+}
 
----
+interface PaginatedResponse<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  size: number
+  number: number
+}
 
-### 1.9 Calificacion
-**Descripción:** Valoración pública que un cliente hace sobre una sesión completada.
+interface CreateProjectInput {
+  name: string
+  timelineData?: string
+}
 
-**Atributos:**
-- id: UUID
-- estrellas: int
-- comentario: String
-- fechaCreacion: DateTime
-- esPublica: boolean
+interface UpdateProjectInput {
+  name?: string
+  timelineData?: string
+  status?: 'DRAFT' | 'SHARED' | 'ARCHIVED'
+}
+```
 
-**Métodos:**
-- validarEstrellas(): boolean
-- editarComentario(comentario: String): void
+### Serialization Flow
+
+1. **Save:** `Project` -> `serializeTimeline()` -> `timelineData` string -> `updateProject()`
+2. **Load:** `getProjectById()` -> `timelineData` string -> `deserializeTimeline()` -> `Project`
+3. **Local JSON Export:** `Project` -> `saveProject()` -> `SavedProject` -> JSON blob -> download
+4. **Local JSON Import:** File read -> `loadProject()` -> `Project` -> store
 
 ---
 
-### 1.10 RespuestaCalificacion
-**Descripción:** Respuesta pública del productor a una calificación.
+## AI Media API
 
-**Atributos:**
-- id: UUID
-- texto: String
-- fechaRespuesta: DateTime
+**File:** `src/api/aiMedia.ts`
 
-**Métodos:**
-- editarRespuesta(texto: String): void
+AI endpoints use multipart/form-data upload because they process binary media files. The base `http()` client is NOT used here; instead, a dedicated `fetch` wrapper (`postFormBlob`) handles multipart requests.
 
----
+### Endpoints
 
-### 1.11 Pago
-**Descripción:** Registro del estado financiero de una reserva.
+| Function | Method | Endpoint | Description |
+|----------|--------|----------|-------------|
+| `cleanAudio(file)` | POST | `/ai/audio/clean` | Removes noise from audio file. Returns cleaned audio blob. |
+| `transcribeAudio(file)` | POST | `/ai/audio/transcribe` | Transcribes audio to SRT subtitles. Returns SRT file blob. |
 
-**Atributos:**
-- id: UUID
-- estadoPago: EstadoPago
-- montoTotal: Decimal
-- fechaPago: DateTime
-- metodoPago: MetodoPago
+### Usage Flow
 
-**Métodos:**
-- marcarPagado(metodoPago: MetodoPago): void
-- marcarPendiente(): void
-- calcularTotal(horas: Decimal, tarifaHora: Decimal): Decimal
+1. User selects a media item in the library
+2. Clicks "AI Tools" to open `AiToolsModal`
+3. Chooses "Clean Audio" or "Transcribe"
+4. Frontend uploads the original `File` from `fileMap`
+5. Backend processes and returns a new blob
+6. Frontend imports the result as new media in the project
 
----
+### Important Notes
 
-### 1.12 Notificacion
-**Descripción:** Mensaje enviado al usuario por eventos del sistema.
-
-**Atributos:**
-- id: UUID
-- tipo: TipoNotificacion
-- mensaje: String
-- leida: boolean
-- fechaCreacion: DateTime
-
-**Métodos:**
-- enviar(destinatario: Usuario): void
-- marcarComoLeida(): void
+- `Content-Type` must NOT be set manually for multipart requests. The browser sets `multipart/form-data; boundary=...` automatically.
+- JSON metadata (like `formats: ["srt"]`) is appended as a JSON blob within the form.
+- Auth header is injected from the `token` cookie, same as other endpoints.
 
 ---
 
-### 1.13 RestablecimientoContrasena
-**Descripción:** Token temporal para recuperar acceso a una cuenta.
+## Export Server API
 
-**Atributos:**
-- id: UUID
-- token: String
-- fechaExpiracion: DateTime
-- usado: boolean
+**File:** `src/engine/exportPipeline/serverEncoder.ts`
 
-**Métodos:**
-- validarToken(): boolean
-- marcarComoUsado(): void
+The export server is a separate service (typically deployed on Railway) that runs FFmpeg server-side. It has its own API surface:
 
----
+### Endpoints
 
-### 1.14 TokenSesion
-**Descripción:** Credencial temporal de autenticación.
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Returns server availability, GPU acceleration status, and codec info |
+| `/api/export` | POST | Submits a render job with plan JSON + media files as multipart |
+| `/api/export/{id}/status` | GET | Polls job progress (status, percent, frames processed) |
+| `/api/export/{id}/download` | GET | Downloads the finished video file |
+| `/api/export/{id}` | DELETE | Cancels an in-progress job |
 
-**Atributos:**
-- valor: String
-- fechaExpiracion: DateTime
-- recuerdaSesion: boolean
+### Health Check Response
 
-**Métodos:**
-- esValido(): boolean
+```typescript
+interface EngineCapabilities {
+  available: boolean
+  gpuAccel: boolean
+  gpuCodec: string | null
+  maxConcurrentJobs: number
+}
+```
 
----
+### Job Status Polling
 
-### 1.15 LogSistema
-**Descripción:** Registro de acciones administrativas y eventos relevantes.
-
-**Atributos:**
-- id: UUID
-- accion: String
-- detalle: String
-- fecha: DateTime
-- usuarioResponsableId: UUID
-
-**Métodos:**
-- registrar(accion: String, detalle: String, usuarioResponsableId: UUID): void
+The frontend polls every 500ms until the job reaches `done` or `failed`. The server status is mapped to frontend `JobStatus` enum for consistent progress display.
 
 ---
 
-## 2. Tipos enumerados
+## Request/Response Patterns
 
-### 2.1 TipoSala
-- GRABACION
-- GRABACION_ACUSTICA
-- POSTPRODUCCION
+### Standard Pattern
 
-### 2.2 EstadoSala
-- DISPONIBLE
-- OCUPADA
-- EN_MANTENIMIENTO
-- FUERA_DE_SERVICIO
+```typescript
+// GET with auth
+const projects = await getOwnProjects(0, 10, "updatedAt,desc")
 
-### 2.3 EstadoReserva
-- PENDIENTE
-- CONFIRMADA
-- EN_CURSO
-- COMPLETADA
-- CANCELADA
+// POST with body
+const newProject = await createProject({ name: "My Video", timelineData: "{}" })
 
-### 2.4 EstadoSesion
-- PROGRAMADA
-- EN_PROGRESO
-- COMPLETADA
-- CANCELADA
+// DELETE (void response)
+await deleteProject(123)
+```
 
-### 2.5 EstadoCuenta
-- ACTIVA
-- INACTIVA
-- BLOQUEADA
-- PENDIENTE_CONFIRMACION
+### Error Handling Pattern
 
-### 2.6 EstadoPago
-- PAGADO
-- PENDIENTE
+```typescript
+try {
+  await signIn({ email, password })
+} catch (error) {
+  if (error instanceof ApiError) {
+    if (error.statusCode === 401) {
+      showToast("Invalid credentials")
+    } else if (error.statusCode === 422) {
+      showFieldErrors(error.errors)
+    }
+  }
+}
+```
 
-### 2.7 NivelAcceso
-- BASICO
-- INTERMEDIO
-- ALTO
+### File Upload Pattern
 
-### 2.8 TipoNotificacion
-- CONFIRMACION_RESERVA
-- CANCELACION_RESERVA
-- RECORDATORIO_SESION
-- NUEVA_CALIFICACION
-- RESPUESTA_CALIFICACION
-- RESTABLECIMIENTO_CONTRASENA
+```typescript
+const form = new FormData()
+form.append("file", file)
+form.append("formats", new Blob([JSON.stringify(["srt"])], { type: "application/json" }), "formats.json")
 
-### 2.9 DiaSemana
-- LUNES
-- MARTES
-- MIERCOLES
-- JUEVES
-- VIERNES
-- SABADO
-- DOMINGO
-
-### 2.10 MetodoPago
-- TARJETA
-- TRANSFERENCIA
-- EFECTIVO
-- OTRO
-
-### 2.11 TipoReporte
-- OCUPACION_POR_SALA
-- INGRESOS_POR_PERIODO
-- ACTIVIDAD_DE_PRODUCTORES
-
-### 2.12 AccionUsuario
-- CREAR
-- EDITAR
-- ACTIVAR
-- DESACTIVAR
-- ELIMINAR
-- CAMBIAR_ROL
+const blob = await postFormBlob("/ai/audio/transcribe", form)
+```
 
 ---
 
-## 3. Relaciones entre clases
+## Environment Configuration
 
-### 3.1 Herencia
-- **Usuario** es la superclase de **Cliente**, **Productor** y **Administrador**.
-- Esto representa especialización por rol, no por interfaz de usuario.
+| Variable | Required | Default | Used By |
+|----------|----------|---------|---------|
+| `VITE_BASE_URL` | Yes | — | `http.ts`, `aiMedia.ts` |
+| `VITE_EXPORT_SERVER_URL` | No | `""` | `serverEncoder.ts` |
 
-### 3.2 Composición
-- **Cliente** 1 --- 0..* **Reserva**.
-- La **Reserva** pertenece al cliente; si el cliente se elimina, sus reservas quedan como historial o se anonimizan según política.
-- **Reserva** 1 --- 1 **Pago**.
-- El pago no existe sin la reserva.
-- **Reserva** 1 --- 0..1 **SesionGrabacion**.
-- La sesión nace a partir de una reserva confirmada.
-- **SesionGrabacion** 1 --- 0..* **Calificacion**.
-- En el modelo lógico se permite una calificación por cliente, pero la sesión como entidad puede almacenar el conjunto de calificaciones si el sistema creciera.
-- **Calificacion** 1 --- 0..1 **RespuestaCalificacion**.
-- Una calificación puede tener una sola respuesta.
-- **Usuario** 1 --- 0..* **Notificacion**.
-- Las notificaciones dependen del usuario receptor.
-- **Usuario** 1 --- 0..* **RestablecimientoContrasena**.
-- Los tokens de recuperación existen solo mientras son válidos.
-
-### 3.3 Asociación
-- **Productor** 1 --- 0..* **SesionGrabacion**.
-- Un productor puede atender muchas sesiones.
-- **Sala** 1 --- 0..* **Reserva**.
-- Una sala puede tener muchas reservas en distintos horarios.
-- **Sala** 1 --- 0..* **SesionGrabacion**.
-- Una sesión ocurre en una sala asignada.
-- **Reserva** 1 --- 1 **Sala**.
-- Cada reserva selecciona una sola sala.
-- **Reserva** 1 --- 1 **Productor**.
-- La reserva se asocia al productor que presta el servicio.
-- **Calificacion** 1 --- 1 **Productor**.
-- Cada calificación impacta el perfil del productor.
-- **Calificacion** 1 --- 1 **Cliente**.
-- La reseña la emite un cliente.
-- **LogSistema** se asocia a **Usuario** por el campo usuarioResponsableId.
-- Es una asociación lógica de auditoría, no de propiedad.
-
-### 3.4 Agrupación
-- **Sala** 1 o--- 0..* **HorarioDisponibilidadSala**.
-- El rombo **no relleno** apunta desde **Sala** hacia **HorarioDisponibilidadSala**.
-- Significa que la sala agrupa franjas de disponibilidad, pero esas franjas pueden modelarse y administrarse de forma relativamente independiente.
-- **Administrador** 1 o--- 0..* **LogSistema**.
-- El rombo **no relleno** apunta desde **Administrador** hacia **LogSistema** cuando el administrador genera o provoca eventos auditables.
-- **Productor** 1 o--- 0..* **Calificacion**.
-- El rombo **no relleno** apunta desde **Productor** hacia **Calificacion**, porque el productor agrupa las reseñas que recibe, pero las reseñas tienen identidad propia.
-
-### 3.5 Implementación
-- No se propone una interfaz de “Dashboard”, porque no es un objeto del dominio.
-- Si quieres representar comportamiento técnico, puedes usar una interfaz opcional:
-  - **ITarificable** con método `calcularMonto(horas: Decimal): Decimal`
-  - implementada por **Reserva** y **SesionGrabacion**.
-  - **INotificable** con método `enviar(destinatario: Usuario): void`
-  - implementada por **Notificacion**.
+If `VITE_EXPORT_SERVER_URL` is empty or the server is unavailable, export falls back to WASM client-side encoding.
 
 ---
 
-## 4. Observaciones de abstracción
+## CORS and Security
 
-- Se evitó usar clases ambiguas como **Dashboard**, **Panel** o **Catálogo**, porque no representan entidades del problema sino vistas o agregaciones de consulta.
-- Las entidades centrales del dominio son: **Usuario, Cliente, Productor, Administrador, Sala, Reserva, SesionGrabacion, Calificacion, Pago y Notificacion**.
-- Las funciones se modelaron como operaciones de las entidades para mantener el nivel lógico medio-bajo que pediste.
-- Los estados se aislaron en enumeraciones para que el modelo sea claro y fácil de implementar.
+- The backend must allow credentials (`Access-Control-Allow-Credentials: true`) because the client sends `credentials: "include"`.
+- The backend must echo the `Origin` in `Access-Control-Allow-Origin` (not `*`) when credentials are used.
+- JWT tokens are stored in cookies with `HttpOnly` ideally (currently client-side via js-cookie; migration to HttpOnly + refresh token pattern is recommended).
 
+---
 
-# Ajuste del modelo lógico de clases
+## Future API Considerations
 
-## 1. Usuario
-**Métodos:**
-- registrar(email: String, nombres: String, apellidos: String, fechaNacimiento: Date, contraseña: String): Usuario
-- autenticar(email: String, contraseña: String): TokenSesion
-- actualizarPerfil(nombres: String, apellidos: String, fotoPerfil: String): Usuario
-- cambiarContraseña(contraseñaActual: String, nuevaContraseña: String): boolean
-- activarCuenta(): Usuario
-- desactivarCuenta(): Usuario
-
-## 2. Cliente
-**Métodos:**
-- crearReserva(sala: Sala, fecha: Date, horaInicio: Time, horaFin: Time): Reserva
-- cancelarReserva(reserva: Reserva, motivo: String?): Reserva
-- calificarSesion(sesion: SesionGrabacion, estrellas: int, comentario: String?): Calificacion
-- verHistorialReservas(filtroEstado: EstadoReserva?, desde: Date?, hasta: Date?): List<Reserva>
-
-## 3. Productor
-**Métodos:**
-- asignarSesion(reserva: Reserva): SesionGrabacion
-- responderCalificacion(calificacion: Calificacion, texto: String): RespuestaCalificacion
-- actualizarTarifa(nuevaTarifa: Decimal): Productor
-- actualizarEspecialidad(especialidad: String): Productor
-- obtenerDisponibilidad(fecha: Date): List<FranjaHoraria>
-
-## 4. Administrador
-**Métodos:**
-- crearSala(sala: Sala): Sala
-- editarSala(sala: Sala): Sala
-- gestionarUsuario(usuario: Usuario, accion: AccionUsuario): Usuario
-- generarReporte(tipo: TipoReporte, desde: Date, hasta: Date): Reporte
-- consultarMetricas(desde: Date, hasta: Date): ListaMetricas
-
-## 5. Sala
-**Métodos:**
-- actualizarDatos(nombre: String, tipo: TipoSala, capacidad: int, descripcion: String): Sala
-- cambiarEstado(estado: EstadoSala): EstadoSala
-- verificarDisponibilidad(fecha: Date, horaInicio: Time, horaFin: Time): boolean
-- obtenerReservas(fecha: Date): List<Reserva>
-
-## 6. HorarioDisponibilidadSala
-**Métodos:**
-- activar(): HorarioDisponibilidadSala
-- desactivar(): HorarioDisponibilidadSala
-- validarFranja(horaInicio: Time, horaFin: Time): boolean
-
-## 7. Reserva
-**Métodos:**
-- confirmar(): Reserva
-- cancelar(motivo: String?): Reserva
-- calcularMonto(tarifaHora: Decimal, horas: Decimal): Decimal
-- validarSolapamiento(): boolean
-- cambiarEstado(estado: EstadoReserva): EstadoReserva
-
-## 8. SesionGrabacion
-**Métodos:**
-- iniciar(): SesionGrabacion
-- finalizar(): SesionGrabacion
-- cancelar(): SesionGrabacion
-- actualizarNotasTecnicas(notas: String): SesionGrabacion
-- actualizarMontoEstimado(monto: Decimal): Decimal
-- reasignarSala(sala: Sala): Sala
-
-## 9. Calificacion
-**Métodos:**
-- validarEstrellas(): boolean
-- editarComentario(comentario: String): Calificacion
-- calcularImpactoPromedio(promedioActual: Decimal, nuevaCalificacion: int): Decimal
-
-## 10. RespuestaCalificacion
-**Métodos:**
-- editarRespuesta(texto: String): RespuestaCalificacion
-
-## 11. Pago
-**Métodos:**
-- marcarPagado(metodoPago: MetodoPago): Pago
-- marcarPendiente(): Pago
-- calcularTotal(horas: Decimal, tarifaHora: Decimal): Decimal
-
-## 12. Notificacion
-**Métodos:**
-- enviar(destinatario: Usuario): boolean
-- marcarComoLeida(): Notificacion
-
-## 13. RestablecimientoContrasena
-**Métodos:**
-- validarToken(): boolean
-- marcarComoUsado(): RestablecimientoContrasena
-
-## 14. TokenSesion
-**Métodos:**
-- esValido(): boolean
+1. **WebSocket for real-time collaboration** — Currently projects are not real-time collaborative. A WebSocket layer could enable live cursor sharing and conflict resolution.
+2. **Presigned URLs for large uploads** — For AI media and export server, direct-to-S3 uploads would reduce server bandwidth.
+3. **GraphQL for dashboard queries** — As project lists grow, GraphQL could reduce over-fetching of timeline data on the dashboard.
+4. **Export webhook callbacks** — Instead of polling the export server, webhooks could notify the client when a job completes.

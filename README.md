@@ -1,31 +1,34 @@
-# AloMedia React Docs
+# AloMedia React
 
-Documentacion tecnica y no tecnica del editor de video web AloMedia.
+Browser-based non-linear video editor with multi-track timeline, real-time preview, and dual-engine export (FFmpeg.wasm client-side + server-side GPU/CPU fallback).
 
-## Lectura rapida por objetivo
+## Quick Start
 
-1. Entender el proyecto en 15 minutos: [GETTING_STARTED.md](GETTING_STARTED.md).
-2. Entender arquitectura y limites: [ARCHITECTURE.md](ARCHITECTURE.md).
-3. Entender flujo real de edicion: [VIDEO_EDITOR_WORKFLOW.md](VIDEO_EDITOR_WORKFLOW.md).
-4. Entender export y FFmpeg: [FFMPEG_EXPORT.md](FFMPEG_EXPORT.md).
-5. Entender modelos y estructuras: [DATA_STRUCTURES.md](DATA_STRUCTURES.md).
+1. **Understand the project in 15 minutes:** [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
+2. **Architecture and boundaries:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+3. **End-to-end editing workflow:** [docs/VIDEO_EDITOR_WORKFLOW.md](docs/VIDEO_EDITOR_WORKFLOW.md)
+4. **Export and FFmpeg pipeline:** [docs/FFMPEG_EXPORT.md](docs/FFMPEG_EXPORT.md)
+5. **Data structures catalog:** [docs/DATA_STRUCTURES.md](docs/DATA_STRUCTURES.md)
 
-## Indice completo
+## Complete Documentation Index
 
-1. [GETTING_STARTED.md](docs/GETTING_STARTED.md)
-2. [ARCHITECTURE.md](docs/ARCHITECTURE.md)
-3. [API_SERVICES.md](docs/API_SERVICES.md)
-4. [AUTHENTICATION.md](docs/AUTHENTICATION.md)
-5. [VIDEO_EDITOR_WORKFLOW.md](docs/VIDEO_EDITOR_WORKFLOW.md)
-6. [FFMPEG_EXPORT.md](docs/FFMPEG_EXPORT.md)
-7. [UI_UX.md](docs/UI_UX.md)
-8. [DATA_STRUCTURES.md](docs/DATA_STRUCTURES.md)
-9. [CONFIGURATION_RUNTIME.md](docs/CONFIGURATION_RUNTIME.md)
-10. [QUALITY_RISKS.md](docs/QUALITY_RISKS.md)
+| # | Document | Purpose |
+|---|----------|---------|
+| 1 | [PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md) | Master hub and reading guide |
+| 2 | [GETTING_STARTED.md](docs/GETTING_STARTED.md) | Setup, workflow, first steps, golden rules |
+| 3 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Five-layer architecture, data flow, decisions |
+| 4 | [API_SERVICES.md](docs/API_SERVICES.md) | REST API, HTTP client, services, AI endpoints |
+| 5 | [AUTHENTICATION.md](docs/AUTHENTICATION.md) | Session lifecycle, route protection, recovery |
+| 6 | [VIDEO_EDITOR_WORKFLOW.md](docs/VIDEO_EDITOR_WORKFLOW.md) | Import, timeline, preview, export, save, share |
+| 7 | [FFMPEG_EXPORT.md](docs/FFMPEG_EXPORT.md) | Dual-engine export, filter graph, progress |
+| 8 | [UI_UX.md](docs/UI_UX.md) | Visual design, interactions, shortcuts, accessibility |
+| 9 | [DATA_STRUCTURES.md](docs/DATA_STRUCTURES.md) | Arrays, stacks, maps, sets, graphs, records |
+| 10 | [CONFIGURATION_RUNTIME.md](docs/CONFIGURATION_RUNTIME.md) | Build, deploy, env vars, IndexedDB, requirements |
+| 11 | [QUALITY_RISKS.md](docs/QUALITY_RISKS.md) | Risks, limits, mitigation strategies, priorities |
 
-## Enfoque de esta documentacion
+## Documentation Principles
 
-- Explica comportamientos y decisiones de diseño.
-- No replica bloques de codigo de la base.
-- Describe responsabilidades por capa y por modulo.
-- Documenta estructuras de datos reales implementadas.
+- Explains **behavior, responsibilities, dependencies, and design decisions** rather than copying code.
+- File paths link to actual source files in the repository.
+- Kept in sync with the codebase — update docs when architecture changes.
+- Audience-specific reading paths for frontend devs, backend integrators, DevOps, and product.

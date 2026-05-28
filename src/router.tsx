@@ -24,7 +24,6 @@ const TermsPage = lazy(() => import("./pages/legal/TermsPage"));
 const PrivacyPage = lazy(() => import("./pages/legal/PrivacyPage"));
 const Error404Page = lazy(() => import("./pages/errors/Error404Page"));
 const Error500Page = lazy(() => import("./pages/errors/Error500Page"));
-const OAuthCallbackPage = lazy(() => import("./pages/auth/OAuthCallbackPage"));
 
 const router = createBrowserRouter([
   // Landing page — accessible to everyone
@@ -84,9 +83,6 @@ const router = createBrowserRouter([
   // Error pages
   { path: "/errors/404", element: <Error404Page /> },
   { path: "/errors/500", element: <Error500Page /> },
-
-  // OAuth success callback
-  { path: "/oauth2/success", element: <OAuthCallbackPage /> },
 
   //  SET THIS TO PRIVATE FOR PRODUCTION, PUBLIC FOR TESTING
   {

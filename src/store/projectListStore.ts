@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { getOwnProjects, getSharedProjects } from '../services/projectService'
+import { projectService } from '../services/projectService'
 import type { ApiProject, PaginatedResponse } from '../types/projectApiTypes'
 
 interface ProjectListState {
@@ -22,9 +22,10 @@ export const useProjectListStore = create<ProjectListState>((set) => ({
   sharedError: null,
 
   async fetchOwn(page) {
+    if (page === 0) set({ ownData: {}, ownError: null })
     set({ isLoadingOwn: true, ownError: null })
     try {
-      const data = await getOwnProjects(page, 8, 'updatedAt,desc')
+      const data = await projectService.getOwnProjects(page, 8, 'updatedAt,desc')
       set(s => ({ ownData: { ...s.ownData, [page]: data }, isLoadingOwn: false }))
     } catch {
       set({ ownError: 'Failed to load projects.', isLoadingOwn: false })
@@ -32,9 +33,10 @@ export const useProjectListStore = create<ProjectListState>((set) => ({
   },
 
   async fetchShared(page) {
+    if (page === 0) set({ sharedData: {}, sharedError: null })
     set({ isLoadingShared: true, sharedError: null })
     try {
-      const data = await getSharedProjects(page, 8)
+      const data = await projectService.getSharedProjects(page, 8)
       set(s => ({ sharedData: { ...s.sharedData, [page]: data }, isLoadingShared: false }))
     } catch {
       set({ sharedError: 'Failed to load shared projects.', isLoadingShared: false })

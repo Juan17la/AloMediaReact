@@ -1,4 +1,5 @@
 import type { StateCreator } from "zustand"
+import type { AudioClip, VideoClip, ImageClip, TextClip } from "../../project/projectTypes"
 import { DEFAULT_AUDIO_CONFIG } from "../../constants/audioConfig"
 import { DEFAULT_SPEED, MAX_SPEED, MIN_SPEED } from "../../constants/speed"
 import { renderSingleFrame, resetPlayer, resumePlayer } from "../../hooks/usePlayer"
@@ -20,8 +21,7 @@ export const createProjectClipPropertyActions: StateCreator<EditorStore, [], [],
           clips: track.clips.map(clip => {
             if (clip.id !== clipId) return clip
             if (!("transform" in clip)) return clip
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            return { ...clip, transform: { ...(clip as any).transform, ...transform } }
+            return { ...clip, transform: { ...(clip as VideoClip | ImageClip | TextClip).transform, ...transform } }
           }),
         })),
       },
@@ -135,8 +135,7 @@ export const createProjectClipPropertyActions: StateCreator<EditorStore, [], [],
           clips: track.clips.map(clip => {
             if (clip.id !== clipId) return clip
             if (clip.type !== "video" && clip.type !== "audio") return clip
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const existing = (clip as any).audioConfig ?? { ...DEFAULT_AUDIO_CONFIG }
+            const existing = (clip as VideoClip | AudioClip).audioConfig ?? { ...DEFAULT_AUDIO_CONFIG }
             return { ...clip, audioConfig: { ...existing, ...config } }
           }),
         })),

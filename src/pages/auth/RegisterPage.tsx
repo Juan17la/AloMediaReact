@@ -1,6 +1,6 @@
 import { useState, type SyntheticEvent } from "react";
 import { Link, useNavigate } from "react-router";
-import { Mail, Lock, User, Eye, EyeOff, Chrome, Github, AlertCircle } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Chrome, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { signUp } from "../../services/authService";
 import { ApiError } from "../../api/errors";
@@ -143,7 +143,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="auth-glass-card py-7 px-12 max-w-195 mx-auto w-full animate-slide-up">
+    <div className="auth-glass-card py-6 px-5 sm:py-7 sm:px-12 max-w-195 mx-auto w-full animate-slide-up">
       <h1 className="text-3xl font-extrabold text-center mb-1 tracking-[-0.02em] text-gradient-primary">
         {t("register.title")}
       </h1>
@@ -319,13 +319,7 @@ export default function RegisterPage() {
             <Chrome className="w-5 h-5 text-muted-foreground group-hover:text-on-surface transition-colors duration-150" />
             {t("register.oauthGoogle")}
           </button>
-          <button
-            type="button"
-            className="flex items-center justify-center gap-3 w-full border border-outline-variant bg-surface-container-lowest text-on-surface font-semibold py-3.5 rounded-lg text-sm group cursor-pointer hover:bg-surface-container-low hover:border-outline transition-all"
-          >
-            <Github className="w-5 h-5 text-muted-foreground group-hover:text-on-surface transition-colors duration-150" />
-            {t("register.oauthGithub")}
-          </button>
+
         </div>
 
       </div>

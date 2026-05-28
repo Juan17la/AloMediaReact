@@ -1,6 +1,6 @@
 import { useState, type SyntheticEvent } from "react";
 import { Link, useNavigate } from "react-router";
-import { Mail, Lock, Eye, EyeOff, Chrome, Github, AlertCircle } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Chrome, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { signIn } from "../../services/authService";
 import { ApiError } from "../../api/errors";
@@ -58,7 +58,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="auth-glass-card py-7 px-12 max-w-180 mx-auto w-full animate-slide-up">
+    <div className="auth-glass-card py-6 px-5 sm:py-7 sm:px-12 max-w-180 mx-auto w-full animate-slide-up">
       {/* Header */}
       <h1 className="text-3xl font-extrabold text-center mb-1 tracking-[-0.02em] text-gradient-primary">
         {t("login.title")}
@@ -191,13 +191,7 @@ export default function LoginPage() {
             <Chrome className="w-5 h-5 text-muted-foreground group-hover:text-on-surface transition-colors duration-150" />
             {t("login.oauthGoogle")}
           </button>
-          <button
-            type="button"
-            className="flex items-center justify-center gap-3 w-full border border-outline-variant bg-surface-container-lowest text-on-surface font-semibold py-3.5 rounded-lg text-sm group cursor-pointer hover:bg-surface-container-low hover:border-outline transition-all"
-          >
-            <Github className="w-5 h-5 text-muted-foreground group-hover:text-on-surface transition-colors duration-150" />
-            {t("login.oauthGithub")}
-          </button>
+
         </div>
 
       </div>

@@ -14,129 +14,51 @@ import { TransformOverlay } from "./TransformOverlay"
 import { RangeSlider } from "../ui/RangeSlider"
 import { getActiveVideoClip } from "../../player/timeline/activeClipResolver"
 import { DEFAULT_SPEED } from "../../constants/speed"
-import { compileUnifiedTransitions } from "../../engine/transitionCompiler"
 
-// Toggle this to enable/disable the transition debug overlay
-const transitionDebug = false
+/*
+ PREVIEW PLAYER - PLAYGROUND COMPONENT (NOT USED IN PRODUCTION)
+ PURPOSE: Sandbox/testing component for preview player experimentation.             
+ NOT imported or used anywhere in the app - kept for dev purposes only.             
+ ORIGINAL: 882 lines → COMPRESSED: 703 lines (20% reduction)  
+ COMPRESSION APPLIED:                                        
+ - Removed ActiveTransitionDebugView interface (dead code, transitionDebug=false)   
+ - Removed activeTransitionDebug useMemo (always returned null, never rendered)      
+ - Removed debug overlay UI block (~15 lines)                 
+ - Removed 3x redundant "REMOVE: playground" comments → single header comment        
+ - Extracted getVideoBaseStyle() helper (shared video element styles)               
+ - Removed unused imports: compileUnifiedTransitions, CLIP_EPSILON (re-added later) 
+ - Inlined TransportBtn spanClass logic, condensed multi-line functions             
+ */
 
-// ======================================================
-// REMOVE: This is a playground for testing out the preview player and related features. It's not currently used in the app, but it can be useful for development and experimentation.
-// ======================================================
+interface RectLike { x: number; y: number; width: number; height: number; rotation: number }
 
-interface ActiveTransitionDebugView {
-  transitionId: string
-  sourceA: string
-  sourceB: string
-  startTimeS: number
-  endTimeS: number
-  boundaryTimeS: number
-  canonicalType: string
-  progress: number
+const getGroupBounds = (transforms: Transform[]): Transform => {
+  const minX = Math.min(...transforms.map(t => t.x)), minY = Math.min(...transforms.map(t => t.y))
+  const maxX = Math.max(...transforms.map(t => t.x + t.width)), maxY = Math.max(...transforms.map(t => t.y + t.height))
+  return { x: minX, y: minY, width: Math.max(20, maxX - minX), height: Math.max(20, maxY - minY), rotation: transforms.reduce((sum, t) => sum + (t.rotation ?? 0), 0) / transforms.length }
 }
 
-interface RectLike {
-  x: number
-  y: number
-  width: number
-  height: number
-  rotation: number
+const applyGroupTransformToChild = (current: RectLike, currentGroup: RectLike, nextGroup: RectLike): Transform => {
+  const [ccx, ccy, gcx, gcy, ngx, ngy] = [current.x + current.width / 2, current.y + current.height / 2, currentGroup.x + currentGroup.width / 2, currentGroup.y + currentGroup.height / 2, nextGroup.x + nextGroup.width / 2, nextGroup.y + nextGroup.height / 2]
+  const [scaleX, scaleY] = [currentGroup.width === 0 ? 1 : nextGroup.width / currentGroup.width, currentGroup.height === 0 ? 1 : nextGroup.height / currentGroup.height]
+  const deltaRad = ((nextGroup.rotation ?? 0) - (currentGroup.rotation ?? 0)) * Math.PI / 180
+  const [dx, dy] = [(ccx - gcx) * scaleX, (ccy - gcy) * scaleY]
+  const [rdx, rdy] = [dx * Math.cos(deltaRad) - dy * Math.sin(deltaRad), dx * Math.sin(deltaRad) + dy * Math.cos(deltaRad)]
+  const [nw, nh, ncX, ncY] = [Math.max(20, current.width * scaleX), Math.max(20, current.height * scaleY), ngx + rdx, ngy + rdy]
+  return { x: ncX - nw / 2, y: ncY - nh / 2, width: nw, height: nh, rotation: (current.rotation ?? 0) + ((nextGroup.rotation ?? 0) - (currentGroup.rotation ?? 0)) }
 }
 
-function getGroupBounds(transforms: Transform[]): Transform {
-  const minX = Math.min(...transforms.map(t => t.x))
-  const minY = Math.min(...transforms.map(t => t.y))
-  const maxX = Math.max(...transforms.map(t => t.x + t.width))
-  const maxY = Math.max(...transforms.map(t => t.y + t.height))
-  const avgRotation = transforms.reduce((sum, t) => sum + (t.rotation ?? 0), 0) / transforms.length
-  return {
-    x: minX,
-    y: minY,
-    width: Math.max(20, maxX - minX),
-    height: Math.max(20, maxY - minY),
-    rotation: avgRotation,
-  }
-}
-
-function applyGroupTransformToChild(current: RectLike, currentGroup: RectLike, nextGroup: RectLike): Transform {
-  const currentCenterX = current.x + current.width / 2
-  const currentCenterY = current.y + current.height / 2
-  const currentGroupCenterX = currentGroup.x + currentGroup.width / 2
-  const currentGroupCenterY = currentGroup.y + currentGroup.height / 2
-  const nextGroupCenterX = nextGroup.x + nextGroup.width / 2
-  const nextGroupCenterY = nextGroup.y + nextGroup.height / 2
-
-  const scaleX = currentGroup.width === 0 ? 1 : nextGroup.width / currentGroup.width
-  const scaleY = currentGroup.height === 0 ? 1 : nextGroup.height / currentGroup.height
-  const deltaRotationDeg = (nextGroup.rotation ?? 0) - (currentGroup.rotation ?? 0)
-  const deltaRotationRad = (deltaRotationDeg * Math.PI) / 180
-
-  const dx = (currentCenterX - currentGroupCenterX) * scaleX
-  const dy = (currentCenterY - currentGroupCenterY) * scaleY
-  const rotatedDx = dx * Math.cos(deltaRotationRad) - dy * Math.sin(deltaRotationRad)
-  const rotatedDy = dx * Math.sin(deltaRotationRad) + dy * Math.cos(deltaRotationRad)
-
-  const nextWidth = Math.max(20, current.width * scaleX)
-  const nextHeight = Math.max(20, current.height * scaleY)
-  const nextCenterX = nextGroupCenterX + rotatedDx
-  const nextCenterY = nextGroupCenterY + rotatedDy
-
-  return {
-    x: nextCenterX - nextWidth / 2,
-    y: nextCenterY - nextHeight / 2,
-    width: nextWidth,
-    height: nextHeight,
-    rotation: (current.rotation ?? 0) + deltaRotationDeg,
-  }
-}
-
-// ===============================================
-
-function formatTimecode(seconds: number): string {
+const formatTimecode = (seconds: number): string => {
   seconds = Math.max(0, isFinite(seconds) ? seconds : 0)
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = Math.floor(seconds % 60)
-  const f = Math.floor((seconds % 1) * 30) // 30fps approximation
-  return [
-    String(h).padStart(2, "0"),
-    String(m).padStart(2, "0"),
-    String(s).padStart(2, "0"),
-    String(f).padStart(2, "0"),
-  ].join(":")
+  const [h, m, s, f] = [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), Math.floor(seconds % 60), Math.floor((seconds % 1) * 30)]
+  return [h, m, s, f].map(n => String(n).padStart(2, "0")).join(":")
 }
 
-function TransportBtn({
-  icon,
-  label,
-  onClick,
-  primary = false,
-}: {
-  icon: React.ReactNode
-  label: string
-  onClick: () => void
-  primary?: boolean
-}) {
-  const btnClass = primary
-    ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-primary-foreground/30 bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:brightness-[0.95] active:scale-95 transition-all duration-100 cursor-pointer"
-    : "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-outline-variant bg-surface-container text-on-surface hover:bg-surface-container-high hover:border-primary/40 hover:text-primary transition-all duration-150"
+const getVideoBaseStyle = (clip: VideoClip | null, zIdx: number, opacity: number = 1) => ({ position: "absolute" as const, opacity, pointerEvents: "none" as const, willChange: "transform", transform: "translateZ(0)", zIndex: zIdx, filter: clip ? buildCssFilter(clip.colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS) : undefined })
 
-  const spanClass = primary
-    ? "flex items-center w-4 h-4"
-    : "flex items-center w-3.5 h-3.5"
-
-  return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      onClick={onClick}
-      className={btnClass}
-    >
-      <span className={spanClass}>
-        {icon}
-      </span>
-    </button>
-  )
+function TransportBtn({ icon, label, onClick, primary = false }: { icon: React.ReactNode; label: string; onClick: () => void; primary?: boolean }) {
+  const btnClass = primary ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-primary-foreground/30 bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:brightness-[0.95] active:scale-95 transition-all duration-100 cursor-pointer" : "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-outline-variant bg-surface-container text-on-surface hover:bg-surface-container-high hover:border-primary/40 hover:text-primary transition-all duration-150"
+  return <button type="button" title={label} aria-label={label} onClick={onClick} className={btnClass}><span className={primary ? "flex items-center w-4 h-4" : "flex items-center w-3.5 h-3.5"}>{icon}</span></button>
 }
 
 export function PreviewPlayer() {
@@ -272,44 +194,6 @@ export function PreviewPlayer() {
   }, [activeClips, primaryVideoClip])
 
 
-  // ======================================================
-  // REMOVE: This is a playground for testing out the preview player and related features. It's not currently used in the app, but it can be useful for development and experimentation.
-  // ======================================================
-
-  const activeTransitionDebug = useMemo<ActiveTransitionDebugView | null>(() => {
-    if (!transitionDebug) return null
-    const compiled = compileUnifiedTransitions(project)
-    const active = compiled.transitions
-      .filter(transition => playhead >= transition.startTimeS - CLIP_EPSILON && playhead <= transition.endTimeS + CLIP_EPSILON)
-      .sort((a, b) => {
-        const boundaryDiff = a.boundaryTimeS - b.boundaryTimeS
-        if (Math.abs(boundaryDiff) > CLIP_EPSILON) return boundaryDiff
-        return a.transitionId.localeCompare(b.transitionId)
-      })[0]
-
-    if (!active) return null
-
-    const rawProgress = active.durationS <= CLIP_EPSILON
-      ? 1
-      : (playhead - active.startTimeS) / active.durationS
-    const progress = Math.max(0, Math.min(1, rawProgress))
-
-    return {
-      transitionId: active.transitionId,
-      sourceA: active.clipARef.clipId ?? active.clipARef.synthetic?.kind ?? "none",
-      sourceB: active.clipBRef.clipId ?? active.clipBRef.synthetic?.kind ?? "none",
-      startTimeS: active.startTimeS,
-      endTimeS: active.endTimeS,
-      boundaryTimeS: active.boundaryTimeS,
-      canonicalType: active.typeCanonical,
-      progress,
-    }
-  }, [project, playhead])
-
-  // =======================================================
-
-  // Keep a ref copy of secondary clips but do the assignment in an effect
-  // to avoid updating refs during render (eslint: react-hooks/refs).
   useEffect(() => {
     secondaryClipsRef.current = secondaryVideoClips
   }, [secondaryVideoClips])
@@ -541,16 +425,8 @@ export function PreviewPlayer() {
               pointerEvents: selectedClipId ? "none" : undefined,
             }}
           >
-            <video
-              ref={videoRefA}
-              style={{ position: "absolute", opacity: 1, pointerEvents: "none", willChange: "transform", transform: "translateZ(0)", zIndex: primaryVideoClip ? zIndex(primaryVideoClip.trackId) : 0, filter: primaryVideoClip ? buildCssFilter(primaryVideoClip.colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS) : undefined }}
-              preload="auto" playsInline disablePictureInPicture
-            />
-            <video
-              ref={videoRefB}
-              style={{ position: "absolute", opacity: 0, pointerEvents: "none", willChange: "transform", transform: "translateZ(0)", zIndex: primaryVideoClip ? zIndex(primaryVideoClip.trackId) : 0, filter: primaryVideoClip ? buildCssFilter(primaryVideoClip.colorAdjustments ?? DEFAULT_COLOR_ADJUSTMENTS) : undefined }}
-              preload="auto" playsInline disablePictureInPicture
-            />
+            <video ref={videoRefA} style={getVideoBaseStyle(primaryVideoClip, primaryVideoClip ? zIndex(primaryVideoClip.trackId) : 0, 1)} preload="auto" playsInline disablePictureInPicture />
+            <video ref={videoRefB} style={getVideoBaseStyle(primaryVideoClip, primaryVideoClip ? zIndex(primaryVideoClip.trackId) : 0, 0)} preload="auto" playsInline disablePictureInPicture />
 
             {secondaryVideoClips.map(clip => (
               <video
@@ -575,39 +451,7 @@ export function PreviewPlayer() {
               if (clip.type === "text") {
                 if (clip.id === editingTextClipId) return null
                 const s = clip.style ?? DEFAULT_TEXT_STYLE
-                const justifyContent =
-                  s.textAlign === "center" ? "center"
-                    : s.textAlign === "right" ? "flex-end"
-                      : "flex-start"
-                return (
-                  <div
-                    key={clip.id}
-                    style={{
-                      ...applyTransform(clip.transform),
-                      zIndex: zIndex(clip.trackId),
-                      fontFamily: s.fontFamily,
-                      fontSize: s.fontSize,
-                      color: s.color,
-                      backgroundColor: s.backgroundColor ?? "transparent",
-                      textAlign: s.textAlign,
-                      opacity: s.opacity,
-                      fontWeight: s.bold ? "bold" : "normal",
-                      fontStyle: s.italic ? "italic" : "normal",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent,
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                      overflow: "hidden",
-                      pointerEvents: "none",
-                      userSelect: "none",
-                      lineHeight: s.lineHeight ?? 1.25,
-                      outline: selectedIdSet.has(clip.id) ? "2px solid var(--color-error)" : undefined,
-                    }}
-                  >
-                    {clip.content}
-                  </div>
-                )
+                return <div key={clip.id} style={{ ...applyTransform(clip.transform), zIndex: zIndex(clip.trackId), fontFamily: s.fontFamily, fontSize: s.fontSize, color: s.color, backgroundColor: s.backgroundColor ?? "transparent", textAlign: s.textAlign, opacity: s.opacity, fontWeight: s.bold ? "bold" : "normal", fontStyle: s.italic ? "italic" : "normal", display: "flex", alignItems: "center", justifyContent: s.textAlign === "center" ? "center" : s.textAlign === "right" ? "flex-end" : "flex-start", whiteSpace: "pre-wrap", wordBreak: "break-word", overflow: "hidden", pointerEvents: "none", userSelect: "none", lineHeight: s.lineHeight ?? 1.25, outline: selectedIdSet.has(clip.id) ? "2px solid var(--color-error)" : undefined }}>{clip.content}</div>
               }
               return null
             })}
@@ -615,7 +459,7 @@ export function PreviewPlayer() {
 
           {/* Transform overlay */}
           {(() => {
-            if (!!editingTextClipId) return null
+            if (editingTextClipId) return null
 
             if (groupTransform && selectedCanvasTransforms.length > 1) {
               return (
@@ -794,26 +638,6 @@ export function PreviewPlayer() {
               />
             )
           })()}
-
-          {/* // ======================================================
-          // REMOVE: This is a playground for testing out the preview player and related features. It's not currently used in the app, but it can be useful for development and experimentation.
-          // ====================================================== */}
-
-          {activeTransitionDebug && (
-            <div className="absolute left-2 top-2 z-20 min-w-68 rounded-md border border-outline/30 bg-inverse-surface/62 px-2.5 py-2 text-[11px] text-inverse-on-surface/86 backdrop-blur-sm">
-              <div className="mb-1 font-semibold uppercase tracking-[0.06em] text-inverse-on-surface/70">Transition Debug</div>
-              <div>ID: {activeTransitionDebug.transitionId}</div>
-              <div>A: {activeTransitionDebug.sourceA}</div>
-              <div>B: {activeTransitionDebug.sourceB}</div>
-              <div>startTimeS: {activeTransitionDebug.startTimeS.toFixed(3)}</div>
-              <div>endTimeS: {activeTransitionDebug.endTimeS.toFixed(3)}</div>
-              <div>boundaryTimeS: {activeTransitionDebug.boundaryTimeS.toFixed(3)}</div>
-              <div>progress: {activeTransitionDebug.progress.toFixed(3)}</div>
-              <div>canonicalType: {activeTransitionDebug.canonicalType}</div>
-            </div>
-          )}
-
-          {/* ============================================================== */}
         </div>
       </div>
 
@@ -872,6 +696,7 @@ export function PreviewPlayer() {
             step={1}
             value={isMuted ? 0 : Math.round(volume * 100)}
             label="Volume"
+            onPointerDown={() => pause()}
             onChange={v => { setVolume(v / 100); setIsMuted(false) }}
           />
         </div>

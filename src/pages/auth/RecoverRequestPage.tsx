@@ -46,7 +46,7 @@ export default function RecoverRequestPage() {
       <div className="auth-glass-card py-5 px-6 sm:py-7 sm:px-12 max-w-130 mx-auto w-full animate-slide-up flex flex-col items-center gap-4 text-center">
         <MailCheck className="w-14 h-14 text-primary" />
         <h1 className="text-2xl font-extrabold tracking-[-0.02em] text-gradient-primary">{t("recover.sentTitle")}</h1>
-        <p className="text-muted-foreground text-sm max-w-xs">
+        <p className="text-muted-foreground text-sm max-w">
           <Trans
             i18nKey="recover.sentMessage"
             ns="auth"

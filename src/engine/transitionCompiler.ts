@@ -50,6 +50,24 @@ function buildTransitionId(edge: TransitionEdge, clipARef: TransitionClipRef, cl
     return `${edge.trackId}:${aKey}:${bKey}:${boundaryMs}:${edge.transitionTypeCanonical}`
 }
 
+/**
+ * Compiles all transition edges in a project into a flat list of CompiledTransitions
+ * ready for the render/export pipeline.
+ *
+ * Process:
+ *  1. Index all video clips by ID for O(1) lookup.
+ *  2. Migrate legacy clip-level transitionIn/Out to canonical TransitionEdges
+ *     (if project.transitionEdges is absent).
+ *  3. Sort edges deterministically (by trackId, then boundaryTime, then edgeId)
+ *     so output is reproducible across runs.
+ *  4. For each edge: calculate available overlap on both sides, clamp the requested
+ *     duration to fit, normalize time values to integer milliseconds, and resolve
+ *     the canonical transition type.
+ *  5. Drop edges whose clamped duration is effectively zero.
+ *
+ * Warnings are accumulated whenever a transition is clamped or a type is normalized
+ * so callers can surface them to the user.
+ */
 export function compileUnifiedTransitions(project: Project): UnifiedTransitionCompilerResult {
     const warnings: string[] = []
     const byVideoClipId = new Map<string, VideoClip>()

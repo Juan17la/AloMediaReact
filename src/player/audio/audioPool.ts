@@ -1,23 +1,22 @@
-import { destroyAudioContext } from "./audioSync"
+import type { MediaBuffer } from "./mediaBuffer"
 
 /** Incrementally syncs audio elements with the current set of audio track IDs. */
 export function syncAudioPool(
   pool: Map<string, HTMLAudioElement>,
   audioTrackIds: string[],
+  mediaBuffer?: MediaBuffer,
 ): void {
   const needed = new Set(audioTrackIds)
 
-  // Remove elements for tracks that no longer exist
   for (const [trackId, el] of pool) {
     if (!needed.has(trackId)) {
       el.pause()
       if (el.parentNode) el.parentNode.removeChild(el)
-      destroyAudioContext(trackId)
+      mediaBuffer?.destroyAudioContext(trackId)
       pool.delete(trackId)
     }
   }
 
-  // Create elements for new tracks
   for (const trackId of audioTrackIds) {
     if (pool.has(trackId)) continue
     const el = document.createElement("audio")
@@ -29,11 +28,11 @@ export function syncAudioPool(
 }
 
 /** Destroys all audio elements in the pool (call on unmount). */
-export function destroyAudioPool(pool: Map<string, HTMLAudioElement>): void {
+export function destroyAudioPool(pool: Map<string, HTMLAudioElement>, mediaBuffer?: MediaBuffer): void {
   for (const [trackId, el] of pool) {
     el.pause()
     if (el.parentNode) el.parentNode.removeChild(el)
-    destroyAudioContext(trackId)
+    mediaBuffer?.destroyAudioContext(trackId)
   }
   pool.clear()
 }

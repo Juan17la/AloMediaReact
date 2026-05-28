@@ -114,6 +114,10 @@ function buildRenderSegmentFromAudio(clip: AudioClip, track: Track): RenderSegme
   }
 }
 
+/**
+ * Polymorphic dispatcher that routes a Clip to the correct typed builder.
+ * Returns a fully-populated RenderSegment ready for the render pipeline.
+ */
 function buildRenderSegment(clip: Clip, track: Track): RenderSegment {
   switch (clip.type) {
     case "video":
@@ -146,6 +150,15 @@ function convertTransition(t: CompiledTransition): RenderTransition {
   }
 }
 
+/**
+ * Generates a deterministic cache-busting ID for a render plan.
+ *
+ * The ID encodes: output format/resolution/fps/codec/crf, then each track
+ * and clip with its timeline boundaries (in ms to avoid float drift).
+ *
+ * Any change to project structure or output settings produces a different ID,
+ * ensuring stale render plans are never reused.
+ */
 function computePlanId(
   project: Project,
   outputTarget: OutputTarget,
@@ -163,6 +176,10 @@ function computePlanId(
   return parts.join("|")
 }
 
+/**
+ * Scans all render segments and returns the project duration in milliseconds.
+ * Returns 0 when the segment list is empty.
+ */
 function computeDurationInMs(segments: RenderSegment[]): number {
   if (segments.length === 0) return 0
   let maxEnd = 0
@@ -172,6 +189,20 @@ function computeDurationInMs(segments: RenderSegment[]): number {
   return toMs(maxEnd)
 }
 
+/**
+ * Constructs a complete render plan from a project and export settings.
+ *
+ * Process:
+ *  1. Convert all clips to RenderSegments, sorted by track order then timeline start.
+ *  2. Validate segments — skip any that lack a corresponding media file (warnings logged).
+ *  3. Compile transition edges into unified CompiledTransitions.
+ *  4. Build the OutputTarget from format/codec/resolution/fps/preset.
+ *  5. Compute project duration and estimated frame count.
+ *  6. Generate deterministic plan ID for cache invalidation.
+ *
+ * @param probeResults  Per-media metadata (duration, dimensions) from the encoder probe pass.
+ * @param mediaFiles    Map of mediaId → raw File for all media referenced by the project.
+ */
 export function buildRenderPlan(
   project: Project,
   format: ExportOutputFormat,

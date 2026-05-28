@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams, useNavigate, useBlocker } from "react-router"
+import { ArrowLeft } from "lucide-react"
 import { MediaLibrary } from "../../components/editor/MediaLibrary"
 import { Timeline } from "../../components/editor/Timeline"
 import { Toolbar } from "../../components/editor/Toolbar"
@@ -26,11 +27,13 @@ import { EditorErrorBoundary } from "../../components/editor/EditorErrorBoundary
 import AloMediaLogo from "../../assets/AloMediaLogo.webp"
 import { normalizeProjectTimelineFromApi, serializeProjectTimelineForApi } from "../../project/timelineMediaAdapter"
 import { hydrateProjectMediaCache } from "../../services/projectMediaSyncService"
+import { useAuth } from "../../hooks/useAuth"
 
 export default function VideoEditor() {
   const { t } = useTranslation("pages")
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
 
   const project = useEditorStore(s => s.project)
   const resetProject = useEditorStore(s => s.resetProject)
@@ -185,6 +188,11 @@ export default function VideoEditor() {
   }, [project, t])
 
   const handleSave = useCallback(async () => {
+    if (!isAuthenticated) {
+      setToast({ message: 'Please sign in to save your project.', type: 'error' })
+      navigate('/auth/login')
+      return
+    }
     if (!apiProject) {
       setShowSaveModal(true)
       return
@@ -212,9 +220,14 @@ export default function VideoEditor() {
     } finally {
       setIsSaving(false)
     }
-  }, [apiProject])
+  }, [apiProject, isAuthenticated, navigate])
 
   const handleSaveConfirm = useCallback(async (name: string) => {
+    if (!isAuthenticated) {
+      setToast({ message: 'Please sign in to save your project.', type: 'error' })
+      navigate('/auth/login')
+      return
+    }
     const currentProject = useEditorStore.getState().project
     setIsSaving(true)
     try {
@@ -243,15 +256,38 @@ export default function VideoEditor() {
     } finally {
       setIsSaving(false)
     }
-  }, [navigate])
+  }, [navigate, isAuthenticated])
 
   // Block in-app navigation when there are unsaved changes
   const blocker = useBlocker(isDirty)
 
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
+  if (isMobile) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-6 bg-background text-accent-white px-6 text-center">
+        <div className="text-6xl">📱</div>
+        <h1 className="text-2xl font-bold text-on-surface">Mobile Not Supported</h1>
+        <p className="max-w text-sm text-muted-foreground">
+          The video editor is not available on mobile devices. Please use a desktop browser to access this feature.
+        </p>
+        <button
+          onClick={() => navigate('/')}
+          className="rounded-lg border border-outline-variant bg-surface-container px-6 py-3 text-sm font-semibold text-on-surface hover:bg-surface-container-high transition-colors"
+        >
+          Go to Home
+        </button>
+      </div>
+    )
+  }
+
   if (isLoadingProject) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background text-accent-white">
-        <p className="text-sm text-muted">Loading project…</p>
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-[3px] border-outline-variant border-t-primary animate-spin" />
+          <p className="text-sm text-muted-foreground">Loading project…</p>
+        </div>
       </div>
     )
   }
@@ -286,6 +322,17 @@ export default function VideoEditor() {
           WebkitBackdropFilter: "blur(28px) saturate(160%)",
         }}
       >
+        {/* Back button */}
+        <button
+          type="button"
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-1.5 h-8 px-2.5 rounded-md text-[11px] text-muted-foreground hover:text-on-surface hover:bg-surface-container transition-colors duration-100 mr-1 shrink-0"
+          title="Back to dashboard"
+        >
+          <ArrowLeft size={14} />
+          <span className="hidden sm:inline">Back</span>
+        </button>
+
         {/* Logo */}
         <div className="flex h-full w-32 shrink-0 items-center border-r border-r-dark-border px-3">
           <button
@@ -327,9 +374,23 @@ export default function VideoEditor() {
           isExporting={isExporting}
           onLoad={() => loadInputRef.current?.click()}
           onSave={handleSave}
-          onShare={() => setShowShareModal(true)}
+          onShare={() => {
+            if (!isAuthenticated) {
+              setToast({ message: 'Please sign in to share your project.', type: 'error' })
+              navigate('/auth/login')
+              return
+            }
+            setShowShareModal(true)
+          }}
           onDownload={handleDownload}
-          onExport={() => setShowExportModal(true)}
+          onExport={() => {
+            if (!isAuthenticated) {
+              setToast({ message: 'Please sign in to export your project.', type: 'error' })
+              navigate('/auth/login')
+              return
+            }
+            setShowExportModal(true)
+          }}
         />
       </header>
 
@@ -339,7 +400,7 @@ export default function VideoEditor() {
           <aside
             className="flex w-96 shrink-0 flex-col overflow-hidden border-r border-dark-border bg-dark/90"
           >
-            <MediaLibrary onShowToast={(msg, type) => setToast({ message: msg, type })} />
+            <MediaLibrary onShowToast={(msg, type) => setToast({ message: msg, type })} isAuthenticated={isAuthenticated} />
           </aside>
 
           <div

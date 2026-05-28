@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "../../hooks/useAuth";
+import { me } from "../../services/authService";
 import Cookies from "js-cookie";
 import { Loader2 } from "lucide-react";
 
@@ -21,16 +22,7 @@ export default function OAuthCallbackPage() {
 
     Cookies.set("token", token);
 
-    fetch(import.meta.env.VITE_API_URL + "/auth/me", {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${token}`
-      }
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch user data");
-        return res.json();
-      })
+    me()
       .then(data => {
         if (data.authenticated && data.user) {
           login(data.user);

@@ -17,7 +17,11 @@ import {
   Link2,
   Unlink2,
   HelpCircle,
+  Sparkles,
   X,
+  ArrowRight,
+  Pencil,
+  Plus,
 } from "lucide-react"
 import { useEditorStore } from "../../store/editorStore"
 import { usePlayer } from "../../hooks/usePlayer"
@@ -46,6 +50,9 @@ const SHORTCUTS = [
   { keys: "Delete",          action: "Delete selected clip" },
   { keys: ",",               action: "Seek back 1 frame" },
   { keys: ".",               action: "Seek forward 1 frame" },
+  { keys: "I",               action: "Insert mode" },
+  { keys: "O",               action: "Overwrite mode" },
+  { keys: "P",               action: "Append mode" },
 ]
 
 function ShortcutsModal({ onClose }: { onClose: () => void }) {
@@ -90,6 +97,55 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
                   </kbd>
                 </div>
               ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AiHelpModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose()
+    }
+    document.addEventListener("keydown", onKey, true)
+    return () => document.removeEventListener("keydown", onKey, true)
+  }, [onClose])
+
+  const steps = [
+    { num: "1", text: "Select an audio file in the Library" },
+    { num: "2", text: "Click the three dots menu (or right-click)" },
+    { num: "3", text: "Choose an option with the star icon" },
+  ]
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/50"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+      onPointerDown={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="modal-panel w-72">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold tracking-[-0.01em] text-foreground flex items-center gap-1.5">
+            <Sparkles size={14} className="text-primary" />
+            How AI Tools Work
+          </h2>
+          <button
+            onClick={onClose}
+            className="flex items-center rounded-md border-0 bg-transparent p-1 text-muted-foreground cursor-pointer transition-[color,background] duration-100 hover:bg-card hover:text-foreground"
+          >
+            <X size={12} />
+          </button>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {steps.map(({ num, text }) => (
+            <div key={num} className="flex items-center gap-2.5 py-1">
+              <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center shrink-0">
+                {num}
+              </span>
+              <span className="text-[11px] text-foreground/80 leading-snug">{text}</span>
             </div>
           ))}
         </div>
@@ -210,8 +266,11 @@ export function Toolbar() {
   const addTrack = useEditorStore(s => s.addTrack)
   const setTimelineScale = useEditorStore(s => s.setTimelineScale)
   const timelineScale = useEditorStore(s => s.timelineScale)
+  const insertMode = useEditorStore(s => s.insertMode)
+  const setInsertMode = useEditorStore(s => s.setInsertMode)
   const [snapEnabled, setSnapEnabled] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [showAiHelp, setShowAiHelp] = useState(false)
 
   const { seek } = usePlayer()
 
@@ -231,6 +290,19 @@ export function Toolbar() {
   }
 
   useEffect(() => () => { clearZoomIn(); clearZoomOut() }, [])
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      if (e.key === "i") setInsertMode("insert")
+      if (e.key === "o") setInsertMode("overwrite")
+      if (e.key === "p") setInsertMode("append")
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [setInsertMode])
 
   const applyZoomIn = useCallback(() => {
     const current = useEditorStore.getState().timelineScale
@@ -394,6 +466,56 @@ export function Toolbar() {
 
         <GroupDivider />
 
+        {/* Insert Mode toggle */}
+        <div className="flex items-center h-7 rounded-md border-[0.5px] border-white/30 bg-card overflow-hidden shrink-0 gap-1">
+          <button
+            type="button"
+            title="Insert mode (I)"
+            aria-label="Insert mode"
+            className={[
+              "flex items-center justify-center w-7 h-full border-0 cursor-pointer transition-colors duration-100",
+              insertMode === "insert"
+                ? "bg-primary text-primary-foreground"
+                : "bg-transparent text-foreground/70 hover:bg-foreground/10",
+            ].join(" ")}
+            onClick={() => setInsertMode("insert")}
+          >
+            <ArrowRight size={12} />
+          </button>
+          <div className="w-px h-3.5 bg-outline shrink-0" />
+          <button
+            type="button"
+            title="Overwrite mode (O)"
+            aria-label="Overwrite mode"
+            className={[
+              "flex items-center justify-center w-7 h-full border-0 cursor-pointer transition-colors duration-100",
+              insertMode === "overwrite"
+                ? "bg-primary text-primary-foreground"
+                : "bg-transparent text-foreground/70 hover:bg-foreground/10",
+            ].join(" ")}
+            onClick={() => setInsertMode("overwrite")}
+          >
+            <Pencil size={12} />
+          </button>
+          <div className="w-px h-3.5 bg-outline shrink-0" />
+          <button
+            type="button"
+            title="Append mode (P)"
+            aria-label="Append mode"
+            className={[
+              "flex items-center justify-center w-7 h-full border-0 cursor-pointer transition-colors duration-100",
+              insertMode === "append"
+                ? "bg-primary text-primary-foreground"
+                : "bg-transparent text-foreground/70 hover:bg-foreground/10",
+            ].join(" ")}
+            onClick={() => setInsertMode("append")}
+          >
+            <Plus size={12} />
+          </button>
+        </div>
+
+        <GroupDivider />
+
         {/* Snap toggle */}
         <ToolbarBtn
           icon={<Magnet size={14} />}
@@ -429,9 +551,17 @@ export function Toolbar() {
           label="Keyboard shortcuts"
           onClick={() => setShowShortcuts(true)}
         />
+
+        {/* AI Help */}
+        <ToolbarBtn
+          icon={<Sparkles size={14} />}
+          label="How AI tools work"
+          onClick={() => setShowAiHelp(true)}
+        />
       </div>
 
       {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
+      {showAiHelp && <AiHelpModal onClose={() => setShowAiHelp(false)} />}
     </>
   )
 }

@@ -171,9 +171,12 @@ export function MediaCard({
 
           {/* Hover overlay with Plus icon */}
           <div
-            className="absolute inset-0 bg-primary/20 backdrop-blur-[1px] flex items-center justify-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-120"
+            className="absolute inset-0 bg-primary/20 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-120"
             onClick={isSubtitles ? onImportSubtitles : onInsertAtPlayhead}
           >
+            <span className="text-[10px] font-semibold text-primary-foreground max-w-[90%] text-center overflow-hidden text-ellipsis whitespace-nowrap px-1">
+              {media.name}
+            </span>
             {isSubtitles ? (
               <span className="text-[10px] font-semibold tracking-[0.08em] text-primary-foreground">
                 {isImportingSubtitles ? "Importing..." : "Import"}

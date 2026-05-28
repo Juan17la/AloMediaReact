@@ -1,4 +1,4 @@
-import Cookies from "js-cookie"
+import { getAuthHeader } from "../api/authHeader"
 import { ApiError } from "./errors"
 
 const BASE_URL = import.meta.env.VITE_BASE_URL
@@ -10,9 +10,7 @@ function appendMultipartJson(form: FormData, key: string, value: unknown): void 
 // NOTE: Content-Type must NOT be set manually for multipart requests.
 // Passing FormData as body lets the browser set `multipart/form-data; boundary=...` automatically.
 async function postFormBlob(path: string, form: FormData): Promise<Blob> {
-  const token = Cookies.get("token")
-  const headers: Record<string, string> = {}
-  if (token) headers["Authorization"] = `Bearer ${token}`
+  const headers = getAuthHeader()
 
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "POST",

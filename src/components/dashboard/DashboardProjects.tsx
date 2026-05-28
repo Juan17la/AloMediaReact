@@ -1,7 +1,8 @@
-import { useMemo, type Ref } from "react";
+import { useMemo, type Ref, useState } from "react";
 import { ArrowRight, Film, RefreshCw, CalendarDays, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { ApiProject } from "../../types/projectApiTypes";
+import { ProjectContextMenu } from "./ProjectContextMenu";
 
 interface DashboardProjectsProps {
   ownProjects: ApiProject[];
@@ -12,6 +13,8 @@ interface DashboardProjectsProps {
   sharedError: string | null;
   onOpenProject: (id: number) => void;
   onRefresh: () => void;
+  onViewHistory: (id: number) => void;
+  onDeleteProject: (id: number) => void;
   userId?: number;
   ongoingRef?: Ref<HTMLDivElement>;
   sharedRef?: Ref<HTMLDivElement>;
@@ -35,10 +38,12 @@ function ProjectStripCard({
   project,
   index,
   onOpenProject,
+  onContextMenu,
 }: {
   project: ApiProject;
   index: number;
   onOpenProject: (id: number) => void;
+  onContextMenu: (e: React.MouseEvent, id: number) => void;
 }) {
   const { t, i18n } = useTranslation("dashboard");
   const tone = CARD_TONES[index % CARD_TONES.length];
@@ -51,6 +56,7 @@ function ProjectStripCard({
     <button
       type="button"
       onClick={() => onOpenProject(project.id)}
+      onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, project.id); }}
       className="group flex w-64 shrink-0 flex-col overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest text-left transition-colors duration-200 hover:border-primary/50 hover:bg-surface-container-low sm:w-72 lg:w-80"
     >
       <div className="relative aspect-16/10 overflow-hidden border-b border-outline-variant bg-surface-container">
@@ -82,11 +88,13 @@ function SharedRow({
   project,
   index,
   onOpenProject,
+  onContextMenu,
   userId: _userId,
 }: {
   project: ApiProject;
   index: number;
   onOpenProject: (id: number) => void;
+  onContextMenu: (e: React.MouseEvent, id: number) => void;
   userId?: number;
 }) {
   const { i18n } = useTranslation("dashboard");
@@ -96,6 +104,7 @@ function SharedRow({
     <button
       type="button"
       onClick={() => onOpenProject(project.id)}
+      onContextMenu={(e) => { e.preventDefault(); onContextMenu(e, project.id); }}
       className="group flex w-full items-center gap-4 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-3 text-left transition-colors duration-200 hover:border-primary/50 hover:bg-surface-container-low"
     >
       <div className={["h-12 w-18 shrink-0 rounded border border-outline-variant bg-linear-to-br bg-surface-container", tone].join(" ")}>
@@ -131,11 +140,14 @@ export default function DashboardProjects({
   sharedError,
   onOpenProject,
   onRefresh,
+  onViewHistory,
+  onDeleteProject,
   userId,
   ongoingRef,
   sharedRef,
 }: DashboardProjectsProps) {
   const { t } = useTranslation("dashboard");
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; projectId: number } | null>(null);
   const ownSkeletons = useMemo(() => Array.from({ length: 3 }), []);
   const sharedSkeletons = useMemo(() => Array.from({ length: 3 }), []);
 
@@ -178,7 +190,13 @@ export default function DashboardProjects({
           <div className="overflow-x-auto pb-2">
             <div className="flex gap-3 pr-1">
               {ownProjects.map((project, index) => (
-                <ProjectStripCard key={project.id} project={project} index={index} onOpenProject={onOpenProject} />
+                <ProjectStripCard
+                  key={project.id}
+                  project={project}
+                  index={index}
+                  onOpenProject={onOpenProject}
+                  onContextMenu={(e, id) => setContextMenu({ x: e.clientX, y: e.clientY, projectId: id })}
+                />
               ))}
             </div>
           </div>
@@ -210,11 +228,29 @@ export default function DashboardProjects({
         ) : (
           <div className="space-y-2">
             {sharedProjects.map((project, index) => (
-              <SharedRow key={project.id} project={project} index={index} onOpenProject={onOpenProject} userId={userId} />
+              <SharedRow
+                key={project.id}
+                project={project}
+                index={index}
+                onOpenProject={onOpenProject}
+                onContextMenu={(e, id) => setContextMenu({ x: e.clientX, y: e.clientY, projectId: id })}
+                userId={userId}
+              />
             ))}
           </div>
         )}
       </section>
+
+      {contextMenu && (
+        <ProjectContextMenu
+          projectId={contextMenu.projectId}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          onViewHistory={onViewHistory}
+          onDelete={onDeleteProject}
+        />
+      )}
     </div>
   );
 }

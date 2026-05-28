@@ -30,3 +30,10 @@ skills-lock.json
 # ffmpeg.wasm core files copied by postinstall
 public/ffmpeg-core/
 public/ffmpeg-core-st/
+prompts/improvement-plan.md
+prompts/oop-analysis.md
+tests/utils/clipCollision.test.ts
+tests/utils/clone.test.ts
+tests/utils/editHistory.test.ts
+tests/utils/time.test.ts
+tests/utils/transitions.test.ts

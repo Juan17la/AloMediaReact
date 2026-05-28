@@ -24,79 +24,94 @@ interface CacheRecord {
   lastAccessed: number
 }
 
-let dbPromise: Promise<IDBDatabase> | null = null
+export class FileCacheService {
+  private static _instance: FileCacheService
+  private dbPromise: Promise<IDBDatabase> | null = null
 
-function openDb(): Promise<IDBDatabase> {
-  if (!dbPromise) {
-    dbPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION)
-      request.onupgradeneeded = () => {
-        request.result.createObjectStore(STORE_NAME, { keyPath: "hash" })
+  static get instance(): FileCacheService {
+    if (!FileCacheService._instance) {
+      FileCacheService._instance = new FileCacheService()
+    }
+    return FileCacheService._instance
+  }
+
+  private openDb(): Promise<IDBDatabase> {
+    if (!this.dbPromise) {
+      this.dbPromise = new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION)
+        request.onupgradeneeded = () => {
+          request.result.createObjectStore(STORE_NAME, { keyPath: "hash" })
+        }
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => {
+          this.dbPromise = null
+          reject(request.error)
+        }
+      })
+    }
+    return this.dbPromise
+  }
+
+  async saveFileToCache(hash: string, file: File): Promise<void> {
+    const db = await this.openDb()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite")
+      const record: CacheRecord = {
+        hash,
+        blob: new Blob([file], { type: file.type }),
+        name: file.name,
+        type: file.type,
+        lastAccessed: Date.now(),
       }
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => {
-        dbPromise = null // allow retry on failure
-        reject(request.error)
-      }
+      const req = tx.objectStore(STORE_NAME).put(record)
+      req.onsuccess = () => resolve()
+      req.onerror = () => reject(req.error)
     })
   }
-  return dbPromise
-}
 
-export async function saveFileToCache(hash: string, file: File): Promise<void> {
-  const db = await openDb()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite")
-    const record: CacheRecord = {
-      hash,
-      blob: new Blob([file], { type: file.type }),
-      name: file.name,
-      type: file.type,
-      lastAccessed: Date.now(),
-    }
-    const req = tx.objectStore(STORE_NAME).put(record)
-    req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
-  })
-}
-
-export async function getFileFromCache(hash: string): Promise<File | null> {
-  const db = await openDb()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite")
-    const store = tx.objectStore(STORE_NAME)
-    const req = store.get(hash)
-    req.onsuccess = () => {
-      const record = req.result as CacheRecord | undefined
-      if (!record) {
-        resolve(null)
-        return
+  async getFileFromCache(hash: string): Promise<File | null> {
+    const db = await this.openDb()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite")
+      const store = tx.objectStore(STORE_NAME)
+      const req = store.get(hash)
+      req.onsuccess = () => {
+        const record = req.result as CacheRecord | undefined
+        if (!record) {
+          resolve(null)
+          return
+        }
+        store.put({ ...record, lastAccessed: Date.now() })
+        resolve(new File([record.blob], record.name, { type: record.type }))
       }
-      // Touch lastAccessed to extend TTL
-      store.put({ ...record, lastAccessed: Date.now() })
-      resolve(new File([record.blob], record.name, { type: record.type }))
-    }
-    req.onerror = () => reject(req.error)
-  })
+      req.onerror = () => reject(req.error)
+    })
+  }
+
+  async evictExpiredEntries(): Promise<void> {
+    const db = await this.openDb()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite")
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+      const store = tx.objectStore(STORE_NAME)
+      const cutoff = Date.now() - TTL_MS
+      const req = store.openCursor()
+      req.onsuccess = () => {
+        const cursor = req.result as IDBCursorWithValue | null
+        if (!cursor) return
+        if ((cursor.value as CacheRecord).lastAccessed < cutoff) {
+          cursor.delete()
+        }
+        cursor.continue()
+      }
+      req.onerror = () => {}
+    })
+  }
 }
 
-export async function evictExpiredEntries(): Promise<void> {
-  const db = await openDb()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite")
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
-    const store = tx.objectStore(STORE_NAME)
-    const cutoff = Date.now() - TTL_MS
-    const req = store.openCursor()
-    req.onsuccess = () => {
-      const cursor = req.result as IDBCursorWithValue | null
-      if (!cursor) return
-      if ((cursor.value as CacheRecord).lastAccessed < cutoff) {
-        cursor.delete()
-      }
-      cursor.continue()
-    }
-    req.onerror = () => {} // let the transaction complete; individual errors are non-fatal
-  })
-}
+export const fileCacheService = FileCacheService.instance
+
+export const saveFileToCache = (hash: string, file: File) => fileCacheService.saveFileToCache(hash, file)
+export const getFileFromCache = (hash: string) => fileCacheService.getFileFromCache(hash)
+export const evictExpiredEntries = () => fileCacheService.evictExpiredEntries()

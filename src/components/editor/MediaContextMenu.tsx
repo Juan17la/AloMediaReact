@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
+import { Sparkles } from "lucide-react"
 import { useEditorStore } from "../../store/editorStore"
 import type { MediaType } from "../../project/projectTypes"
 
@@ -153,6 +154,7 @@ export function MediaContextMenu({
                 onClick={() => handleOpenAiTools("clean")}
                 className={`${menuAction} ${menuActionNeutral}`}
               >
+                <Sparkles size={12} className="mr-2 inline-block text-primary shrink-0" />
                 Clean Audio
               </button>
               <button
@@ -160,6 +162,7 @@ export function MediaContextMenu({
                 onClick={() => handleOpenAiTools("transcribe")}
                 className={`${menuAction} ${menuActionNeutral}`}
               >
+                <Sparkles size={12} className="mr-2 inline-block text-primary shrink-0" />
                 Transcript
               </button>
               <div className="my-1 h-px bg-linear-to-r from-transparent via-outline-variant to-transparent" />

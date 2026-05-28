@@ -266,7 +266,6 @@ export function Toolbar() {
   const addTrack = useEditorStore(s => s.addTrack)
   const setTimelineScale = useEditorStore(s => s.setTimelineScale)
   const timelineScale = useEditorStore(s => s.timelineScale)
-  const insertMode = useEditorStore(s => s.insertMode)
   const setInsertMode = useEditorStore(s => s.setInsertMode)
   const [snapEnabled, setSnapEnabled] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
@@ -362,7 +361,7 @@ export function Toolbar() {
   return (
     <>
       <div
-        className="flex items-center shrink-0 h-9 px-2 sticky top-0 z-10 overflow-hidden border-t border-outline/30 border-b border-outline/15 shadow-elevated"
+        className="flex items-center shrink-0 h-9 px-2 sticky top-0 z-10 overflow-hidden border-t border-outline/30 border-b shadow-elevated"
         style={{
           backdropFilter: "blur(20px) saturate(140%)",
           WebkitBackdropFilter: "blur(20px) saturate(140%)",
@@ -463,56 +462,6 @@ export function Toolbar() {
           label="Fit to screen"
           onClick={() => seek(0)}
         />
-
-        <GroupDivider />
-
-        {/* Insert Mode toggle */}
-        <div className="flex items-center h-7 rounded-md border-[0.5px] border-white/30 bg-card overflow-hidden shrink-0 gap-1">
-          <button
-            type="button"
-            title="Insert mode (I)"
-            aria-label="Insert mode"
-            className={[
-              "flex items-center justify-center w-7 h-full border-0 cursor-pointer transition-colors duration-100",
-              insertMode === "insert"
-                ? "bg-primary text-primary-foreground"
-                : "bg-transparent text-foreground/70 hover:bg-foreground/10",
-            ].join(" ")}
-            onClick={() => setInsertMode("insert")}
-          >
-            <ArrowRight size={12} />
-          </button>
-          <div className="w-px h-3.5 bg-outline shrink-0" />
-          <button
-            type="button"
-            title="Overwrite mode (O)"
-            aria-label="Overwrite mode"
-            className={[
-              "flex items-center justify-center w-7 h-full border-0 cursor-pointer transition-colors duration-100",
-              insertMode === "overwrite"
-                ? "bg-primary text-primary-foreground"
-                : "bg-transparent text-foreground/70 hover:bg-foreground/10",
-            ].join(" ")}
-            onClick={() => setInsertMode("overwrite")}
-          >
-            <Pencil size={12} />
-          </button>
-          <div className="w-px h-3.5 bg-outline shrink-0" />
-          <button
-            type="button"
-            title="Append mode (P)"
-            aria-label="Append mode"
-            className={[
-              "flex items-center justify-center w-7 h-full border-0 cursor-pointer transition-colors duration-100",
-              insertMode === "append"
-                ? "bg-primary text-primary-foreground"
-                : "bg-transparent text-foreground/70 hover:bg-foreground/10",
-            ].join(" ")}
-            onClick={() => setInsertMode("append")}
-          >
-            <Plus size={12} />
-          </button>
-        </div>
 
         <GroupDivider />
 

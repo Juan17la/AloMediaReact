@@ -159,7 +159,7 @@ export function MediaCard({
         </button>
 
         {/* Thumbnail area — 16:9, flex-grow to fill available space */}
-        <div className="relative aspect-video bg-surface overflow-hidden rounded-md shrink-0">
+        <div className="relative aspect-video bg-surface overflow-hidden rounded-md shrink-0 max-w-full max-h-full">
           <MediaThumbnail media={media} objectUrl={objectUrl} />
 
           {/* Type badge — top-left */}
@@ -174,7 +174,7 @@ export function MediaCard({
             className="absolute inset-0 bg-primary/20 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-120"
             onClick={isSubtitles ? onImportSubtitles : onInsertAtPlayhead}
           >
-            <span className="text-[10px] font-semibold text-primary-foreground max-w-[90%] text-center overflow-hidden text-ellipsis whitespace-nowrap px-1">
+            <span className="text-[10px] font-extrabold text---color-on-primary-fixed-variant max-w-[90%] text-center overflow-hidden text-ellipsis whitespace-nowrap px-1">
               {media.name}
             </span>
             {isSubtitles ? (

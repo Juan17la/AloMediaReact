@@ -38,6 +38,12 @@ Pipeline de importacion:
 5. Crear metadata de media en proyecto.
 6. Guardar File en registro binario de sesion.
 
+Para la extraccion de audio desde video:
+
+- Se genera un archivo de audio reutilizable a partir del video fuente.
+- Ese archivo queda registrado como media de tipo audio en la libreria.
+- Las herramientas de IA consumen ese audio extraido igual que cualquier otro audio importado.
+
 Para videos:
 
 - Se dispara generacion de proxy asincrona.
@@ -63,7 +69,7 @@ Para videos:
 2. Mover clip entre posiciones y pistas.
 3. Redimensionar duracion del clip.
 4. Dividir clip en playhead.
-5. Extraer audio de clip de video.
+5. Extraer audio de clip de video y registrar un asset de audio reutilizable.
 6. Eliminar clip.
 7. Copiar y pegar con resolucion de solape.
 

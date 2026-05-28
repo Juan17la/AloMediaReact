@@ -1,38 +1,48 @@
-import { useEffect, useState, useRef } from "react"
-import { Wand2, FileText, AlertCircle, CheckCircle2, Loader2, MousePointerClick } from "lucide-react"
-import type { Media } from "../../project/projectTypes"
-import { fileMap, useEditorStore } from "../../store/editorStore"
-import { cleanAudio, transcribeAudio } from "../../api/aiMedia"
-import { validateAudioFile, getResultName } from "../../utils/aiMedia"
-import { ApiError } from "../../api/errors"
+import { useEffect, useState, useRef } from "react";
+import {
+  Wand2,
+  FileText,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  MousePointerClick,
+} from "lucide-react";
+import type { Media } from "../../project/projectTypes";
+import { fileMap, useEditorStore } from "../../store/editorStore";
+import { cleanAudio, transcribeAudio } from "../../api/aiMedia";
+import { validateAudioFile, getResultName } from "../../utils/aiMedia";
+import { ApiError } from "../../api/errors";
 
-type AiTool = "clean" | "transcribe"
-type Status = "idle" | "processing" | "success" | "error"
+type AiTool = "clean" | "transcribe";
+type Status = "idle" | "processing" | "success" | "error";
 
 interface AiToolsPanelProps {
-  selectedMedia: Media | null
-  initialTool?: AiTool
+  selectedMedia: Media | null;
+  initialTool?: AiTool;
 }
 
 const sectionLabel =
-  "text-[9px] font-semibold tracking-[0.06em] uppercase text-muted mb-1"
+  "text-[9px] font-semibold tracking-[0.06em] uppercase text-muted mb-1";
 
-export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPanelProps) {
-  const addMedia = useEditorStore((s) => s.addMedia)
+export function AiToolsPanel({
+  selectedMedia,
+  initialTool = "clean",
+}: AiToolsPanelProps) {
+  const addMedia = useEditorStore((s) => s.addMedia);
 
-  const [activeTool, setActiveTool] = useState<AiTool>(initialTool)
-  const [status, setStatus] = useState<Status>("idle")
-  const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [resultName, setResultName] = useState<string | null>(null)
-  const processingRef = useRef(false)
+  const [activeTool, setActiveTool] = useState<AiTool>(initialTool);
+  const [status, setStatus] = useState<Status>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [resultName, setResultName] = useState<string | null>(null);
+  const processingRef = useRef(false);
 
   useEffect(() => {
-    if (processingRef.current) return
-    setActiveTool(initialTool)
-    setStatus("idle")
-    setErrorMsg(null)
-    setResultName(null)
-  }, [initialTool, selectedMedia?.id])
+    if (processingRef.current) return;
+    setActiveTool(initialTool);
+    setStatus("idle");
+    setErrorMsg(null);
+    setResultName(null);
+  }, [initialTool, selectedMedia?.id]);
 
   // ── No media selected ───────────────────────────────────────────────────────
   if (!selectedMedia) {
@@ -40,10 +50,12 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
       <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
         <MousePointerClick size={22} className="text-muted-light" />
         <p className="text-[11px] text-muted leading-relaxed">
-          Click a file in the Library tab<br />to use AI tools on it
+          Click a file in the Library tab
+          <br />
+          to use AI tools on it
         </p>
       </div>
-    )
+    );
   }
 
   // ── Unsupported types ────────────────────────────────────────────────────────
@@ -51,9 +63,11 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
     return (
       <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
         <AlertCircle size={22} className="text-muted-light" />
-        <p className="text-[11px] text-muted">AI tools are not available for images</p>
+        <p className="text-[11px] text-muted">
+          AI tools are not available for images
+        </p>
       </div>
-    )
+    );
   }
 
   if (selectedMedia.type === "video") {
@@ -61,11 +75,12 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
       <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
         <AlertCircle size={22} className="text-muted-light" />
         <p className="text-[11px] text-muted leading-relaxed">
-          Audio extraction from video is not yet supported.<br />
-          Add the audio track separately to use AI tools.
+          Extract the video audio from the timeline first.
+          <br />
+          AI tools work on the resulting audio file.
         </p>
       </div>
-    )
+    );
   }
 
   if (selectedMedia.type === "subtitles") {
@@ -73,83 +88,90 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
       <div className="flex flex-col items-center justify-center flex-1 gap-2 p-4 text-center h-full">
         <AlertCircle size={22} className="text-muted-light" />
         <p className="text-[11px] text-muted leading-relaxed">
-          Subtitle files can be imported into the timeline, but AI tools are not available for them.
+          Subtitle files can be imported into the timeline, but AI tools are not
+          available for them.
         </p>
       </div>
-    )
+    );
   }
 
   // ── Audio file ───────────────────────────────────────────────────────────────
-  const file = fileMap.get(selectedMedia.id)
+  const file = fileMap.get(selectedMedia.id);
 
   async function handleRun() {
-    if (processingRef.current || !selectedMedia || !file) return
+    if (processingRef.current || !selectedMedia || !file) return;
 
-    const validation = validateAudioFile(file)
+    const validation = validateAudioFile(file);
     if (!validation.ok) {
-      setStatus("error")
-      setErrorMsg(validation.error)
-      return
+      setStatus("error");
+      setErrorMsg(validation.error);
+      return;
     }
 
-    processingRef.current = true
-    setStatus("processing")
-    setErrorMsg(null)
-    setResultName(null)
+    processingRef.current = true;
+    setStatus("processing");
+    setErrorMsg(null);
+    setResultName(null);
 
     try {
-      let blob: Blob
-      let outputName: string
+      let blob: Blob;
+      let outputName: string;
 
       if (activeTool === "clean") {
-        blob = await cleanAudio(file)
-        outputName = getResultName(selectedMedia.name, "cleaned", "wav")
-        await addMedia(new File([blob], outputName, { type: "audio/wav" }))
+        blob = await cleanAudio(file);
+        outputName = getResultName(selectedMedia.name, "cleaned", "wav");
+        await addMedia(new File([blob], outputName, { type: "audio/wav" }));
       } else {
-        blob = await transcribeAudio(file)
-        outputName = getResultName(selectedMedia.name, "transcription", "srt")
-        await addMedia(new File([blob], outputName, { type: blob.type || "application/x-subrip" }))
+        blob = await transcribeAudio(file);
+        outputName = getResultName(selectedMedia.name, "transcription", "srt");
+        await addMedia(
+          new File([blob], outputName, {
+            type: blob.type || "application/x-subrip",
+          }),
+        );
       }
 
-      setResultName(outputName)
-      setStatus("success")
+      setResultName(outputName);
+      setStatus("success");
     } catch (err) {
-      let message = "An unexpected error occurred. Please try again."
+      let message = "An unexpected error occurred. Please try again.";
       if (err instanceof ApiError) {
         switch (err.status) {
           case 413:
-            message = "File exceeds the 50 MB limit."
-            break
+            message = "File exceeds the 50 MB limit.";
+            break;
           case 415:
-            message = "Unsupported file format. Accepted: wav, mp3, ogg, flac, m4a."
-            break
+            message =
+              "Unsupported file format. Accepted: wav, mp3, ogg, flac, m4a.";
+            break;
           case 502:
-            message = "Processing service error. Please try again."
-            break
+            message = "Processing service error. Please try again.";
+            break;
           case 503:
-            message = "AI service is currently unavailable. Please try again later."
-            break
+            message =
+              "AI service is currently unavailable. Please try again later.";
+            break;
           default:
-            message = err.message
+            message = err.message;
         }
       }
-      setErrorMsg(message)
-      setStatus("error")
+      setErrorMsg(message);
+      setStatus("error");
     } finally {
-      processingRef.current = false
+      processingRef.current = false;
     }
   }
 
   function handleToolChange(tool: AiTool) {
-    if (processingRef.current) return
-    setActiveTool(tool)
-    setStatus("idle")
-    setErrorMsg(null)
-    setResultName(null)
+    if (processingRef.current) return;
+    setActiveTool(tool);
+    setStatus("idle");
+    setErrorMsg(null);
+    setResultName(null);
   }
 
-  const isProcessing = status === "processing"
-  const runLabel = activeTool === "clean" ? "Clean Audio" : "Transcribe"
+  const isProcessing = status === "processing";
+  const runLabel = activeTool === "clean" ? "Clean Audio" : "Transcribe";
 
   return (
     <div className="flex flex-col h-full">
@@ -159,7 +181,9 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
         <div>
           <p className={sectionLabel}>Selected File</p>
           <div className="flex items-center gap-1.5 px-2 py-1.5 bg-dark-card/50 border border-dark-border rounded-md">
-            <span className="text-[11px] text-accent-white truncate">{selectedMedia.name}</span>
+            <span className="text-[11px] text-accent-white truncate">
+              {selectedMedia.name}
+            </span>
           </div>
         </div>
 
@@ -197,14 +221,18 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
             <CheckCircle2 size={14} className="text-success shrink-0 mt-0" />
             <div className="min-w-0 flex-1">
               <p className="text-[11px] text-success font-medium">Success</p>
-              <p className="text-[10px] text-success/70 break-all">{resultName}</p>
+              <p className="text-[10px] text-success/70 break-all">
+                {resultName}
+              </p>
             </div>
           </div>
         )}
         {status === "error" && errorMsg && (
           <div className="flex items-start gap-2 px-2 py-2 bg-error/10 border border-error/30 rounded-md">
             <AlertCircle size={14} className="text-error shrink-0 mt-0" />
-            <p className="text-[11px] text-error leading-snug flex-1">{errorMsg}</p>
+            <p className="text-[11px] text-error leading-snug flex-1">
+              {errorMsg}
+            </p>
           </div>
         )}
       </div>
@@ -235,15 +263,15 @@ export function AiToolsPanel({ selectedMedia, initialTool = "clean" }: AiToolsPa
         </button>
       </div>
     </div>
-  )
+  );
 }
 
 interface ToolTabProps {
-  active: boolean
-  disabled: boolean
-  onClick: () => void
-  icon: React.ReactNode
-  label: string
+  active: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
 }
 
 function ToolTab({ active, disabled, onClick, icon, label }: ToolTabProps) {
@@ -261,5 +289,5 @@ function ToolTab({ active, disabled, onClick, icon, label }: ToolTabProps) {
       {icon}
       {label}
     </button>
-  )
+  );
 }

@@ -1,4 +1,5 @@
 import type { HistoryEntry, Project } from "../project/projectTypes"
+import { deepClone } from "./clone"
 
 /**
  * Two-stack undo/redo state.
@@ -26,10 +27,6 @@ export interface EditHistoryState {
 /** Returns an empty history — no past, no present, no future. */
 export function createEditHistory(): EditHistoryState {
   return { past: [], present: null, future: [] }
-}
-
-function deepClone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value))
 }
 
 /**

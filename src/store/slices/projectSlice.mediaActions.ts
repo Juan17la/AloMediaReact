@@ -4,7 +4,7 @@ import { DEFAULT_TEXT_STYLE, DEFAULT_TEXT_TRANSFORM } from "../../constants/text
 import { generateId } from "../../utils/id"
 import { hashFile } from "../../utils/fileHash"
 import { parseSrtFile } from "../../utils/srtParser.ts"
-import { getFileFromCache } from "../../services/fileCacheService"
+import { fileCacheService } from "../../services/fileCacheService"
 import { generateProxy } from "../../engine/proxyEngine"
 import { resetPlayer } from "../../hooks/usePlayer"
 import { createEditHistory } from "../../utils/editHistory"
@@ -61,7 +61,7 @@ export const createProjectMediaActions: StateCreator<EditorStore, [], [], Projec
     await Promise.all(
       normalizedProject.media.map(async (m) => {
         try {
-          const cached = await getFileFromCache(m.hash)
+          const cached = await fileCacheService.getFileFromCache(m.hash)
           if (cached) {
             fileMap.set(m.id, cached)
             if (m.type === "video") {

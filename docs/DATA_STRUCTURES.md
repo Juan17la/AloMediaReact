@@ -1,289 +1,276 @@
-# Data Structures in AloMedia
+# Estructuras de Datos en AloMedia
 
-This document catalogs every data structure pattern used in the AloMedia codebase, explaining how each one works, where it is used, and why it was chosen.
+Este documento describe cada patron de estructura de datos usado en la base de codigo de AloMedia,
+como funciona internamente cada uno y por que se eligio sobre alternativas.
 
-The codebase uses **arrays**, **stacks** (undo/redo), **maps/dictionaries**, **sets**, **sorted arrays with binary search**, **graphs**, and **records**. These structures match the domain naturally. Timeline data is flat and ordered, clips are accessed by ID or position, and Zustand's immutable-update model requires plain arrays and objects that can be spread and serialized to JSON.
+La base de codigo usa **arrays**, **maps**, **sets**, **arrays ordenados con busqueda binaria**,
+y un **patron de undo/redo de dos stacks**. Estas son las unicas estructuras presentes porque
+concuerdan naturalmente con el dominio. Introducir listas enlazadas, colas o arboles agregaria
+complejidad sin resolver problemas reales: los datos de timeline son planos y ordenados, los clips se
+acceden por ID o por posicion, y el modelo de actualizacion inmutable de Zustand requiere arrays
+plain y objetos que pueden ser spread y serializados a JSON.
 
 ---
 
 ## 1. Arrays
 
-Arrays are the primary structure. They store every ordered collection in the editor.
+Los arrays son la estructura primaria. Almacenan cada coleccion ordenada en el editor.
 
-### How They Work Here
+### Como funcionan aqui
 
-Every array follows an **immutable update pattern** required by Zustand/React: instead of mutating in place, the code creates a shallow copy via `.slice()`, spread (`[...arr]`), or `.map()`, modifies the copy, and sets it back into the store. This triggers React re-renders only for components subscribing to the changed slice.
+Cada array en el proyecto sigue un **patron de actualizacion inmutable** requerido por
+Zustand/React: en lugar de mutate in place, el codigo crea una copia superficial via
+`.slice()`, spread (`[...arr]`), o `.map()`, modifica la copia, y la asigna de vuelta
+al store. Esto dispara re-renders de React solo para componentes que se suscriben a
+la porcion cambiada del estado.
 
-### Where They Are Used
+### Donde se usan
 
-| Array | File | Purpose |
-|-------|------|---------|
-| `Project.tracks` | `src/project/projectTypes.ts` | Ordered list of tracks. `track.order` determines visual stacking. Sorted via `.slice().sort()` before insertion. |
-| `Track.clips` | `src/project/projectTypes.ts` | Clips on a track, ordered by `timelineStart`. Filtered, mapped, and spread immutably on every edit. |
-| `Project.media` | `src/project/projectTypes.ts` | Imported media assets. Append-only during a session. Removed by filtering on `mediaId`. |
-| `ClipGroup.memberClipIds` | `src/project/projectTypes.ts` | Flat list of clip IDs in a group. Validated against existing clips via `sanitizeSelection()`. |
-| `selectedClipIds` | `src/store/slices/uiSlice.ts` | Multi-selection list. Toggled via Set conversion, then spread back to array. |
-| `RenderJob.segments` | `src/project/projectTypes.ts`, `src/engine/renderPipeline.ts` | Built once from all tracks/clips. Consumed sequentially by the export system. |
-| `history.past` / `history.future` | `src/utils/editHistory.ts` | Stack arrays for undo/redo (see Stacks section). |
-| `boundaries` | `src/utils/clipIndex.ts` | Sorted array of unique time points for binary search. |
-| `probeResults` | `src/engine/exportPipeline/index.ts` | Array of media probe results consumed during export planning. |
+| Array | Archivo | Proposito |
+|-------|---------|-----------|
+| `Project.tracks` | [projectTypes.ts](../src/project/projectTypes.ts) | Lista ordenada de tracks. `track.order` determina el apilamiento visual en el timeline. Ordenado via `.slice().sort()` antes de inserccion o reordenamiento. |
+| `Track.clips` | [projectTypes.ts](../src/project/projectTypes.ts) | Clips en un track dado, ordenados por `timelineStart`. Filtrados, mapeados, y spread inmutablemente en cada operacion de edicion. |
+| `Project.media` | [projectTypes.ts](../src/project/projectTypes.ts) | Assets de media importados. Solo se appende durante una sesion (nuevo media se hace spread al final). Removido por filtrado en `mediaId`. |
+| `ClipGroup.memberClipIds` | [projectTypes.ts](../src/project/projectTypes.ts) | Lista plana de IDs de clips que pertenecen a un grupo. Validado contra clips existentes en cada acceso via `sanitizeSelection()`. |
+| `selectedClipIds` | [uiSlice.ts](../src/store/slices/uiSlice.ts) | Lista de multi-seleccion. Alternada via conversion a Set (add/delete), luego spread de vuelta a un array para estado Zustand. |
+| `RenderJob.segments` | [projectTypes.ts](../src/project/projectTypes.ts), [renderPipeline.ts](../src/engine/renderPipeline.ts) | Construido una vez por `buildRenderJob()` de todos los tracks/clips. Consumido como un todo por el sistema de exportacion — iterado, no drenado. No hay patron de cola o produtor-consumidor aqui; array secuencial es la estructura correcta. |
 
-### Why Not Linked Lists?
+### Por que no listas enlazadas?
 
-Clips are sorted arrays accessed by index. Adjacent-clip navigation (`findNextAdjacentOnSameTrack`, `findPrevAdjacentOnSameTrack` in `src/utils/transitions.ts`) looks like linked-list traversal, but arrays are optimal because:
-- Zustand requires immutable updates (spread/map), which need arrays, not node pointers.
-- Clips serialize to JSON for project save/load and undo snapshots.
-- Adjacent-clip lookup is infrequent (transition resolution), not per-frame.
-- Mid-array insertion is `[...before, newItem, ...after]`, clean for tens to hundreds of clips.
+Los clips son arrays ordenados accedidos por indice. Las funciones `findNextAdjacentOnSameTrack()` y
+`findPrevAdjacentOnSameTrack()` en [transitions.ts](../src/utils/transitions.ts)
+navegan hacia adelante/atras a traves de arrays ordenados — esto parece navegacion de lista enlazada,
+pero array + indice es optimo aqui porque:
+- Zustand requiere actualizciones inmutables (spread/map), que necesitan arrays, no punteros de nodo.
+- Los clips se serializan a JSON para guardar/cargar proyecto y snapshots de undo.
+- Busqueda de clip adyacente es infrecuente (resolucion de transicion), no por frame.
+- Inserccion en medio de array via `[...before, newItem, ...after]`, que es limpio y rapido para la escala de datos involucrados (.decenas a cientos de clips, no miles).
 
 ---
 
-## 2. Stacks (Undo/Redo — Two-Stack Pattern)
+## 2. Dos-Stacks Undo/Redo (EditHistory)
 
-The history system uses a **classic two-stack pattern**.
+El sistema de historial usa un **clasico patron de dos stacks** para soportar undo y redo.
 
-### How It Works
+### Como funciona
 
 ```
 past  = [S0, S1, S2]     present = S3     future = []
 
-User presses Undo:
+Usuario presiona Undo:
 past  = [S0, S1]          present = S2     future = [S3]
 
-User presses Undo again:
+Usuario presiona Undo de nuevo:
 past  = [S0]              present = S1     future = [S2, S3]
 
-User presses Redo:
+Usuario presiona Redo:
 past  = [S0, S1]          present = S2     future = [S3]
 
-User performs new action (records S4):
+Usuario realiza nueva accion (registra S4):
 past  = [S0, S1, S2]      present = S4     future = []
-                                             cleared — redo path gone
+                                            ↑ despejado — camino de redo perdido
 ```
 
-### Fields
+Tres campos, tres operaciones:
 
-| Field | Role |
-|-------|------|
-| `past: HistoryEntry[]` | Stack of states before current. Grows on record/redo, shrinks on undo. |
-| `present: HistoryEntry | null` | Most recent snapshot. Moved to `future` on undo, to `past` on redo. |
-| `future: HistoryEntry[]` | States that were undone. Grows on undo, shrinks on redo. Cleared on new action. |
+| Campo | Rol |
+|-------|-----|
+| `past: HistoryEntry[]` | Stack de estados antes del actual. Crece en record/redo, decrece en undo. Cima del stack = estado pasado mas reciente. |
+| `present: HistoryEntry \| null` | El snapshot mas reciente. Esta entre los dos stacks. Movido a `future` en undo, movido a `past` en redo. |
+| `future: HistoryEntry[]` | Stack de estados que fueron deshechos. Crece en undo, decrece en redo. Despejado enteramente cuando una nueva accion es grabada (historial ramificado no se mantiene). |
 
-### Operations
+### Operaciones
 
-- **`recordState(state, project, description)`** — Pushes current `present` onto `past`, sets new deep-cloned snapshot as `present`, clears `future`.
-- **`undoHistory(state)`** — Pops from `past` into `present`, pushes old `present` onto `future`.
-- **`redoHistory(state)`** — Pops from `future` into `present`, pushes old `present` onto `past`.
+- **`recordState(state, project, description)`** — Push del `present` actual a `past`,
+  establece el nuevo snapshot clonado profundo como `present`, limpia `future`. Esta es la operacion "push" del stack.
 
-### Why Two Stacks Over Cursor
+- **`undoHistory(state)`** — Pop de `past` a `present`, push del `present` antiguo a
+  `future`. Retorna `null` si `past` esta vacio (nada que deshacer).
 
-The previous implementation used `history: HistoryEntry[]` with a `historyIndex` cursor. This had drawbacks:
-- `slice(0, historyIndex + 1)` is non-obvious.
-- Off-by-one risk with cursor bounds.
-- Cursor and array are separate state that can drift.
+- **`redoHistory(state)`** — Pop de `future` a `present`, push del `present` antiguo a
+  `past`. Retorna `null` si `future` esta vacio (nada que rehacer).
 
-With two stacks: "can undo?" is `past.length > 0`, "can redo?" is `future.length > 0`, reset is a single `createEditHistory()` call.
+### Por que esto sobre un solo array + cursor
 
-### Files
+La implementacion anterior usaba `history: HistoryEntry[]` con un cursor `historyIndex`.
+Undo decrementaba el cursor; redo incrementaba; grabar un nuevo estado requeria
+`slice(0, historyIndex + 1)` para descartar historial hacia adelante. Esto funcionaba pero tinha desventajas:
 
-| File | Role |
-|------|------|
-| `src/utils/editHistory.ts` | Pure functions: `createEditHistory`, `recordState`, `undoHistory`, `redoHistory`. No Zustand dependency. |
-| `src/store/slices/historySlice.ts` | Zustand slice wrapping `EditHistory`, exposing `pushHistory()`, `undo()`, `redo()`. |
+- `slice(0, historyIndex + 1)` no es obvio — necesitas razonar sobre lo que "descartar hacia adelante" significa.
+- Riesgo de off-by-one: `historyIndex <= 0` vs `historyIndex >= history.length - 1` sonfaceis de confundir.
+- Cursor y array son estado separado que puede desviarse si cualquier ruta de codigo olvida actualizar ambos.
+- Reset requeria recordar establecer tanto `history: []` como `historyIndex: -1`.
+
+Con dos stacks: "¿se puede deshacer?" es `past.length > 0`, "¿se puede rehacer?" es `future.length > 0`,
+y reset es una unica llamada a `createEditHistory()`. Las operaciones son funciones puras que
+retornan nuevo estado, haciendolas faceis de probar fuera de Zustand.
+
+### Archivos
+
+| Archivo | Rol |
+|---------|-----|
+| [editHistory.ts](../src/utils/editHistory.ts) | Funciones puras: `createEditHistory`, `recordState`, `undoHistory`, `redoHistory`. Sin dependencia de Zustand. |
+| [historySlice.ts](../src/store/slices/historySlice.ts) | Slice de Zustand que envuelve `EditHistory` y expone `pushHistory()`, `undo()`, `redo()` al store. |
 
 ---
 
-## 3. Dictionaries / Maps / Hash Tables
+## 3. Diccionarios y Maps
 
-Maps provide O(1) lookup by ID, used whenever the code needs to find something by key rather than by position.
+Los Maps proveen busqueda O(1) por ID, usados cuando el codigo necesita encontrar algo por clave
+en lugar de por posicion.
 
-### Where They Are Used
+### Donde se usan
 
-| Map | File | How It Works |
-|-----|------|--------------|
-| `fileMap: Map<string, File>` | `src/store/slices/projectSlice.ts` | Module-level registry mapping `mediaId` -> browser `File` object. Outside Zustand state. Populated on import, read during preview/export, cleared on project load. |
-| `proxyMap: Record<string, ProxyState>` | `src/store/slices/proxySlice.ts` | Maps `mediaId` -> proxy generation status. Plain object (not Map) because Zustand diffs object keys for reactivity. |
-| `ClipIndex.segments: Map<number, Clip[]>` | `src/utils/clipIndex.ts` | Maps boundary segment index -> clips active in that time range. Built by `buildClipIndex()`, queried via binary search on `boundaries` array. |
-| Batch operation maps | `src/store/slices/projectSlice.ts` | Temporary `Map` and `Set` instances inside `moveClipsBatch()` for O(1) lookup during bulk ops. Built from input, consumed within the same function, then discarded. |
-| `mediaFileNames: Map<string, string>` | `src/engine/exportPipeline/types.ts` | Maps `mediaId` -> virtual filename for FFmpeg filesystem. |
-| `probeMap: Map<string, MediaProbeResult>` | `src/engine/exportPipeline/index.ts` | Maps `mediaId` -> probe result for quick lookup during plan building. |
-| `textImageNames: Map<string, string>` | `src/engine/exportPipeline/wasmEncoder.ts` | Maps text segment ID -> rendered PNG filename in virtual FS. |
-| `clipPlayStartPh: Map<string, number>` | `src/player/video/videoBuffer.ts` | Tracks when each clip started playing for drift correction. |
-| `pool: Map<string, HTMLAudioElement>` | `src/player/audio/audioPool.ts` | Maps `trackId` -> `<audio>` element. Created/destroyed as tracks change. |
-| `activeManagers: Set<VideoBufferManager>` | `src/player/video/videoBuffer.ts` | Global registry of all active buffer managers for bulk operations like `releaseAllBuffers()`. |
+| Map | Archivo | Como funciona |
+|-----|---------|--------------|
+| `fileMap: Map<string, File>` | [projectSlice.ts](../src/store/slices/projectSlice.ts) | Registro a nivel de modulo mapeando ID de media al objeto `File` del navegador. No es parte del estado reactivo de Zustand (mutaciones de Map no disparan re-renders). Poblado en import, ledo durante preview y export, despejado en carga/reset de proyecto. Este es un registro simple, no un cache — no hay politica de eviction, no hay seguimiento de orden de acceso, no hay limite de tamano. |
+| `proxyMap: Record<string, ProxyState>` | [proxySlice.ts](../src/store/slices/proxySlice.ts) | Mapea ID de media a estado de generacion de proxy (`pending`, `ready`, `error`). Objeto plain (no Map) porque Zustand puede hacer diff de claves de objeto para reactividad. |
+| `ClipIndex.segments: Map<number, Clip[]>` | [clipIndex.ts](../src/utils/clipIndex.ts) | Mapea indice de segmento de boundary a los clips activos en ese rango de tiempo. Construido una vez por `buildClipIndex()`, consultado via busqueda binaria en el array companion `boundaries`. |
+| Batch operation maps | [projectSlice.ts](../src/store/slices/projectSlice.ts) | Instancias temporales de `Map` y `Set` creadas dentro de `moveClipsBatch()` para busqueda O(1) durante operaciones bulk. Construidas desde el array de entrada, consumidas dentro de la misma funcion, luego descartadas. |
 
-### How `fileMap` Works
+### Como funciona `fileMap`
 
 ```
-addMedia(file) -> fileMap.set(media.id, file)     // register
-buildRenderJob() -> fileMap.has(seg.mediaId)       // check existence
-loadProject() -> fileMap.clear()                   // full reset
+addMedia(file) → fileMap.set(media.id, file)     // registrar
+buildRenderJob() → fileMap.has(seg.mediaId)        // verificar existencia
+loadProject() → fileMap.clear()                    // reset completo
 ```
 
-Intentionally outside Zustand because `File` objects are not serializable and should not participate in undo snapshots.
+Esta intencionalmente fuera de Zustand porque los objetos `File` no son serializables
+y no deberian participar en diff de estado o snapshots de undo.
 
 ---
 
 ## 4. Sets
 
-Sets provide O(1) membership testing and automatic deduplication.
+Los Sets se usan para pruebas de membresia O(1) y deduplicacion automatica.
 
-### Where They Are Used
+### Donde se usan
 
-| Set | File | How It Works |
-|-----|------|--------------|
-| `listExistingClipIds()` -> `Set<string>` | `src/store/slices/uiSlice.ts` | Collects all clip IDs across tracks. Used by `sanitizeSelection()` to filter stale IDs. |
-| `sanitizeSelection()` conversion | `src/store/slices/uiSlice.ts` | Deduplicates selection: `[...new Set(clipIds)].filter(...)` |
-| `existingClipIds` in `loadProject()` | `src/store/slices/projectSlice.ts` | Validates clip group members against existing clips. Removes dead references. |
-| `missingMediaIds`, `idbResolvedMediaIds` | `src/store/slices/projectSlice.ts` | Track which media could/could not be restored from IndexedDB. Drive UI warnings. |
-| Extension sets | `src/store/slices/projectSlice.ts` | `AUDIO_EXTENSIONS`, `VIDEO_EXTENSIONS`, `IMAGE_EXTENSIONS` — constant Sets for O(1) file type detection. |
-| `needed: Set<string>` in `syncAudioPool` | `src/player/audio/audioPool.ts` | Determines which audio elements to keep vs remove when tracks change. |
-| `writtenFiles: Set<string>` | `src/engine/exportPipeline/wasmEncoder.ts` | Prevents writing duplicate files to FFmpeg virtual filesystem. |
+| Set | Archivo | Como funciona |
+|-----|---------|--------------|
+| `listExistingClipIds()` → `Set<string>` | [uiSlice.ts](../src/store/slices/uiSlice.ts) | Recolecta todos los IDs de clips a traves de todos los tracks en un Set. Usado por `sanitizeSelection()` para filtrar IDs stale (clips que fueron eliminados pero todava referenciados en la seleccion). El Set provee chequeos O(1) `.has()` en lugar de loops anidados de `Array.find()`. |
+| `new Set(clipIds)` en `sanitizeSelection()` | [uiSlice.ts](../src/store/slices/uiSlice.ts) | Deduplica el array de seleccion antes de filtrar. Hace spread de vuelta a array para estado Zustand: `[...new Set(clipIds)].filter(...)`. |
+| `existingClipIds` en `loadProject()` | [projectSlice.ts](../src/store/slices/projectSlice.ts) | Valida miembros de grupo de clips contra clips realmente existentes durante carga de proyecto. Remueve referencias a clips que ya no existen. |
+| `missingMediaIds`, `idbResolvedMediaIds` | [projectSlice.ts](../src/store/slices/projectSlice.ts) | Rastrear cuales assets de media pudieron/no pudieron ser restaurados de IndexedDB durante carga de proyecto. Impulsan advertencias de UI para archivos faltantes. |
+| Extension sets (`AUDIO_EXTENSIONS`, `VIDEO_EXTENSIONS`, etc.) | [projectSlice.ts](../src/store/slices/projectSlice.ts) | Sets constantes para deteccion O(1) de tipo de archivo por extension. |
 
-### Pattern: Set as Intermediate Structure
+### Patron: Set como estructura intermedia
 
+La base de codigo frecuentemente convierte entre arrays y sets dentro de una sola operacion:
 ```typescript
-// Array -> Set (for O(1) ops) -> Array (for Zustand state)
+// Array → Set (para ops O(1)) → Array (para estado Zustand)
 const selected = new Set(state.selectedClipIds)
 selected.has(clipId) ? selected.delete(clipId) : selected.add(clipId)
 const nextSelected = sanitizeSelection(state.project, [...selected])
 ```
-
-This is idiomatic for React/Zustand: Sets are used for computation, arrays for storage.
+Esto es idiomatico para React/Zustand: Sets se usan para la computacion, pero el
+resultado se almacena como un array porque Zustand necesita chequearos de igualdad referencial y
+los arrays se serializan limpiamente a JSON.
 
 ---
 
-## 5. Sorted Arrays with Binary Search (ClipIndex)
+## 5. Arrays Ordenados con Busqueda Binaria (ClipIndex)
 
-The most algorithmically interesting structure. Provides O(log n) lookup of active clips at any playhead position.
+El indice de clips es la estructura mas interesante algoritmicamente en la base de codigo.
+Prove busqueda O(log n) de que clips estan activos en cualquier posicion de playhead dada.
 
-### How It Works
+### Como funciona
 
-**File:** `src/utils/clipIndex.ts`
+[clipIndex.ts](../src/utils/clipIndex.ts) construye un indice de segmentos desde todos los clips
+a traves de todos los tracks:
 
-**Step 1 — Collect boundaries:**
-Every clip contributes two time points: `timelineStart` and `timelineEnd`. Collected into a `Set<number>` (deduplication), then sorted into `boundaries: number[]`.
+**Paso 1 — Recolectar boundaries:**
+Cada clip contribute dos puntos de tiempo: su `timelineStart` y `timelineEnd`.
+Estos se recolectan en un `Set<number>` (para deduplicacion), luego se ordenan en
+un array `boundaries: number[]`.
 
 ```
 Clip A:  |-------|          (start=0, end=3)
 Clip B:      |---------|    (start=2, end=5)
 
-boundaries = [0, 2, 3, 5]   (sorted, unique)
-segments:     [0] [1] [2]   (between each pair)
+boundaries = [0, 2, 3, 5]   (ordenado, unico)
+segments:     [0] [1] [2]   (entre cada par de boundaries)
 ```
 
-**Step 2 — Map segments to active clips:**
-For each segment, check which clips overlap that range. Midpoint tested against each clip's start/end (with epsilon tolerance). Results stored in `segments: Map<number, Clip[]>` keyed by segment index.
+**Paso 2 — Mapear segmentos a clips activos:**
+Para cada segmento (el gap entre dos boundaries consecutivos), el codigo verifica
+cuales clips sobrelapan ese rango de tiempo. El punto medio del segmento es probado contra
+el start/end de cada clip (con tolerancia epsilon para precision de flotante).
+ Resultados se almacenan en `segments: Map<number, Clip[]>` keyed por indice de segmento.
 
-**Step 3 — Binary search at query time:**
-`lookupActiveClips(index, playhead)` runs binary search on `boundaries`:
+**Paso 3 — Busqueda binaria en tiempo de consulta:**
+`lookupActiveClips(index, playhead)` corre busqueda binaria en `boundaries` para encontrar
+que segmento cae el playhead, luego retorna la lista pre-computada de clips
+del mapa `segments` en O(1).
 
 ```typescript
+// Busqueda binaria: O(log n) donde n = numero de puntos de boundary
 let lo = 0, hi = boundaries.length - 2
 while (lo <= hi) {
-  const mid = (lo + hi) >>> 1
+  const mid = (lo + hi) >>> 1              // shift derecho sin signo = floor(div 2) rapido
   if (boundaries[mid + 1] <= playhead - CLIP_EPSILON) lo = mid + 1
   else if (boundaries[mid] > playhead + CLIP_EPSILON) hi = mid - 1
-  else return segments.get(mid) ?? []
+  else return segments.get(mid) ?? []      // segmento encontrado
 }
 ```
 
-### Why This Structure
+### Por que esta estructura
 
-Playhead position is queried on every animation frame. Naive iteration would be O(clips) per frame. The clip index makes it O(log boundaries) per frame.
+La posicion de playhead se consulta en cada frame de animacion durante reproduccion. Un enfoque naive
+(iterar todos los clips, verificar si playhead cae dentro de cada uno) seria
+O(clips) por frame. El indice de clips lo hace O(log boundaries) por frame, lo que
+importa cuando el timeline tiene muchos clips.
 
-The index is rebuilt when the project changes. This is acceptable because edits are infrequent compared to playhead queries.
-
----
-
-## 6. Graphs (Filter Graph for FFmpeg)
-
-The export pipeline constructs a directed acyclic graph (DAG) represented as a filter complex string for FFmpeg.
-
-### How It Works
-
-**File:** `src/engine/exportPipeline/filterGraphBuilder.ts`
-
-Nodes:
-- **Input nodes** — Media files (`[0:v]`, `[1:v]`, `[0:a]`)
-- **Filter nodes** — `trim`, `scale`, `eq`, `overlay`, `xfade`, `amix`, etc.
-- **Output nodes** — Final video and audio streams
-
-Edges:
-- Labeled stream references (`[scaled0]`, `[mixed_audio]`)
-- Each filter consumes labeled inputs and produces labeled outputs
-- The graph is linearized into a single `-filter_complex` string
-
-Example fragment:
-```
-[0:v]trim=start=0:end=5,setpts=PTS-STARTPTS[clip0];
-[clip0]scale=1920:1080[scaled0];
-[scaled0]eq=brightness=0.1[adjusted0];
-```
-
-### Why a Graph Structure
-
-Video composition is inherently a graph: multiple inputs are filtered, transformed, layered, and mixed. FFmpeg's filter complex is the industry-standard way to express this. The builder generates the string programmatically from the `RenderPlan`.
+El indice se reconstruye cuando el proyecto cambia (clips se agregan, mueven, eliminan).
+Esto es aceptable porque ediciones de proyecto son infrecuentes comparadas con consultas de playhead.
 
 ---
 
-## 7. Trees
+## 6. Edge de Transiciones (Array Ordenado de Registros)
 
-While there are no explicit tree data structures in the classical sense, the project model has hierarchical relationships that form implicit trees:
+El sistema de transiciones en [transitionEdges.ts](../src/project/transitionEdges.ts) usa un
+array ordenado de registros `TransitionEdge` para representar todas las transiciones en el proyecto.
 
-### Project Hierarchy Tree
+### Como funciona
 
-```
-Project (root)
-├── media[] (flat list of assets)
-├── tracks[] (ordered by track.order)
-│   └── clips[] (ordered by timelineStart)
-│       ├── VideoClip
-│       ├── ImageClip
-│       ├── TextClip
-│       └── AudioClip
-├── transitionEdges[] (cross-clip relationships)
-└── clipGroups[] (group containers)
-    └── memberClipIds[] (leaf references)
-```
+`compileTransitionEdges(project)` itera todos los tracks de video y sus clips en orden de timeline.
+Para cada par de clips adyacentes (o un clip al inicio/final de un track), verifica
+si existen propiedades `transitionIn` / `transitionOut` y construye un
+registro `TransitionEdge` con tiempos de boundary normalized.
 
-This hierarchy is stored as nested JSON objects/arrays. Zustand's immutable updates treat it as a shallow tree of plain objects.
+El array resultante se ordena por `(trackId, boundaryTimeS, edgeId)` para que los edges
+puedan escanearse en orden de timeline. Este orden ordenado se mantiene a traves de
+`sortEdges()` despues de cada modificacion via `applyCanonicalTransitionEdit()`.
 
----
+Navegacion de clips adyacentes usa aritmetica simple de indice (`clips[idx - 1]`, `clips[idx + 1]`)
+sobre el array de clips ordenado — no se necesitan punteros de lista enlazada porque el array ya esta
+en orden de timeline y los clips son planos (sin anidamiento jerarquico).
 
-## 8. Transition Edges (Sorted Array of Records)
+### Resolucion de conflictos
 
-**File:** `src/project/transitionEdges.ts`
-
-The transition system uses a sorted array of `TransitionEdge` records.
-
-### How It Works
-
-`compileTransitionEdges(project)` iterates all video tracks and clips in timeline order. For each pair of adjacent clips, it checks `transitionIn` / `transitionOut` properties and builds a `TransitionEdge` record with normalized time boundaries.
-
-The array is sorted by `(trackId, boundaryTimeS, edgeId)` for timeline-order scanning.
-
-### Conflict Resolution
-
-When two clips share a boundary and both declare transitions, `transitionIn` from the incoming clip takes priority over `transitionOut` from the outgoing clip. The sorted structure enables left-to-right processing.
+Cuando dos clips comparten un boundary y ambos declaran transiciones, `transitionIn` del
+clip entrante toma prioridad sobre `transitionOut` del clip saliente. Esta es una
+regla de dominio, no una preocupacion de estructura de datos — pero la estructura de edge ordenado hace
+facil implementarlo procesando clips de izquierda a derecha y saltando la transicion de menor prioridad.
 
 ---
 
-## 9. Objects and Records
+## 7. Objetos y Registros
 
-Plain TypeScript interfaces serve as records (structs) throughout.
+Interfaces plain de TypeScript sirven como registros (structs) a traves de la base de codigo.
 
-| Object | File | Purpose |
-|--------|------|---------|
-| `Project` | `src/project/projectTypes.ts` | Top-level container with `id`, `name`, `media[]`, `tracks[]`, `clipGroups[]`, `transitionEdges[]` |
-| `Clip` (union) | `src/project/projectTypes.ts` | Discriminated union: `VideoClip | ImageClip | TextClip | AudioClip`. The `type` field drives exhaustive switches. |
-| `HistoryEntry` | `src/project/projectTypes.ts` | `{ project: Project, description: string }`. Deep-cloned on record and restore. |
-| `RenderSegment` | `src/project/projectTypes.ts` | Flattened clip representation for export. Built by `clipToSegment()`. |
-| `TransitionEdge` | `src/project/projectTypes.ts` | Canonical transition between two clips (or clip and black/silence). |
-| `RenderPlan` | `src/engine/exportPipeline/types.ts` | Complete export specification: segments, transitions, output target, probe results. |
-| `ExportJob` | `src/engine/exportPipeline/types.ts` | Tracks export execution state: status, progress, frames, error. |
+| Objeto | Archivo | Proposito |
+|--------|---------|-----------|
+| `Project` | [projectTypes.ts](../src/project/projectTypes.ts) | Contenedor de nivel superior con `id`, `name`, `media[]`, `tracks[]`, `clipGroups[]`, `transitionEdges[]`. |
+| `Clip` (tipo union) | [projectTypes.ts](../src/project/projectTypes.ts) | Union discriminada: `VideoClip \| ImageClip \| TextClip \| AudioClip`. El campo `type` impulsa switches exhaustivos en pipeline de render y componentes de UI. |
+| `HistoryEntry` | [projectTypes.ts](../src/project/projectTypes.ts) | `{ project: Project, description: string }` — un snapshot pairado con una etiqueta legible por humanos. Clonado profundo en record y en restore para prevenir aliasing. |
+| `RenderSegment` | [projectTypes.ts](../src/project/projectTypes.ts) | Representacion aplanada de un clip para el pipeline de export. Construida desde `Clip` por `clipToSegment()`, enriquecida con transiciones resueltas. |
+| `TransitionEdge` | [projectTypes.ts](../src/project/projectTypes.ts) | Representacion canonica de una transicion entre dos clips. Contiene tiempos de boundary, duracion, tipo, y metadata de resolucion de conflictos. |
 
-### Immutable Update Pattern
+### Patron de actualizacion inmutable
+
+Todos los objetos en estado Zustand se actualizan inmutablemente via spread:
 
 ```typescript
 set(state => ({
@@ -298,38 +285,38 @@ set(state => ({
 }))
 ```
 
-Creates new references at every changed level while sharing unchanged subtrees.
+Esto crea una nueva referencia de objeto en cada nivel del path que cambio,
+mientras comparte subarboles sin cambios. React detecta la nueva referencia y re-renderiza
+solo los componentes afectados.
 
 ---
 
-## 10. Important Rules
+## 8. Reglas Importantes
 
-### Time Normalization
+Estas reglas gobiernan como se comportan las estructuras en la practica.
 
-All timeline values are stored in seconds but rounded to integer-millisecond precision. The `toMs()` / `toSeconds()` functions in `src/utils/time.ts` enforce this. `CLIP_EPSILON` is used for floating-point comparisons.
+### Normalizacion de tiempo
 
-### Clip Identity
+Todos los valores de timeline se almacenan en segundos pero redondeados a precision de milisegundo entero.
+Las funciones `toMs()` / `toSeconds()` en [time.ts](../src/utils/time.ts) enforce this.
+La constante `CLIP_EPSILON` se usa para comparaciones de punto flotante (deteccion de sobrelape,
+chequeos de adyacencia). Esto asegura que dos clips placing "al mismo tiempo" se traten
+como iguales incluso si la aritmetica de punto flotante produce pequenas diferencias.
 
-Clip IDs are the real identity, not media IDs. Two clips can reference the same media file. The `id` field on `BaseClip` is generated by `generateId()` and is unique across the entire project.
+### Identidad de clip
 
-### Undo Snapshots
+Los IDs de clip son la identidad real, no IDs de media. Dos clips pueden referenciar el mismo archivo de media
+(eg. el mismo video usado dos veces en different tracks). El campo `id` en `BaseClip`
+es generado por `generateId()` y es unico a traves de todo el proyecto.
 
-History stores full project snapshots (deep-cloned via `JSON.parse(JSON.stringify(...))`). Memory grows linearly with history depth. For typical sessions (tens to low hundreds of undo states), this is acceptable.
+### Snapshots de undo
 
-### Serialization
+El sistema de historial almacena snapshots completos de proyecto (clonados profundos via `JSON.parse(JSON.stringify(...))`).
+Esto es simple y correcto pero significa que el uso de memoria crece linealmente con la profundidad del historial.
+Para una sesion de edicion tipica con decenas a basseales de estados de undo, esto esta bien.
 
-All project state is JSON-serializable. `File` objects live in `fileMap` outside Zustand and are not included in undo snapshots or project saves. They are re-resolved from IndexedDB on project load.
+### Serializacion
 
----
-
-## Summary Table
-
-| Structure | Primary Use | Key Files |
-|-----------|-------------|-----------|
-| **Arrays** | Ordered collections, stacks, sorted boundaries | `projectTypes.ts`, `uiSlice.ts`, `clipIndex.ts` |
-| **Stacks** | Undo/redo history | `editHistory.ts`, `historySlice.ts` |
-| **Maps** | ID-based lookup, registries, indexes | `projectSlice.ts`, `proxySlice.ts`, `clipIndex.ts`, `wasmEncoder.ts` |
-| **Sets** | Membership testing, deduplication | `uiSlice.ts`, `projectSlice.ts`, `audioPool.ts` |
-| **Sorted Arrays + Binary Search** | Fast active-clip lookup | `clipIndex.ts`, `transitionEdges.ts` |
-| **Graphs (Filter Complex)** | Video/audio composition DAG | `filterGraphBuilder.ts` |
-| **Records/Objects** | Domain entities, snapshots | `projectTypes.ts`, `types.ts` |
+Todo el estado del proyecto (tracks, clips, metadata de media, transiciones, grupos) es JSON-serializable.
+Los objetos `File` viven en el `fileMap` a nivel de modulo fuera de Zustand y no se incluyen
+en snapshots de undo o guardados de proyecto. Se vuelven a resolver desde IndexedDB en carga de proyecto.

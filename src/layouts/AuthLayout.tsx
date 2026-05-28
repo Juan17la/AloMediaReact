@@ -10,7 +10,7 @@ export default function AuthLayout() {
       {/* Discreet home button */}
       <Link
         to="/"
-        className="absolute top-4 left-4 z-50 flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-on-surface transition-colors duration-150 opacity-60 hover:opacity-100"
+        className="absolute top-4 left-4 sm:left-6 z-50 flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-on-surface transition-colors duration-150 opacity-60 hover:opacity-100"
       >
         <Home size={14} />
         <span>Home</span>

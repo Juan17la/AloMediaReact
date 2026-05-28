@@ -4,6 +4,7 @@ import DashboardProjects from "../../components/dashboard/DashboardProjects";
 import UserMenuModal from "../../components/UserMenuModal";
 import { useAuth } from "../../hooks/useAuth";
 import { useProjectListStore } from "../../store/projectListStore";
+import { deleteProject } from "../../services/projectService";
 import type { ApiProject } from "../../types/projectApiTypes";
 import AloMediaLogo from "../../assets/AloMediaLogo.webp";
 import { Plus } from "lucide-react";
@@ -53,6 +54,20 @@ export default function DashboardPage() {
 
   function handleOpenProject(id: number) {
     navigate(`/editor/${id}`);
+  }
+
+  function handleViewHistory(id: number) {
+    navigate(`/editor/${id}?history=true`);
+  }
+
+  async function handleDeleteProject(id: number) {
+    if (!confirm("Are you sure you want to delete this project?")) return;
+    try {
+      await deleteProject(id);
+      refreshProjects();
+    } catch (err) {
+      console.error("Failed to delete project:", err);
+    }
   }
 
   function handleAdminDashboard() {
@@ -186,6 +201,8 @@ export default function DashboardPage() {
             sharedError={sharedError}
             onOpenProject={handleOpenProject}
             onRefresh={refreshProjects}
+            onViewHistory={handleViewHistory}
+            onDeleteProject={handleDeleteProject}
             userId={user?.id}
             ongoingRef={ongoingSectionRef}
             sharedRef={sharedSectionRef}

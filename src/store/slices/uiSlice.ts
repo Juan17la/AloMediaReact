@@ -8,6 +8,8 @@ import { generateId } from "../../utils/id"
 import type { Clip, ClipGroup, TrackType } from "../../project/projectTypes"
 import type { EditorStore } from "../editorStore"
 
+export type InsertMode = "insert" | "overwrite" | "append"
+
 export interface UiSlice {
   selectedClipId?: string
   selectedClipIds: string[]
@@ -17,6 +19,7 @@ export interface UiSlice {
   selectedTrackId?: string
   timelineScale: number
   clipboard: Clip | null
+  insertMode: InsertMode
   setSelectedClip: (clipId: string | undefined) => void
   toggleClipSelection: (clipId: string) => void
   setSelectedClips: (clipIds: string[]) => void
@@ -28,6 +31,7 @@ export interface UiSlice {
   setSelectedTransitionClip: (clipId: string | undefined) => void
   setSelectedTrack: (trackId: string | undefined) => void
   setTimelineScale: (scale: number) => void
+  setInsertMode: (mode: InsertMode) => void
   /** Copies the currently selected clip into the clipboard. No-op if nothing is selected. */
   copyClip: () => void
   /** Pastes the clipboard clip onto a matching track at the current playhead, resolving overlaps by appending after the last conflicting clip. */
@@ -79,6 +83,7 @@ export const createUiSlice: StateCreator<EditorStore, [], [], UiSlice> = (set, g
   selectedTrackId: undefined,
   timelineScale: TIMELINE_ZOOM.DEFAULT,
   clipboard: null,
+  insertMode: "insert",
 
   setSelectedClip(clipId) {
     if (!clipId) {
@@ -254,6 +259,10 @@ export const createUiSlice: StateCreator<EditorStore, [], [], UiSlice> = (set, g
 
   setTimelineScale(scale) {
     set({ timelineScale: Math.min(TIMELINE_ZOOM.MAX, Math.max(TIMELINE_ZOOM.MIN, scale)) })
+  },
+
+  setInsertMode(mode) {
+    set({ insertMode: mode })
   },
 
   copyClip() {

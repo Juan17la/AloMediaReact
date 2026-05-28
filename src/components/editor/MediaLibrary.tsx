@@ -24,6 +24,7 @@ type AiTool = "clean" | "transcribe";
 
 interface MediaLibraryProps {
   onShowToast: (message: string, type: "success" | "error") => void;
+  isAuthenticated?: boolean;
 }
 
 // Shared trigger ref is imported from utils to avoid exporting non-component
@@ -32,7 +33,7 @@ interface MediaLibraryProps {
 const ghostBtn =
   "flex items-center gap-[5px] h-7 px-[10px] rounded-lg text-[11px] font-semibold tracking-[0.04em] text-on-surface/80 bg-surface-container-low border border-outline-variant hover:bg-surface-container hover:border-outline active:scale-95 transition-all duration-100 cursor-pointer";
 
-export function MediaLibrary({ onShowToast }: MediaLibraryProps) {
+export function MediaLibrary({ onShowToast, isAuthenticated = false }: MediaLibraryProps) {
   const { t } = useTranslation("pages");
   const addMedia = useEditorStore((s) => s.addMedia);
   const importSubtitlesAsGroup = useEditorStore((s) => s.importSubtitlesAsGroup);
@@ -436,7 +437,7 @@ export function MediaLibrary({ onShowToast }: MediaLibraryProps) {
               <div
                 key={item.id}
                 className={[
-                  "min-w-0 h-auto self-start overflow-hidden relative rounded-lg transition-shadow duration-120",
+                  "min-w-0 aspect-video self-start overflow-hidden relative rounded-lg transition-shadow duration-120",
                     isSelected
                       ? "ring-1 ring-primary ring-offset-1"
                       : "",
@@ -454,6 +455,10 @@ export function MediaLibrary({ onShowToast }: MediaLibraryProps) {
                   onImportSubtitles={() => void handleSubtitleImport(item)}
                   onOpenAiTools={(tool) => {
                     if (item.type !== "audio") return;
+                    if (!isAuthenticated) {
+                      onShowToast('Please sign in to use AI tools.', 'error');
+                      return;
+                    }
                     setAiModalState({ mediaId: item.id, tool });
                   }}
                   isImportingSubtitles={subtitleImportingIds.has(item.id)}
@@ -468,7 +473,7 @@ export function MediaLibrary({ onShowToast }: MediaLibraryProps) {
             );
           })}
           {pending.map((p) => (
-            <div key={p.tempId} className="min-w-0 h-auto self-start overflow-hidden">
+            <div key={p.tempId} className="min-w-0 aspect-video self-start overflow-hidden">
               <LoadingCard fileName={p.fileName} />
             </div>
           ))}

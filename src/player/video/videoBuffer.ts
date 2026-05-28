@@ -1,10 +1,14 @@
 import type { ResolvedTransition, Track, VideoClip } from "../../project/projectTypes"
-import { PRELOAD_LOOKAHEAD_MS, DRIFT_CORRECTION_THRESHOLD_S } from "../../constants/timeline"
+import { PRELOAD_LOOKAHEAD_MS } from "../../constants/timeline"
 import { getActiveVideoClip, getNextVideoClip } from "../timeline/activeClipResolver"
 import { applyTransformToEl, applyColorAdjustmentsToEl } from "../render/transformUtils"
 import { DEFAULT_SPEED } from "../../constants/speed"
 import { CLIP_EPSILON } from "../../utils/time"
 import { runTransitionApproximation, type TransitionSwapMetadata } from "./videoTransitions"
+import { TransitionStateMachine } from "./transitionStateMachine"
+import { BufferSwapManager } from "./bufferSwapManager"
+import { PlaybackSynchronizer } from "./playbackSynchronizer"
+import { seekEl } from "./videoBufferUtils"
 
 export interface BufferState {
   activeClipId: string | null
@@ -15,21 +19,7 @@ export interface BufferState {
 
 type UrlResolver = (mediaId: string) => string | undefined
 
-interface TransitionCarryState {
-  outgoingClipId: string
-  incomingClipId: string
-  boundaryTime: number
-}
-
 const activeManagers = new Set<VideoBufferManager>()
-
-function seekEl(el: HTMLVideoElement, time: number): void {
-  if (typeof el.fastSeek === "function") {
-    el.fastSeek(time)
-  } else {
-    el.currentTime = time
-  }
-}
 
 function findVideoClipById(tracks: Track[], clipId: string): VideoClip | null {
   for (const track of tracks) {
@@ -42,10 +32,22 @@ function findVideoClipById(tracks: Track[], clipId: string): VideoClip | null {
 }
 
 /**
- * Manages a double-buffered pair of `<video>` elements.
+ * Manages a double-buffered pair of <video> elements for gapless timeline playback.
  *
- * One element plays the active clip while the other preloads the next clip.
- * Buffer swaps are gated on `canplay` to prevent micro-freezes.
+ * OOP Justification: This class encapsulates complex mutable state (video elements,
+ * buffer swaps, transition timing, RAF-based playback sync) that cannot be reasonably
+ * modeled as pure functions due to:
+ *  - Side effects from HTMLVideoElement API (src, play, pause, seek, opacity)
+ *  - Timing-sensitive state transitions that must be coherent within a frame
+ *  - Resource lifecycle (preloading, buffer readiness events, cleanup)
+ *
+ * Architecture:
+ *  - Uses two video elements (elA, elB) in a ping-pong buffer arrangement.
+ *  - activeBuffer tracks which element currently holds the visible clip.
+ *  - Composed of three helper classes:
+ *    - TransitionStateMachine: handles transition carry/cleanup across clip boundaries
+ *    - BufferSwapManager:      manages buffer swap atomicity and generation tracking
+ *    - PlaybackSynchronizer:   tracks per-clip play start positions for accurate seeking
  */
 export class VideoBufferManager {
   private elA: HTMLVideoElement
@@ -59,18 +61,15 @@ export class VideoBufferManager {
     bufferedMediaId: null,
   }
   private bufferReady = false
-  swapPending = false
-  private swapGen = 0
-  private transitionCarry: TransitionCarryState | null = null
-  private transitionCleanupTimeout: ReturnType<typeof setTimeout> | null = null
-  private clipPlayStartPh = new Map<string, number>()
+  private transitionMachine = new TransitionStateMachine()
+  private swapManager = new BufferSwapManager()
+  private playbackSync = new PlaybackSynchronizer()
   clipSeekDone: string | null = null
 
   constructor(elA: HTMLVideoElement, elB: HTMLVideoElement) {
     this.elA = elA
     this.elB = elB
     activeManagers.add(this)
-    // Always muted — audio is driven through the audio element pool
     this.elA.muted = true
     this.elB.muted = true
   }
@@ -83,7 +82,6 @@ export class VideoBufferManager {
     return this.activeBuffer === "A" ? this.elB : this.elA
   }
 
-  /** Load the first clip into the active buffer. */
   initialize(clip: VideoClip, getUrl: UrlResolver): void {
     const el = this.getActiveEl()
     const url = getUrl(clip.mediaId)
@@ -103,8 +101,6 @@ export class VideoBufferManager {
     }
     this.clipSeekDone = clip.id
   }
-
-  // Buffer preparation 
 
   private prepareBuffer(ph: number, activeClip: VideoClip, tracks: Track[], getUrl: UrlResolver): void {
     const remaining = activeClip.timelineEnd - ph
@@ -131,9 +127,24 @@ export class VideoBufferManager {
     if (bufferEl.readyState >= 3) this.bufferReady = true
   }
 
-  //Buffer swap
-
-
+  /**
+   * Coordinates a buffer swap from the currently-active clip to nextClip.
+   *
+   * Flow:
+   *  1. Load nextClip into the idle buffer element (if not already preloaded).
+   *  2. Seek the incoming element to the correct media time:
+   *     - Inside a transition window: seek to nextClip.mediaStart
+   *     - Outside transition but not prebuffered: derive position from playhead
+   *  3. Apply transform and color adjustments to incoming element.
+   *  4. Wait for the buffer to be ready (canplay or readyState >= 3).
+   *  5. Atomically swap active/inactive buffers:
+   *     - Pause outgoing element and run transition approximation (fade/crossfade).
+   *     - Start incoming playback if engine is playing.
+   *     - Update playbackSync, transitionMachine, and swapManager state.
+   *
+   * The generation counter on swapManager prevents stale swaps from corrupting state
+   * when seeks or clip changes happen in quick succession.
+   */
   private swapBuffers(
     nextClip: VideoClip,
     ph: number,
@@ -147,7 +158,7 @@ export class VideoBufferManager {
     if (!targetSrc) return
 
     const wasPrebuffered = this.state.bufferedClipId === nextClip.id
-    const gen = ++this.swapGen
+    const gen = this.swapManager.initiateSwap(nextClip, this.swapManager.createSwapMetadata(nextClip, getUrl))
 
     if (incomingEl.src !== targetSrc) {
       incomingEl.src = targetSrc
@@ -158,11 +169,9 @@ export class VideoBufferManager {
 
     const inTransitionWindow = !!transition && transition.duration > CLIP_EPSILON && ph + CLIP_EPSILON < nextClip.timelineStart
 
-    // For transition carry, force exact clip start to avoid showing preroll frame.
     if (inTransitionWindow) {
       seekEl(incomingEl, nextClip.mediaStart)
     } else if (!wasPrebuffered) {
-      // Skip seek when prebuffered outside transitions — decoder is already positioned.
       const mediaTime = nextClip.mediaStart + (ph - nextClip.timelineStart) * clipSpeed
       seekEl(incomingEl, Math.max(nextClip.mediaStart, mediaTime))
     }
@@ -171,54 +180,44 @@ export class VideoBufferManager {
     applyColorAdjustmentsToEl(incomingEl, nextClip.colorAdjustments)
 
     const doSwap = () => {
-      if (this.swapGen !== gen) return
+      if (this.swapManager.getCurrentGen() !== gen) return
       const outgoingClipId = this.state.activeClipId
       outgoingEl.pause()
-      this.transitionCleanupTimeout = runTransitionApproximation({
+      const cleanupTimeout = runTransitionApproximation({
         outgoingEl,
         incomingEl,
         nextClip,
         transition,
-        existingCleanupTimeout: this.transitionCleanupTimeout,
+        existingCleanupTimeout: this.transitionMachine.getCleanupTimeout(),
       })
+      this.transitionMachine.setCleanupTimeout(cleanupTimeout)
       if (getIsPlaying()) {
         incomingEl.play().catch(() => { })
       }
       this.activeBuffer = this.activeBuffer === "A" ? "B" : "A"
-      this.clipPlayStartPh.set(nextClip.id, ph)
-      if (outgoingClipId) this.clipPlayStartPh.delete(outgoingClipId)
+      this.playbackSync.recordPlayStart(nextClip.id, ph)
+      if (outgoingClipId) this.playbackSync.deleteClipStartPh(outgoingClipId)
       this.state.activeClipId = nextClip.id
       this.state.activeMediaId = nextClip.mediaId
       this.state.bufferedClipId = null
       this.state.bufferedMediaId = null
       this.bufferReady = false
-      this.swapPending = false
+      this.swapManager.confirmSwap()
 
       if (transition) {
-        this.transitionCarry = {
-          outgoingClipId: outgoingClipId ?? nextClip.id,
-          incomingClipId: nextClip.id,
-          boundaryTime: nextClip.timelineStart,
-        }
+        this.transitionMachine.enterTransition(outgoingClipId ?? nextClip.id, nextClip.id, nextClip.timelineStart)
       } else {
-        this.transitionCarry = null
+        this.transitionMachine.exitTransition()
       }
     }
 
     if (this.bufferReady || incomingEl.readyState >= 3) {
       doSwap()
     } else {
-      this.swapPending = true
       incomingEl.addEventListener("canplay", doSwap, { once: true })
     }
   }
 
-  //Per-frame sync (called from RAF)
-
-  /**
-   * Computes the opacity for fade-in from black (transitionIn without previous clip).
-   * Returns 1 when no fade-in applies.
-   */
   private getFadeInOpacity(ph: number, transitionIn: ResolvedTransition | undefined): number {
     if (!transitionIn || transitionIn.kind !== "fade_from_black" || transitionIn.duration <= CLIP_EPSILON) return 1
     const elapsed = ph - transitionIn.overlapStartS
@@ -227,10 +226,6 @@ export class VideoBufferManager {
     return Math.min(1, Math.max(0, elapsed / transitionIn.duration))
   }
 
-  /**
-   * Computes the opacity for fade-out to black (transitionOut without next clip).
-   * Returns 1 when no fade-out applies.
-   */
   private getFadeOutOpacity(ph: number, transitionOut: ResolvedTransition | undefined): number {
     if (!transitionOut || transitionOut.kind !== "fade_to_black" || transitionOut.duration <= CLIP_EPSILON) return 1
     const fadeStart = transitionOut.overlapStartS
@@ -239,6 +234,24 @@ export class VideoBufferManager {
     return 1 - Math.min(1, Math.max(0, progress))
   }
 
+  /**
+   * Main playback sync entry point — called every RAF frame.
+   *
+   * Responsibilities:
+   *  - Determine the active clip at the current playhead.
+   *  - Handle transition carry-over: when a crossfade is in progress but the
+   *    playhead lands on the incoming clip, keep rendering the old element.
+   *  - Initiate buffer swaps when the active clip changes (normal or transition).
+   *  - Manage per-clip opacity for fade_in/fade_out transitions.
+   *  - Seek the active element when playhead position diverges from media time
+   *    (e.g., after a scrub or after entering a new clip).
+   *  - Preload the next clip when nearing the preload lookahead threshold.
+   *
+   * @param activeOutgoingTransition  Resolved transition from the clip being exited
+   *                                  (used to trigger crossfade swap at the right time).
+   * @param transitionInByClipId      Map of incoming clip → fade-from-black transition.
+   * @param transitionOutByClipId     Map of incoming clip → fade-to-black transition.
+   */
   syncVideo(
     ph: number,
     tracks: Track[],
@@ -251,20 +264,15 @@ export class VideoBufferManager {
     const playing = getIsPlaying()
     const timelineActiveClip = getActiveVideoClip(tracks, ph)
 
-    if (
-      this.transitionCarry &&
-      ph >= this.transitionCarry.boundaryTime + CLIP_EPSILON
-    ) {
-      this.transitionCarry = null
-    }
+    this.transitionMachine.clearCarryIfExpired(ph)
 
-    const carry = this.transitionCarry
+    const carry = this.transitionMachine.getCarry()
     const carryApplies =
       !!carry &&
       !!timelineActiveClip &&
       timelineActiveClip.id === carry.outgoingClipId &&
       this.state.activeClipId === carry.incomingClipId &&
-      ph < carry.boundaryTime + CLIP_EPSILON
+      this.transitionMachine.isCarryActive(ph)
 
     const playbackClip = carryApplies && carry
       ? findVideoClipById(tracks, carry.incomingClipId)
@@ -273,7 +281,7 @@ export class VideoBufferManager {
     if (timelineActiveClip) {
       if (
         playing &&
-        !this.swapPending &&
+        !this.swapManager.isSwapPending() &&
         timelineActiveClip.id === this.state.activeClipId &&
         activeOutgoingTransition &&
         activeOutgoingTransition.kind === "crossfade" &&
@@ -298,12 +306,11 @@ export class VideoBufferManager {
         activeOutgoingTransition.duration > CLIP_EPSILON &&
         ph >= (activeOutgoingTransition.overlapStartS - CLIP_EPSILON)
 
-
       if (
         timelineActiveClip.id !== this.state.activeClipId &&
-        !this.swapPending &&
+        !this.swapManager.isSwapPending() &&
         !carryApplies &&
-        !isTransitioning // <-- prevent overwrite
+        !isTransitioning
       ) {
         this.swapBuffers(timelineActiveClip, ph, getUrl, getIsPlaying, undefined)
         this.clipSeekDone = timelineActiveClip.id
@@ -312,36 +319,29 @@ export class VideoBufferManager {
         const clipSpeed = playbackClip.speed ?? DEFAULT_SPEED
         const activeEl = this.getActiveEl()
         activeEl.playbackRate = clipSpeed
-        const clipStartPh = this.clipPlayStartPh.get(playbackClip.id) ?? playbackClip.timelineStart
         const playbackTransitionIn = transitionInByClipId?.get(playbackClip.id)
         const playbackTransitionOut = transitionOutByClipId?.get(playbackClip.id)
 
-        // Apply fade-in/out opacity for non-crossfade transitions
         const fadeIn = this.getFadeInOpacity(ph, playbackTransitionIn)
         const fadeOut = this.getFadeOutOpacity(ph, playbackTransitionOut)
         const combinedOpacity = Math.min(fadeIn, fadeOut)
         if (combinedOpacity < 1) {
           activeEl.style.opacity = String(combinedOpacity)
-        } else if (!this.transitionCarry) {
+        } else if (!this.transitionMachine.getCarry()) {
           activeEl.style.opacity = "1"
         }
 
         if (this.clipSeekDone !== playbackClip.id) {
           this.clipSeekDone = playbackClip.id
-          const mediaTime = playbackClip.mediaStart + (ph - clipStartPh) * clipSpeed
-          seekEl(activeEl, Math.max(playbackClip.mediaStart, mediaTime))
+          const mediaTime = this.playbackSync.getSeekTarget(playbackClip, ph)
+          seekEl(activeEl, mediaTime)
         } else {
-          const expected = Math.max(
-            playbackClip.mediaStart,
-            playbackClip.mediaStart + (ph - clipStartPh) * clipSpeed,
-          )
-          if (Math.abs(activeEl.currentTime - expected) > DRIFT_CORRECTION_THRESHOLD_S) {
-            seekEl(activeEl, expected)
+          if (this.playbackSync.needsSeek(playbackClip, ph, activeEl.currentTime)) {
+            seekEl(activeEl, this.playbackSync.getSeekTarget(playbackClip, ph))
           }
         }
         this.prepareBuffer(ph, timelineActiveClip, tracks, getUrl)
       } else {
-        // Paused / scrubbing — always sync exactly
         const el = this.getActiveEl()
         const clipSpeed = timelineActiveClip.speed ?? DEFAULT_SPEED
         el.playbackRate = clipSpeed
@@ -351,7 +351,6 @@ export class VideoBufferManager {
         const activeTransitionIn = transitionInByClipId?.get(timelineActiveClip.id)
         const activeTransitionOut = transitionOutByClipId?.get(timelineActiveClip.id)
 
-        // Show fade-in/out opacity even when paused/scrubbing
         const fadeIn = this.getFadeInOpacity(ph, activeTransitionIn)
         const fadeOut = this.getFadeOutOpacity(ph, activeTransitionOut)
         el.style.opacity = String(Math.min(fadeIn, fadeOut))
@@ -364,22 +363,18 @@ export class VideoBufferManager {
       this.state.activeClipId = null
       this.state.activeMediaId = null
       this.clipSeekDone = null
-      this.swapPending = false
+      this.swapManager.cancelSwap()
     }
   }
 
-  //Controls
-
   resetSeekFlags(): void {
     this.clipSeekDone = null
-    this.swapPending = false
-    this.transitionCarry = null
-    this.clipPlayStartPh.clear()
+    this.swapManager.cancelSwap()
+    this.transitionMachine.exitTransition()
+    this.playbackSync.clear()
   }
 
   setVolume(_muted: boolean, _vol: number): void {
-    // Audio is routed through the dedicated audio element pool in useMediaSync.
-    // Video elements are always muted to prevent duplicate audio output.
     this.elA.muted = true
     this.elB.muted = true
   }
@@ -393,9 +388,9 @@ export class VideoBufferManager {
   }
 
   releaseBuffers(): void {
-    if (this.transitionCleanupTimeout) {
-      clearTimeout(this.transitionCleanupTimeout)
-      this.transitionCleanupTimeout = null
+    const cleanupTimeout = this.transitionMachine.getCleanupTimeout()
+    if (cleanupTimeout) {
+      clearTimeout(cleanupTimeout)
     }
     this.elA.pause()
     this.elB.pause()
@@ -412,9 +407,9 @@ export class VideoBufferManager {
       bufferedMediaId: null,
     }
     this.clipSeekDone = null
-    this.swapPending = false
-    this.transitionCarry = null
-    this.clipPlayStartPh.clear()
+    this.swapManager.cancelSwap()
+    this.transitionMachine.exitTransition()
+    this.playbackSync.clear()
   }
 }
 

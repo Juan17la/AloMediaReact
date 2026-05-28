@@ -9,9 +9,7 @@ import {
   AudioLines,
   Gauge,
   ArrowRight,
-  Check,
   Play,
-  Users,
   Sparkles,
   Zap,
   Film,
@@ -22,34 +20,6 @@ import AloMediaLogo from "../../assets/AloMediaLogo.webp";
 import Footer from "../../components/common/Footer";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { GeometricBackground } from "../../components/GeometricBackground";
-
-const FEATURES = [
-  { icon: <Link2 className="w-5 h-5" />, key: "sharing" },
-  { icon: <Mic className="w-5 h-5" />, key: "transcription" },
-  { icon: <Wand2 className="w-5 h-5" />, key: "cleanAudio" },
-  { icon: <Palette className="w-5 h-5" />, key: "colorFilter" },
-  { icon: <Layers className="w-5 h-5" />, key: "transitions" },
-  { icon: <AudioLines className="w-5 h-5" />, key: "equalizer" },
-  { icon: <Gauge className="w-5 h-5" />, key: "speed" },
-];
-
-const PRICING_TIERS = [
-  {
-    key: "free",
-    highlighted: false,
-    features: ["pricingFeature1", "pricingFeature2", "pricingFeature3"],
-  },
-  {
-    key: "starter",
-    highlighted: false,
-    features: ["pricingFeature4", "pricingFeature5", "pricingFeature3"],
-  },
-  {
-    key: "pro",
-    highlighted: true,
-    features: ["pricingFeature4", "pricingFeature5", "pricingFeature6", "pricingFeature7", "pricingFeature8"],
-  },
-];
 
 const FAQ_ITEMS = [
   { q: "faq1Q", a: "faq1A" },
@@ -269,7 +239,7 @@ function FeatureCard({ icon, tKey, badge }: { icon: React.ReactNode; tKey: strin
           {icon}
         </div>
         {badge && (
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em] bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest bg-primary/20 text-primary px-2 py-0.5 rounded-full">
             <Sparkles className="w-2.5 h-2.5" />
             {badge}
           </span>

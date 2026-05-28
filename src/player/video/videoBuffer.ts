@@ -195,7 +195,7 @@ export class VideoBufferManager {
         incomingEl.play().catch(() => { })
       }
       this.activeBuffer = this.activeBuffer === "A" ? "B" : "A"
-      this.playbackSync.recordPlayStart(nextClip.id, ph)
+      this.playbackSync.recordPlayStart(nextClip.id, nextClip.timelineStart)
       if (outgoingClipId) this.playbackSync.deleteClipStartPh(outgoingClipId)
       this.state.activeClipId = nextClip.id
       this.state.activeMediaId = nextClip.mediaId

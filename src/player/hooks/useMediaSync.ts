@@ -61,7 +61,10 @@ export function useMediaSync({
   useEffect(() => { volumeRef.current = volume }, [volume])
 
   useEffect(() => {
-    seekFlagResetRef.current = () => managerRef.current?.resetSeekFlags()
+    seekFlagResetRef.current = () => {
+      managerRef.current?.resetSeekFlags()
+      audioPlayStartPhRef.current.clear()
+    }
     return () => { seekFlagResetRef.current = null }
   }, [seekFlagResetRef])
 

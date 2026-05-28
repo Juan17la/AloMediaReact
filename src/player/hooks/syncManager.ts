@@ -58,6 +58,7 @@ export class SyncManager {
 
   resetSeekFlags(): void {
     this.videoBufferManager?.resetSeekFlags()
+    this.audioPlayStartPhRef.clear()
   }
 
   playActive(): void {

@@ -19,9 +19,7 @@ import {
   HelpCircle,
   Sparkles,
   X,
-  ArrowRight,
-  Pencil,
-  Plus,
+  
 } from "lucide-react"
 import { useEditorStore } from "../../store/editorStore"
 import { usePlayer } from "../../hooks/usePlayer"

@@ -136,7 +136,7 @@ export class MediaBuffer {
       if (url && el.src !== url) el.src = url
       const clipSpeed = clip.speed ?? DEFAULT_SPEED
       el.playbackRate = clipSpeed
-      const startPh = audioPlayStartPh.get(clip.id) ?? clip.timelineStart
+      const startPh = playing ? (audioPlayStartPh.get(clip.id) ?? clip.timelineStart) : clip.timelineStart
       const mediaTime = clip.mediaStart + (ph - startPh) * clipSpeed
       const clipConfig = clip.audioConfig ?? DEFAULT_AUDIO_CONFIG
 
@@ -144,8 +144,8 @@ export class MediaBuffer {
 
       if (newlyActive.has(clip.id)) {
         el.currentTime = Math.max(0, mediaTime)
-        audioPlayStartPh.set(clip.id, ph)
         if (playing) {
+          audioPlayStartPh.set(clip.id, ph)
           const ctx = this.audioContexts.get(clip.id)
           const source = this.mediaElementSources.get(clip.id)
           const gainNode = this.gainNodes.get(clip.id)

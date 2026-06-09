@@ -5,7 +5,6 @@ import { ThemeToggle } from '../ThemeToggle'
 interface EditorToolbarProps {
   apiProject: ApiProject | null
   isSaving: boolean
-  isExporting: boolean
   onLoad: () => void
   onSave: () => void
   onShare: () => void
@@ -22,7 +21,6 @@ const primaryBtn =
 export function EditorToolbar({
   apiProject,
   isSaving,
-  isExporting,
   onLoad,
   onSave,
   onShare,
@@ -72,7 +70,6 @@ export function EditorToolbar({
 
       <button
         onClick={onExport}
-        disabled={isExporting}
         className={primaryBtn}
       >
         <Film size={12} />

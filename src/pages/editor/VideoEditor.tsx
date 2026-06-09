@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from "react"
+import { useRef, useState, useEffect, useCallback, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { useParams, useNavigate, useBlocker } from "react-router"
 import { ArrowLeft } from "lucide-react"
@@ -7,14 +7,12 @@ import { Timeline } from "../../components/editor/Timeline"
 import { Toolbar } from "../../components/editor/Toolbar"
 import { PreviewPlayer } from "../../components/editor/PreviewPlayer"
 import { InspectorPanel } from "../../components/editor/InspectorPanel"
-import { ExportModal } from "../../components/editor/ExportModal"
 import { EditorToolbar } from "../../components/editor/EditorToolbar"
 import { SaveProjectModal } from "../../components/editor/SaveProjectModal"
 import { ShareProjectModal } from "../../components/editor/ShareProjectModal"
 import { UnsavedChangesModal } from "../../components/editor/UnsavedChangesModal"
 import { useEditorStore, fileMap } from "../../store/editorStore"
 import { loadProject, exportProjectJSON } from "../../project/projectSerializer"
-import { useExport } from "../../hooks/useExport"
 import { useEditorKeyboardShortcuts } from "../../hooks/useEditorKeyboardShortcuts"
 import { getProjectById, createProject, updateProject } from "../../services/projectService"
 import { deserializeTimeline } from "../../utils/timelineSerializer"
@@ -39,7 +37,6 @@ export default function VideoEditor() {
   const resetProject = useEditorStore(s => s.resetProject)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(project.name)
-  const [showExportModal, setShowExportModal] = useState(false)
   const loadInputRef = useRef<HTMLInputElement>(null)
 
   // API project state
@@ -49,7 +46,7 @@ export default function VideoEditor() {
   const [isSaving, setIsSaving] = useState(false)
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [toast, setToast] = useState<{ message: ReactNode; type: 'success' | 'error' } | null>(null)
 
   // Dirty tracking — compare store reference against the last known saved project
   const [isDirty, setIsDirty] = useState(false)
@@ -136,7 +133,6 @@ export default function VideoEditor() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [isDirty])
 
-  const { startExport, cancelExport, resetExportState, progress, isExporting, engineInfo } = useExport()
   useEditorKeyboardShortcuts()
 
   const selectedClip = useEditorStore(s => {
@@ -371,7 +367,6 @@ export default function VideoEditor() {
         <EditorToolbar
           apiProject={apiProject}
           isSaving={isSaving}
-          isExporting={isExporting}
           onLoad={() => loadInputRef.current?.click()}
           onSave={handleSave}
           onShare={() => {
@@ -384,12 +379,15 @@ export default function VideoEditor() {
           }}
           onDownload={handleDownload}
           onExport={() => {
-            if (!isAuthenticated) {
-              setToast({ message: 'Please sign in to export your project.', type: 'error' })
-              navigate('/auth/login')
-              return
-            }
-            setShowExportModal(true)
+            setToast({
+              message: (
+                <div>
+                  <div>We're sorry, still working on this :(</div>
+                  <div className="text-[11px] opacity-80 mt-1">Take me out of this suffering</div>
+                </div>
+              ),
+              type: 'error',
+            })
           }}
         />
       </header>
@@ -456,29 +454,6 @@ export default function VideoEditor() {
         >
           {toast.message}
         </div>
-      )}
-
-      {showExportModal && (
-        <ExportModal
-          isExporting={isExporting}
-          progress={progress}
-          onStart={(options) => {
-            startExport(options)
-          }}
-          onCancel={() => {
-            cancelExport()
-            resetExportState()
-            setShowExportModal(false)
-          }}
-          onClose={() => {
-            if (!isExporting) {
-              resetExportState()
-              setShowExportModal(false)
-            }
-          }}
-          defaultFileName={`${project.name}_export`}
-          engineInfo={engineInfo}
-        />
       )}
 
       {showSaveModal && (
